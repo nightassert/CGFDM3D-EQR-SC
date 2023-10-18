@@ -199,6 +199,17 @@ void constructCJM(MPI_Comm comm_cart, MPI_NEIGHBOR mpiNeighbor, GRID grid, FLOAT
 	freeSendRecv(mpiNeighbor, sr_con);
 	MPI_Barrier(MPI_COMM_WORLD);
 
+#ifdef SCFDM
+	// ! For alternative flux finite difference by Tianhong Xu
+	// Medium Transmit
+	SEND_RECV_DATA sr_medium;
+	VARSIZE = MEDIUMSIZE;
+	allocSendRecv(grid, mpiNeighbor, &sr_medium, VARSIZE);
+	mpiSendRecv(comm_cart, mpiNeighbor, grid, medium, sr_medium, VARSIZE);
+	freeSendRecv(mpiNeighbor, sr_medium);
+	MPI_Barrier(MPI_COMM_WORLD);
+#endif
+
 	// data2D_output_bin( grid, slice, g_thisMPICoord, con, 6, CONSIZE, sliceData, sliceDataCpu, name, 0, FP_TYPE );
 
 	setCJM(grid, CJM, medium, con, Jac);

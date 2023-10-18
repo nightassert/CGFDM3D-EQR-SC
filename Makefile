@@ -13,8 +13,10 @@ GPU_CUDA := ON
 XFAST := ON
 ZFAST := #ON
 
-FREE_SURFACE := ON
-PML := ON
+SCFDM := ON
+LF := ON
+FREE_SURFACE :=
+PML :=
 SOLVE_DISPLACEMENT := ON
 Terrain_Smooth := ON 
 DealWithFirstLayer := ON
@@ -95,7 +97,8 @@ OBJS := cjson.o init_gpu.o init_grid.o init_MPI.o main.o getParams.o create_dir.
 		coord.o terrain.o  medium.o dealMedium.o crustMedium.o calc_CFL.o CJM.o \
 		contravariant.o MPI_send_recv.o MPI_send_recv_FLOAT.o multiSource.o wave_deriv.o wave_rk.o \
 		propagate.o freeSurface.o singleSource.o station.o PGV.o addMoment.o \
-		init_pml_para.o pml_deriv.o pml_rk.o pml_freeSurface.o
+		init_pml_para.o pml_deriv.o pml_rk.o pml_freeSurface.o \
+		alternative_flux_FD.o
 
 OBJS := $(addprefix $(OBJDIR)/,$(OBJS))
 
