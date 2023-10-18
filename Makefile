@@ -14,6 +14,7 @@ XFAST := ON
 ZFAST := #ON
 
 SCFDM := ON
+WENO := ON
 LF := ON
 FREE_SURFACE :=
 PML :=
@@ -66,8 +67,8 @@ OBJDIR := ./obj
 BINDIR := ./bin
 
 
-CFLAGS := -c -O2 
-LFLAGS := -O2
+CFLAGS := -c -O3 
+LFLAGS := -O3
 
 GCFLAGS := 
 
@@ -87,7 +88,8 @@ vpath % $(BINDIR)
 
 
 DFLAGS_LIST := XFAST ZFAST GPU_CUDA FLOAT16 FREE_SURFACE PML SOLVE_DISPLACEMENT \
-			   Terrain_Smooth DealWithFirstLayer SET_BASIN LayeredStructureTerrain StructureTerrain
+			   Terrain_Smooth DealWithFirstLayer SET_BASIN LayeredStructureTerrain StructureTerrain \
+			   SCFDM LF WENO
 
 DFLAGS := $(foreach flag,$(DFLAGS_LIST),$(if $($(flag)),-D$(flag)))
 
