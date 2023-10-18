@@ -29,7 +29,12 @@ void allocWave(GRID grid, WAVE *wave)
 	long long num = _nx_ * _ny_ * _nz_;
 
 	FLOAT *pWave = NULL;
+
+#ifdef SCFDM
+	long long size = sizeof(FLOAT) * num * WSIZE * 10; // ! For alternative flux finite difference by Tianhong Xu
+#else
 	long long size = sizeof(FLOAT) * num * WSIZE * 4;
+#endif
 
 	CHECK(Malloc((void **)&pWave, size));
 
@@ -44,6 +49,14 @@ void allocWave(GRID grid, WAVE *wave)
 	wave->W = pWave + 1 * WSIZE * num;
 	wave->t_W = pWave + 2 * WSIZE * num;
 	wave->m_W = pWave + 3 * WSIZE * num;
+#ifdef SCFDM
+	wave->Fu = pWave + 4 * WSIZE * num;
+	wave->Gu = pWave + 5 * WSIZE * num;
+	wave->Hu = pWave + 6 * WSIZE * num;
+	wave->fu_ip12x = pWave + 7 * WSIZE * num;
+	wave->fu_ip12y = pWave + 8 * WSIZE * num;
+	wave->fu_ip12z = pWave + 9 * WSIZE * num;
+#endif
 }
 
 void freeWave(WAVE wave)
