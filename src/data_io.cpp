@@ -433,10 +433,16 @@ void data2D_XYZ_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, FLOAT *wav
 		sprintf(VxFileName, "%s/Vx_%d", params.OUT, it);
 		sprintf(VyFileName, "%s/Vy_%d", params.OUT, it);
 		sprintf(VzFileName, "%s/Vz_%d", params.OUT, it);
-
+#ifdef SCFDM
+		// ! For alternative flux finite difference by Tianhong Xu
+		data2D_output_bin(grid, slice, thisMPICoord, wave, 6 /*x*/, WSIZE, sliceData, sliceDataCpu, VxFileName, 1, FP_TYPE);
+		data2D_output_bin(grid, slice, thisMPICoord, wave, 7 /*x*/, WSIZE, sliceData, sliceDataCpu, VyFileName, 1, FP_TYPE);
+		data2D_output_bin(grid, slice, thisMPICoord, wave, 8 /*x*/, WSIZE, sliceData, sliceDataCpu, VzFileName, 1, FP_TYPE);
+#else
 		data2D_output_bin(grid, slice, thisMPICoord, wave, 0 /*x*/, WSIZE, sliceData, sliceDataCpu, VxFileName, 1, FP_TYPE);
 		data2D_output_bin(grid, slice, thisMPICoord, wave, 1 /*x*/, WSIZE, sliceData, sliceDataCpu, VyFileName, 1, FP_TYPE);
 		data2D_output_bin(grid, slice, thisMPICoord, wave, 2 /*x*/, WSIZE, sliceData, sliceDataCpu, VzFileName, 1, FP_TYPE);
+#endif
 	}
 	break;
 	case 'T':
@@ -453,6 +459,8 @@ void data2D_XYZ_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, FLOAT *wav
 		sprintf(TxzFileName, "%s/Txz_%d", params.OUT, it);
 		sprintf(TyzFileName, "%s/Tyz_%d", params.OUT, it);
 
+#ifdef SCFDM
+#else
 		data2D_output_bin(grid, slice, thisMPICoord, wave, 3 /*x*/, WSIZE, sliceData, sliceDataCpu, TxxFileName, 2, FP_TYPE);
 		data2D_output_bin(grid, slice, thisMPICoord, wave, 4 /*x*/, WSIZE, sliceData, sliceDataCpu, TyyFileName, 2, FP_TYPE);
 		data2D_output_bin(grid, slice, thisMPICoord, wave, 5 /*x*/, WSIZE, sliceData, sliceDataCpu, TzzFileName, 2, FP_TYPE);
@@ -460,6 +468,7 @@ void data2D_XYZ_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, FLOAT *wav
 		data2D_output_bin(grid, slice, thisMPICoord, wave, 6 /*x*/, WSIZE, sliceData, sliceDataCpu, TxyFileName, 2, FP_TYPE);
 		data2D_output_bin(grid, slice, thisMPICoord, wave, 7 /*x*/, WSIZE, sliceData, sliceDataCpu, TxzFileName, 2, FP_TYPE);
 		data2D_output_bin(grid, slice, thisMPICoord, wave, 8 /*x*/, WSIZE, sliceData, sliceDataCpu, TyzFileName, 2, FP_TYPE);
+#endif
 	}
 	break;
 
@@ -470,9 +479,12 @@ void data2D_XYZ_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, FLOAT *wav
 		sprintf(VyFileName, "%s/FreeSurfVy_%d", params.OUT, it);
 		sprintf(VzFileName, "%s/FreeSurfVz_%d", params.OUT, it);
 
+#ifdef SCFDM
+#else
 		data2D_output_bin(grid, slice, thisMPICoord, wave, 0 /*x*/, WSIZE, sliceData, sliceDataCpu, VxFileName, 1, FP_TYPE);
 		data2D_output_bin(grid, slice, thisMPICoord, wave, 1 /*x*/, WSIZE, sliceData, sliceDataCpu, VyFileName, 1, FP_TYPE);
 		data2D_output_bin(grid, slice, thisMPICoord, wave, 2 /*x*/, WSIZE, sliceData, sliceDataCpu, VzFileName, 1, FP_TYPE);
+#endif
 	}
 	}
 }
