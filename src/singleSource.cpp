@@ -115,9 +115,62 @@ void load_smooth_source(SOURCE S, FLOAT *h_W, int _nx_, int _ny_, int _nz_,
 	// printf( "value = %10.10lf\n", value  );
 	value *= Cs * DT;
 
+#ifdef SCFDM
+	// ! For alternative flux finite difference by Tianhong Xu
+	float u_conserv[9], u_phy[9];
+
+	for (int n = 0; n < 9; n++)
+	{
+		u_conserv[n] = h_W[index * WSIZE + n];
+	}
+
+	float mu = CJM[index * CJMSIZE + 10];
+	float lambda = CJM[index * CJMSIZE + 11];
+	float buoyancy = CJM[index * CJMSIZE + 12];
+	buoyancy *= Crho;
+
+	u_phy[0] = lambda * u_conserv[1] + lambda * u_conserv[2] + u_conserv[0] * (lambda + 2 * mu);
+	u_phy[1] = lambda * u_conserv[0] + lambda * u_conserv[2] + u_conserv[1] * (lambda + 2 * mu);
+	u_phy[2] = lambda * u_conserv[0] + lambda * u_conserv[1] + u_conserv[2] * (lambda + 2 * mu);
+	u_phy[3] = 2 * mu * u_conserv[3];
+	u_phy[4] = 2 * mu * u_conserv[5];
+	u_phy[5] = 2 * mu * u_conserv[4];
+	u_phy[6] = u_conserv[6] * buoyancy;
+	u_phy[7] = u_conserv[7] * buoyancy;
+	u_phy[8] = u_conserv[8] * buoyancy;
+
+	u_phy[0] += value;
+	u_phy[1] += value;
+	u_phy[2] += value;
+
+	u_conserv[0] = (u_phy[0] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * u_phy[1]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * u_phy[2]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
+	u_conserv[1] = (u_phy[1] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * u_phy[0]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * u_phy[2]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
+	u_conserv[2] = (u_phy[2] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * u_phy[0]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * u_phy[1]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
+	u_conserv[3] = u_phy[3] / (2 * mu);
+	u_conserv[4] = u_phy[5] / (2 * mu);
+	u_conserv[5] = u_phy[4] / (2 * mu);
+	u_conserv[6] = u_phy[6] / buoyancy;
+	u_conserv[7] = u_phy[7] / buoyancy;
+	u_conserv[8] = u_phy[8] / buoyancy;
+
+	h_W[index * WSIZE + 0] = u_conserv[0];
+	h_W[index * WSIZE + 1] = u_conserv[1];
+	h_W[index * WSIZE + 2] = u_conserv[2];
+	h_W[index * WSIZE + 3] = u_conserv[3];
+	h_W[index * WSIZE + 4] = u_conserv[5];
+	h_W[index * WSIZE + 5] = u_conserv[4];
+	h_W[index * WSIZE + 6] = u_conserv[6];
+	h_W[index * WSIZE + 7] = u_conserv[7];
+	h_W[index * WSIZE + 8] = u_conserv[8];
+
+	// h_W[index * WSIZE + 0] = ((float)h_W[index * WSIZE + 0] + value);
+	// h_W[index * WSIZE + 1] = ((float)h_W[index * WSIZE + 1] + value);
+	// h_W[index * WSIZE + 2] = ((float)h_W[index * WSIZE + 2] + value);
+#else
 	h_W[index * WSIZE + 3] = ((float)h_W[index * WSIZE + 3] + value);
 	h_W[index * WSIZE + 4] = ((float)h_W[index * WSIZE + 4] + value);
 	h_W[index * WSIZE + 5] = ((float)h_W[index * WSIZE + 5] + value);
+#endif
 
 	END_CALCULATE3D()
 }
@@ -206,7 +259,6 @@ void Gaussian_pluse(FLOAT *W,
 
 void GaussField(GRID grid, FLOAT *W)
 {
-
 	int _nx_ = grid._nx_;
 	int _ny_ = grid._ny_;
 	int _nz_ = grid._nz_;
