@@ -10,6 +10,29 @@
 ================================================================*/
 #include "header.h"
 
+// ! For alternative flux finite difference by Tianhong Xu
+__GLOBAL__
+void initMedium(float *medium, int _nx_, int _ny_, int _nz_)
+{
+	long long index = 0;
+#ifdef GPU_CUDA
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	int k = blockIdx.z * blockDim.z + threadIdx.z;
+#else
+	int i = 0;
+	int j = 0;
+	int k = 0;
+#endif
+
+	CALCULATE3D(i, j, k, 0, _nx_, 0, _ny_, 0, _nz_)
+	index = INDEX(i, j, k) * MSIZE;
+	medium[index + 0] = 1.0f;
+	medium[index + 1] = 1.0f;
+	medium[index + 2] = 1.0f;
+	END_CALCULATE3D()
+}
+
 void allocMedium(GRID grid, float **medium, float **cpu_medium)
 {
 	int _nx_ = grid._nx_;
@@ -28,7 +51,23 @@ void allocMedium(GRID grid, float **medium, float **cpu_medium)
 	}
 	CHECK(Memset(*medium, 0, size));
 
+#ifdef SCFDM
+	// ! For alternative flux finite difference by Tianhong Xu
+	dim3 blocks(32, 16, 1);
+	dim3 threads;
+	threads.x = (_nx_ + blocks.x - 1) / blocks.x;
+	threads.y = (_ny_ + blocks.y - 1) / blocks.y;
+	threads.z = (_nz_ + blocks.z - 1) / blocks.z;
+
 #ifdef GPU_CUDA
+	initMedium<<<blocks, threads>>>(*medium, _nx_, _ny_, _nz_);
+#else
+	initMedium(*medium, _nx_, _ny_, _nz_);
+#endif // GPU_CUDA
+#endif // SCFDM
+
+#ifdef GPU_CUDA
+
 	*cpu_medium = (float *)malloc(size);
 
 	if (*cpu_medium == NULL)
