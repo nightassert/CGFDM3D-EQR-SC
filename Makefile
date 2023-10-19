@@ -15,6 +15,7 @@ ZFAST := #ON
 
 SCFDM := ON
 WENO := ON
+MP := # Not correct
 LF := ON
 FREE_SURFACE :=
 PML :=
@@ -89,7 +90,7 @@ vpath % $(BINDIR)
 
 DFLAGS_LIST := XFAST ZFAST GPU_CUDA FLOAT16 FREE_SURFACE PML SOLVE_DISPLACEMENT \
 			   Terrain_Smooth DealWithFirstLayer SET_BASIN LayeredStructureTerrain StructureTerrain \
-			   SCFDM LF WENO
+			   SCFDM LF WENO MP
 
 DFLAGS := $(foreach flag,$(DFLAGS_LIST),$(if $($(flag)),-D$(flag)))
 

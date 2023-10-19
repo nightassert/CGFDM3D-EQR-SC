@@ -11,8 +11,88 @@
 #define TIMES_PML_BETA_Z
 #endif
 
+#ifdef WENO
 #define order2_approximation(u1, u2, u3, u4, u5, u6) (1.0f / 48 * (-5 * u1 + 39 * u2 - 34 * u3 - 34 * u4 + 39 * u5 - 5 * u6))
 #define order4_approximation(u1, u2, u3, u4, u5, u6) (1.0f / 2 * (u1 - 3 * u2 + 2 * u3 + 2 * u4 - 3 * u5 + u6))
+#endif
+
+#ifdef MP
+#define order2_approximation(u1, u2, u3) (-1.0 / 6 * (u1 - 2 * u2 + u3))
+#define order4_approximation(u1, u2, u3, u4, u5) (1.0 / 180 * (u1 - 9 * u2 + 16 * u3 - 9 * u4 + u5))
+#endif
+
+// MP5 interpolation scheme
+
+__DEVICE__
+int sign(float a)
+{
+    if (a > 0)
+        return 1;
+    else if (a < 0)
+        return -1;
+    else
+        return 0;
+}
+
+__DEVICE__
+float min3(float a, float b, float c)
+{
+    return min(min(a, b), c);
+}
+
+__DEVICE__
+float max3(float a, float b, float c)
+{
+    return max(max(a, b), c);
+}
+
+__DEVICE__
+float min4(float a, float b, float c, float d)
+{
+    return min(min(a, b), min(c, d));
+}
+
+__DEVICE__
+float minmod(float a, float b)
+{
+    return 0.5 * (sign(a) + sign(b)) * min(abs(a), abs(b));
+}
+
+__DEVICE__
+float minmod4(float w, float a, float b, float c)
+{
+    return 0.125 * (sign(w) + sign(a)) * abs((sign(w) + sign(b)) * (sign(w) + sign(c))) * min4(abs(w), abs(a), abs(b), abs(c));
+}
+
+__DEVICE__
+float MP5_interpolation(float u1, float u2, float u3, float u4, float u5)
+{
+    float alpha = 0.8;
+    float FD_interp = (3 * u1 - 20 * u2 + 90 * u3 + 60 * u4 - 5 * u5) / 128;
+    float U_mp = u3 + minmod(u4 - u3, alpha * (u3 - u2));
+
+    if ((FD_interp - u3) * (FD_interp - U_mp) <= 1e-20)
+        return FD_interp;
+    else
+    {
+        float Dn = u1 - 2 * u2 + u3;
+        float D0 = u2 - 2 * u3 + u4;
+        float Dp = u3 - 2 * u4 + u5;
+
+        float D_m4p = minmod4(4 * D0 - Dp, 4 * Dp - D0, D0, Dp);
+        float D_m4n = minmod4(4 * D0 - Dn, 4 * Dn - D0, D0, Dn);
+
+        float U_UL = u3 + alpha * (u3 - u2);
+        float U_AV = 0.5 * (u2 + u3);
+        float U_MD = U_AV - 0.5 * D_m4p;
+        float U_LC = u3 + 0.5 * (u3 - u2) + 4 / 3 * D_m4n;
+
+        float U_min = max(min3(u3, u4, U_MD), min3(u3, U_UL, U_LC));
+        float U_max = min(max3(u3, u4, U_MD), max3(u3, U_UL, U_LC));
+
+        return FD_interp + minmod(U_min - FD_interp, U_max - FD_interp);
+    }
+}
 
 // WENO5 interpolation scheme
 __DEVICE__
@@ -210,6 +290,11 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
         u_ip12n[n] = WENO5_interpolation(W[idx_n2 * WSIZE + n], W[idx_n1 * WSIZE + n], W[idx * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx_p2 * WSIZE + n]);
         u_ip12p[n] = WENO5_interpolation(W[idx_p3 * WSIZE + n], W[idx_p2 * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx * WSIZE + n], W[idx_n1 * WSIZE + n]);
 #endif
+
+#ifdef MP
+        u_ip12n[n] = MP5_interpolation(W[idx_n2 * WSIZE + n], W[idx_n1 * WSIZE + n], W[idx * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx_p2 * WSIZE + n]);
+        u_ip12p[n] = MP5_interpolation(W[idx_p3 * WSIZE + n], W[idx_p2 * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx * WSIZE + n], W[idx_n1 * WSIZE + n]);
+#endif
     }
 
 #ifdef LF
@@ -237,7 +322,14 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
 
     for (int n = 0; n < 9; n++)
     {
+#ifdef WENO
         Fu_ip12x[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n])) - 1.0f / 24 * order2_approximation(Fu[idx_n2 * WSIZE + n], Fu[idx_n1 * WSIZE + n], Fu[idx * WSIZE + n], Fu[idx_p1 * WSIZE + n], Fu[idx_p2 * WSIZE + n], Fu[idx_p3 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Fu[idx_n2 * WSIZE + n], Fu[idx_n1 * WSIZE + n], Fu[idx * WSIZE + n], Fu[idx_p1 * WSIZE + n], Fu[idx_p2 * WSIZE + n], Fu[idx_p3 * WSIZE + n]);
+#endif
+
+#ifdef MP
+        Fu_ip12x[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n]));
+        Fu_ip12x[idx * WSIZE + n] += order2_approximation(Fu[idx * WSIZE + n], Fu_ip12x[idx * WSIZE + n], Fu[idx_p1 * WSIZE + n]) + order4_approximation(Fu[idx_n1 * WSIZE + n], Fu[idx * WSIZE + n], Fu_ip12x[idx * WSIZE + n], Fu[idx_p1 * WSIZE + n], Fu[idx_p2 * WSIZE + n]);
+#endif
     }
     END_CALCULATE3D()
 
@@ -273,6 +365,11 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
         u_ip12n[n] = WENO5_interpolation(W[idx_n2 * WSIZE + n], W[idx_n1 * WSIZE + n], W[idx * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx_p2 * WSIZE + n]);
         u_ip12p[n] = WENO5_interpolation(W[idx_p3 * WSIZE + n], W[idx_p2 * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx * WSIZE + n], W[idx_n1 * WSIZE + n]);
 #endif
+
+#ifdef MP
+        u_ip12n[n] = MP5_interpolation(W[idx_n2 * WSIZE + n], W[idx_n1 * WSIZE + n], W[idx * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx_p2 * WSIZE + n]);
+        u_ip12p[n] = MP5_interpolation(W[idx_p3 * WSIZE + n], W[idx_p2 * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx * WSIZE + n], W[idx_n1 * WSIZE + n]);
+#endif
     }
 
 #ifdef LF
@@ -300,7 +397,14 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
 
     for (int n = 0; n < 9; n++)
     {
+#ifdef WENO
         Fu_ip12y[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n])) - 1.0f / 24 * order2_approximation(Gu[idx_n2 * WSIZE + n], Gu[idx_n1 * WSIZE + n], Gu[idx * WSIZE + n], Gu[idx_p1 * WSIZE + n], Gu[idx_p2 * WSIZE + n], Gu[idx_p3 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Gu[idx_n2 * WSIZE + n], Gu[idx_n1 * WSIZE + n], Gu[idx * WSIZE + n], Gu[idx_p1 * WSIZE + n], Gu[idx_p2 * WSIZE + n], Gu[idx_p3 * WSIZE + n]);
+#endif
+
+#ifdef MP
+        Fu_ip12y[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n]));
+        Fu_ip12y[idx * WSIZE + n] += order2_approximation(Gu[idx * WSIZE + n], Fu_ip12y[idx * WSIZE + n], Gu[idx_p1 * WSIZE + n]) + order4_approximation(Gu[idx_n1 * WSIZE + n], Gu[idx * WSIZE + n], Fu_ip12y[idx * WSIZE + n], Gu[idx_p1 * WSIZE + n], Gu[idx_p2 * WSIZE + n]);
+#endif
     }
     END_CALCULATE3D()
 
@@ -336,6 +440,11 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
         u_ip12n[n] = WENO5_interpolation(W[idx_n2 * WSIZE + n], W[idx_n1 * WSIZE + n], W[idx * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx_p2 * WSIZE + n]);
         u_ip12p[n] = WENO5_interpolation(W[idx_p3 * WSIZE + n], W[idx_p2 * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx * WSIZE + n], W[idx_n1 * WSIZE + n]);
 #endif
+
+#ifdef MP
+        u_ip12n[n] = MP5_interpolation(W[idx_n2 * WSIZE + n], W[idx_n1 * WSIZE + n], W[idx * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx_p2 * WSIZE + n]);
+        u_ip12p[n] = MP5_interpolation(W[idx_p3 * WSIZE + n], W[idx_p2 * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx * WSIZE + n], W[idx_n1 * WSIZE + n]);
+#endif
     }
 
 #ifdef LF
@@ -363,7 +472,14 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
 
     for (int n = 0; n < 9; n++)
     {
+#ifdef WENO
         Fu_ip12z[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n])) - 1.0f / 24 * order2_approximation(Hu[idx_n2 * WSIZE + n], Hu[idx_n1 * WSIZE + n], Hu[idx * WSIZE + n], Hu[idx_p1 * WSIZE + n], Hu[idx_p2 * WSIZE + n], Hu[idx_p3 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Hu[idx_n2 * WSIZE + n], Hu[idx_n1 * WSIZE + n], Hu[idx * WSIZE + n], Hu[idx_p1 * WSIZE + n], Hu[idx_p2 * WSIZE + n], Hu[idx_p3 * WSIZE + n]);
+#endif
+
+#ifdef MP
+        Fu_ip12z[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n]));
+        Fu_ip12z[idx * WSIZE + n] += order2_approximation(Hu[idx * WSIZE + n], Fu_ip12z[idx * WSIZE + n], Hu[idx_p1 * WSIZE + n]) + order4_approximation(Hu[idx_n1 * WSIZE + n], Hu[idx * WSIZE + n], Fu_ip12z[idx * WSIZE + n], Hu[idx_p1 * WSIZE + n], Hu[idx_p2 * WSIZE + n]);
+#endif
     }
     END_CALCULATE3D()
 }
