@@ -88,7 +88,7 @@ void waveDeriv_alternative_flux_FD(GRID grid, WAVE wave, FLOAT *CJM,
 #ifdef PML
 								   PML_BETA pml_beta,
 #endif
-								   int FB1, int FB2, int FB3, float DT); // ! For alternative flux finite difference by Tianhong Xu
+								   int FB1, int FB2, int FB3, float DT, MPI_COORD thisMPICoord, PARAMS params); // ! For alternative flux finite difference by Tianhong Xu
 
 void freeSurfaceDeriv(
 	GRID grid, WAVE wave, FLOAT *CJM, Mat_rDZ mat_rDZ,

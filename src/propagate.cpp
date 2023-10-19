@@ -147,7 +147,7 @@ void propagate(
 			FLOAT_mpiSendRecv(comm_cart, mpiNeighbor, grid, wave.W, sr_wave, WSIZE);
 #ifdef PML
 #ifdef SCFDM
-			waveDeriv_alternative_flux_FD(grid, wave, CJM, pml_beta, FB1, FB2, FB3, DT); // ! For alternative flux finite difference by Tianhong Xu
+			waveDeriv_alternative_flux_FD(grid, wave, CJM, pml_beta, FB1, FB2, FB3, DT, thisMPICoord, params); // ! For alternative flux finite difference by Tianhong Xu
 #else
 			waveDeriv(grid, wave, CJM, pml_beta, FB1, FB2, FB3, DT);
 #endif // SCFDM
@@ -158,7 +158,7 @@ void propagate(
 				pmlFreeSurfaceDeriv(grid, wave, CJM, Aux6, mat_rDZ, pml_d, border, FB1, FB2, DT);
 #else // PML
 #ifdef SCFDM
-			waveDeriv_alternative_flux_FD(grid, wave, CJM, FB1, FB2, FB3, DT); // ! For alternative flux finite difference by Tianhong Xu
+			waveDeriv_alternative_flux_FD(grid, wave, CJM, FB1, FB2, FB3, DT, thisMPICoord, params); // ! For alternative flux finite difference by Tianhong Xu
 #else
 			waveDeriv(grid, wave, CJM, FB1, FB2, FB3, DT);
 #endif // SCFDM
