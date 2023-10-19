@@ -1,4 +1,5 @@
 // ! For alternative flux finite difference by Tianhong Xu
+#ifdef SCFDM
 #include "header.h"
 
 #ifdef PML
@@ -19,6 +20,10 @@
 #ifdef MP
 #define order2_approximation(u1, u2, u3) (-1.0 / 6 * (u1 - 2 * u2 + u3))
 #define order4_approximation(u1, u2, u3, u4, u5) (1.0 / 180 * (u1 - 9 * u2 + 16 * u3 - 9 * u4 + u5))
+#endif
+
+#ifdef LF
+extern float vp_max_for_SCFDM;
 #endif
 
 // MP5 interpolation scheme
@@ -213,7 +218,12 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
 #ifdef PML
                                     PML_BETA pml_beta,
 #endif
-                                    int _nx_, int _ny_, int _nz_, float rDH, int FB1, int FB2, int FB3, float DT)
+                                    int _nx_, int _ny_, int _nz_, float rDH, int FB1, int FB2, int FB3, float DT
+#ifdef LF
+                                    ,
+                                    float alpha
+#endif
+)
 {
 
     int _nx = _nx_ - HALO;
@@ -254,9 +264,6 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
 
     float u_ip12n[9], u_ip12p[9];
     float fu_ip12n[9], fu_ip12p[9];
-
-    // TODO: alpha should be calculated in the main function
-    float alpha = 6000.0f;
 
     // * X direction
     CALCULATE3D(i, j, k, HALO - 1, _nx, HALO, _ny, HALO, _nz)
@@ -323,13 +330,17 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     for (int n = 0; n < 9; n++)
     {
 #ifdef WENO
+#ifdef LF
         Fu_ip12x[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n])) - 1.0f / 24 * order2_approximation(Fu[idx_n2 * WSIZE + n], Fu[idx_n1 * WSIZE + n], Fu[idx * WSIZE + n], Fu[idx_p1 * WSIZE + n], Fu[idx_p2 * WSIZE + n], Fu[idx_p3 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Fu[idx_n2 * WSIZE + n], Fu[idx_n1 * WSIZE + n], Fu[idx * WSIZE + n], Fu[idx_p1 * WSIZE + n], Fu[idx_p2 * WSIZE + n], Fu[idx_p3 * WSIZE + n]);
-#endif
+#endif // LF
+#endif // WENO
 
 #ifdef MP
+#ifdef LF
         Fu_ip12x[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n]));
+#endif // LF
         Fu_ip12x[idx * WSIZE + n] += order2_approximation(Fu[idx * WSIZE + n], Fu_ip12x[idx * WSIZE + n], Fu[idx_p1 * WSIZE + n]) + order4_approximation(Fu[idx_n1 * WSIZE + n], Fu[idx * WSIZE + n], Fu_ip12x[idx * WSIZE + n], Fu[idx_p1 * WSIZE + n], Fu[idx_p2 * WSIZE + n]);
-#endif
+#endif // MP
     }
     END_CALCULATE3D()
 
@@ -398,13 +409,17 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     for (int n = 0; n < 9; n++)
     {
 #ifdef WENO
+#ifdef LF
         Fu_ip12y[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n])) - 1.0f / 24 * order2_approximation(Gu[idx_n2 * WSIZE + n], Gu[idx_n1 * WSIZE + n], Gu[idx * WSIZE + n], Gu[idx_p1 * WSIZE + n], Gu[idx_p2 * WSIZE + n], Gu[idx_p3 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Gu[idx_n2 * WSIZE + n], Gu[idx_n1 * WSIZE + n], Gu[idx * WSIZE + n], Gu[idx_p1 * WSIZE + n], Gu[idx_p2 * WSIZE + n], Gu[idx_p3 * WSIZE + n]);
-#endif
+#endif // LF
+#endif // WENO
 
 #ifdef MP
+#ifdef LF
         Fu_ip12y[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n]));
+#endif // LF
         Fu_ip12y[idx * WSIZE + n] += order2_approximation(Gu[idx * WSIZE + n], Fu_ip12y[idx * WSIZE + n], Gu[idx_p1 * WSIZE + n]) + order4_approximation(Gu[idx_n1 * WSIZE + n], Gu[idx * WSIZE + n], Fu_ip12y[idx * WSIZE + n], Gu[idx_p1 * WSIZE + n], Gu[idx_p2 * WSIZE + n]);
-#endif
+#endif // MP
     }
     END_CALCULATE3D()
 
@@ -473,13 +488,17 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     for (int n = 0; n < 9; n++)
     {
 #ifdef WENO
+#ifdef LF
         Fu_ip12z[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n])) - 1.0f / 24 * order2_approximation(Hu[idx_n2 * WSIZE + n], Hu[idx_n1 * WSIZE + n], Hu[idx * WSIZE + n], Hu[idx_p1 * WSIZE + n], Hu[idx_p2 * WSIZE + n], Hu[idx_p3 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Hu[idx_n2 * WSIZE + n], Hu[idx_n1 * WSIZE + n], Hu[idx * WSIZE + n], Hu[idx_p1 * WSIZE + n], Hu[idx_p2 * WSIZE + n], Hu[idx_p3 * WSIZE + n]);
-#endif
+#endif // LF
+#endif // WENO
 
 #ifdef MP
+#ifdef LF
         Fu_ip12z[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n]));
+#endif // LF
         Fu_ip12z[idx * WSIZE + n] += order2_approximation(Hu[idx * WSIZE + n], Fu_ip12z[idx * WSIZE + n], Hu[idx_p1 * WSIZE + n]) + order4_approximation(Hu[idx_n1 * WSIZE + n], Hu[idx * WSIZE + n], Fu_ip12z[idx * WSIZE + n], Hu[idx_p1 * WSIZE + n], Hu[idx_p2 * WSIZE + n]);
-#endif
+#endif // MP
     }
     END_CALCULATE3D()
 }
@@ -562,7 +581,12 @@ void waveDeriv_alternative_flux_FD(GRID grid, WAVE wave, FLOAT *CJM,
 #ifdef PML
                                                         pml_beta,
 #endif // PML
-                                                        _nx_, _ny_, _nz_, rDH, FB1, FB2, FB3, DT);
+                                                        _nx_, _ny_, _nz_, rDH, FB1, FB2, FB3, DT
+#ifdef LF
+                                                        ,
+                                                        vp_max_for_SCFDM
+#endif // LF
+    );
 
     CHECK(cudaDeviceSynchronize());
     cal_du<<<blocks, threads>>>(wave.fu_ip12x, wave.fu_ip12y, wave.fu_ip12z, wave.h_W,
@@ -578,7 +602,12 @@ void waveDeriv_alternative_flux_FD(GRID grid, WAVE wave, FLOAT *CJM,
 #ifdef PML
                                    pml_beta,
 #endif // PML
-                                   _nx_, _ny_, _nz_, rDH, FB1, FB2, FB3, DT);
+                                   _nx_, _ny_, _nz_, rDH, FB1, FB2, FB3, DT
+#ifdef LF
+                                   ,
+                                   vp_max_for_SCFDM
+#endif // LF
+    );
     cal_du(wave.fu_ip12x, wave.fu_ip12y, wave.fu_ip12z, wave.h_W,
 #ifdef PML
            pml_beta,
@@ -587,3 +616,5 @@ void waveDeriv_alternative_flux_FD(GRID grid, WAVE wave, FLOAT *CJM,
 
 #endif // GPU_CUDA
 }
+
+#endif // SCFDM

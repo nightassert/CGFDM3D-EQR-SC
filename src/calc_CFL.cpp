@@ -239,6 +239,11 @@ void medium2structure(GRID grid, STRUCTURE structure, float *medium)
 	END_LOOP1D()
 }
 
+#ifdef SCFDM
+#ifdef LF
+extern float vp_max_for_SCFDM;
+#endif
+#endif
 void calc_CFL(GRID grid, float *coord, float *medium, PARAMS params)
 {
 
@@ -300,6 +305,13 @@ void calc_CFL(GRID grid, float *coord, float *medium, PARAMS params)
 	MPI_Allreduce(&rho_min_max[1], &rho_max, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
 
 	MPI_Barrier(MPI_COMM_WORLD);
+
+#ifdef SCFDM
+#ifdef LF
+	// ! For alternative flux finite difference by Tianhong Xu
+	vp_max_for_SCFDM = Vp_max;
+#endif
+#endif
 
 	float dtmax = 1.34 * H_min / Vp_max;
 

@@ -1,6 +1,11 @@
 #include "header.h"
 PARAMS g_params;
 MPI_COORD g_thisMPICoord;
+#ifdef SCFDM
+#ifdef LF
+float vp_max_for_SCFDM = 0.0;
+#endif
+#endif
 
 void run(MPI_Comm comm_cart, MPI_COORD thisMPICoord, MPI_NEIGHBOR mpiNeighbor, GRID grid, PARAMS params)
 {
