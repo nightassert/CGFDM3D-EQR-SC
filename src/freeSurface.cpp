@@ -19,6 +19,201 @@
 #define times_pml_beta_z
 #endif
 
+#define extrap3(k1, k2, k3, k4) (4.0f * k1 - 6.0f * k2 + 4.0f * k3 - k4)
+
+__GLOBAL__
+void char_free_surface_deriv(
+	FLOAT *h_W, FLOAT *W, FLOAT *CJM, Mat_rDZ mat_rDZ,
+#ifdef PML
+	PML_BETA pml_beta,
+#endif
+	int _nx_, int _ny_, int _nz_, float rDH, int FB1, int FB2, int FB3, float DT)
+{
+	int _nx = _nx_ - HALO;
+	int _ny = _ny_ - HALO;
+	int _nz = _nz_ - HALO;
+
+#ifdef GPU_CUDA
+	int i = threadIdx.x + blockIdx.x * blockDim.x + HALO;
+	int j = threadIdx.y + blockIdx.y * blockDim.y + HALO;
+	// int k = threadIdx.z + blockIdx.z * blockDim.z + HALO;
+	int k = threadIdx.z + blockIdx.z * blockDim.z + _nz - HALO;
+#else
+	// int i = HALO;
+	// int j = HALO;
+	// int k = _nz - HALO;
+#endif
+
+	long long index;
+
+	float mu = 0.0f;
+	float lambda = 0.0f;
+	float buoyancy = 0.0f;
+	float vs = 0.0f;
+	float vp = 0.0f;
+
+#ifdef PML
+	float pml_beta_x = 0.0f;
+	float pml_beta_y = 0.0f;
+#endif
+
+	float nx = 0.0f;
+	float ny = 0.0f;
+	float nz = 1.0f;
+	float sx = 1.0f;
+	float sy = 0.0f;
+	float sz = 0.0f;
+	float tx = 0.0f;
+	float ty = 1.0f;
+	float tz = 0.0f;
+
+	float u_conserv[9], u_phy[9], u_phy_T[9];
+
+	// CALCULATE3D(i, j, k, HALO, _nx, HALO, _ny, HALO, HALO + 1)
+	CALCULATE3D(i, j, k, HALO, _nx, HALO, _ny, _nz - HALO, _nz - HALO + 1)
+	// index = INDEX(i, j, _nz - 1);
+	index = INDEX(i, j, _nz - HALO - 1); // FIXME: correct wave but not correct location
+	mu = CJM[index * CJMSIZE + 10];
+	lambda = CJM[index * CJMSIZE + 11];
+	buoyancy = CJM[index * CJMSIZE + 12];
+	buoyancy *= Crho;
+	vs = sqrt(mu * buoyancy);
+	vp = sqrt((lambda + 2 * mu) * buoyancy);
+
+#ifdef PML
+	pml_beta_x = pml_beta.x[i];
+	pml_beta_y = pml_beta.y[j];
+#endif
+
+	// Store conservative variables
+	for (int n = 0; n < 9; n++)
+	{
+		u_conserv[n] = W[index * WSIZE + n];
+	}
+
+	// Calculate physical variables
+	u_phy[0] = lambda * u_conserv[1] + lambda * u_conserv[2] + u_conserv[0] * (lambda + 2 * mu);
+	u_phy[1] = lambda * u_conserv[0] + lambda * u_conserv[2] + u_conserv[1] * (lambda + 2 * mu);
+	u_phy[2] = lambda * u_conserv[0] + lambda * u_conserv[1] + u_conserv[2] * (lambda + 2 * mu);
+	u_phy[3] = 2 * mu * u_conserv[3];
+	u_phy[4] = 2 * mu * u_conserv[5];
+	u_phy[5] = 2 * mu * u_conserv[4];
+	u_phy[6] = u_conserv[6] * buoyancy;
+	u_phy[7] = u_conserv[7] * buoyancy;
+	u_phy[8] = u_conserv[8] * buoyancy;
+
+	// Rotate physical variables
+	u_phy_T[0] = (u_phy[2] * (sx * sx) * (ty * ty) - 2 * u_phy[5] * (sx * sx) * ty * tz + u_phy[1] * (sx * sx) * (tz * tz) - 2 * u_phy[2] * sx * sy * tx * ty + 2 * u_phy[5] * sx * sy * tx * tz + 2 * u_phy[4] * sx * sy * ty * tz - 2 * u_phy[3] * sx * sy * (tz * tz) + 2 * u_phy[5] * sx * sz * tx * ty - 2 * u_phy[1] * sx * sz * tx * tz - 2 * u_phy[4] * sx * sz * (ty * ty) + 2 * u_phy[3] * sx * sz * ty * tz + u_phy[2] * (sy * sy) * (tx * tx) - 2 * u_phy[4] * (sy * sy) * tx * tz + u_phy[0] * (sy * sy) * (tz * tz) - 2 * u_phy[5] * sy * sz * (tx * tx) + 2 * u_phy[4] * sy * sz * tx * ty + 2 * u_phy[3] * sy * sz * tx * tz - 2 * u_phy[0] * sy * sz * ty * tz + u_phy[1] * (sz * sz) * (tx * tx) - 2 * u_phy[3] * (sz * sz) * tx * ty + u_phy[0] * (sz * sz) * (ty * ty)) / ((nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx) * (nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx));
+	u_phy_T[1] = (u_phy[2] * (nx * nx) * (ty * ty) - 2 * u_phy[5] * (nx * nx) * ty * tz + u_phy[1] * (nx * nx) * (tz * tz) - 2 * u_phy[2] * nx * ny * tx * ty + 2 * u_phy[5] * nx * ny * tx * tz + 2 * u_phy[4] * nx * ny * ty * tz - 2 * u_phy[3] * nx * ny * (tz * tz) + 2 * u_phy[5] * nx * nz * tx * ty - 2 * u_phy[1] * nx * nz * tx * tz - 2 * u_phy[4] * nx * nz * (ty * ty) + 2 * u_phy[3] * nx * nz * ty * tz + u_phy[2] * (ny * ny) * (tx * tx) - 2 * u_phy[4] * (ny * ny) * tx * tz + u_phy[0] * (ny * ny) * (tz * tz) - 2 * u_phy[5] * ny * nz * (tx * tx) + 2 * u_phy[4] * ny * nz * tx * ty + 2 * u_phy[3] * ny * nz * tx * tz - 2 * u_phy[0] * ny * nz * ty * tz + u_phy[1] * (nz * nz) * (tx * tx) - 2 * u_phy[3] * (nz * nz) * tx * ty + u_phy[0] * (nz * nz) * (ty * ty)) / ((nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx) * (nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx));
+	u_phy_T[2] = (u_phy[2] * (nx * nx) * (sy * sy) - 2 * u_phy[5] * (nx * nx) * sy * sz + u_phy[1] * (nx * nx) * (sz * sz) - 2 * u_phy[2] * nx * ny * sx * sy + 2 * u_phy[5] * nx * ny * sx * sz + 2 * u_phy[4] * nx * ny * sy * sz - 2 * u_phy[3] * nx * ny * (sz * sz) + 2 * u_phy[5] * nx * nz * sx * sy - 2 * u_phy[1] * nx * nz * sx * sz - 2 * u_phy[4] * nx * nz * (sy * sy) + 2 * u_phy[3] * nx * nz * sy * sz + u_phy[2] * (ny * ny) * (sx * sx) - 2 * u_phy[4] * (ny * ny) * sx * sz + u_phy[0] * (ny * ny) * (sz * sz) - 2 * u_phy[5] * ny * nz * (sx * sx) + 2 * u_phy[4] * ny * nz * sx * sy + 2 * u_phy[3] * ny * nz * sx * sz - 2 * u_phy[0] * ny * nz * sy * sz + u_phy[1] * (nz * nz) * (sx * sx) - 2 * u_phy[3] * (nz * nz) * sx * sy + u_phy[0] * (nz * nz) * (sy * sy)) / ((nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx) * (nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx));
+	u_phy_T[3] = -(nx * sx * (ty * ty) * u_phy[2] + nx * sx * (tz * tz) * u_phy[1] + ny * sy * (tx * tx) * u_phy[2] - nx * sy * (tz * tz) * u_phy[3] - ny * sx * (tz * tz) * u_phy[3] - nx * sz * (ty * ty) * u_phy[4] - nz * sx * (ty * ty) * u_phy[4] - ny * sz * (tx * tx) * u_phy[5] - nz * sy * (tx * tx) * u_phy[5] + ny * sy * (tz * tz) * u_phy[0] + nz * sz * (tx * tx) * u_phy[1] + nz * sz * (ty * ty) * u_phy[0] - nx * sy * tx * ty * u_phy[2] - ny * sx * tx * ty * u_phy[2] - 2 * nx * sx * ty * tz * u_phy[5] + nx * sy * tx * tz * u_phy[5] + nx * sz * tx * ty * u_phy[5] + ny * sx * tx * tz * u_phy[5] + nz * sx * tx * ty * u_phy[5] - nx * sz * tx * tz * u_phy[1] - nz * sx * tx * tz * u_phy[1] + nx * sy * ty * tz * u_phy[4] + ny * sx * ty * tz * u_phy[4] - 2 * ny * sy * tx * tz * u_phy[4] + ny * sz * tx * ty * u_phy[4] + nz * sy * tx * ty * u_phy[4] + nx * sz * ty * tz * u_phy[3] + ny * sz * tx * tz * u_phy[3] + nz * sx * ty * tz * u_phy[3] + nz * sy * tx * tz * u_phy[3] - 2 * nz * sz * tx * ty * u_phy[3] - ny * sz * ty * tz * u_phy[0] - nz * sy * ty * tz * u_phy[0]) / ((nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx) * (nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx));
+	u_phy_T[4] = -(nx * (sy * sy) * tx * u_phy[2] + nx * (sz * sz) * tx * u_phy[1] + ny * (sx * sx) * ty * u_phy[2] - nx * (sz * sz) * ty * u_phy[3] - ny * (sz * sz) * tx * u_phy[3] - nx * (sy * sy) * tz * u_phy[4] - nz * (sy * sy) * tx * u_phy[4] - ny * (sx * sx) * tz * u_phy[5] - nz * (sx * sx) * ty * u_phy[5] + ny * (sz * sz) * ty * u_phy[0] + nz * (sx * sx) * tz * u_phy[1] + nz * (sy * sy) * tz * u_phy[0] - nx * sx * sy * ty * u_phy[2] - ny * sx * sy * tx * u_phy[2] + nx * sx * sy * tz * u_phy[5] + nx * sx * sz * ty * u_phy[5] - 2 * nx * sy * sz * tx * u_phy[5] + ny * sx * sz * tx * u_phy[5] + nz * sx * sy * tx * u_phy[5] - nx * sx * sz * tz * u_phy[1] - nz * sx * sz * tx * u_phy[1] + nx * sy * sz * ty * u_phy[4] + ny * sx * sy * tz * u_phy[4] - 2 * ny * sx * sz * ty * u_phy[4] + ny * sy * sz * tx * u_phy[4] + nz * sx * sy * ty * u_phy[4] + nx * sy * sz * tz * u_phy[3] + ny * sx * sz * tz * u_phy[3] - 2 * nz * sx * sy * tz * u_phy[3] + nz * sx * sz * ty * u_phy[3] + nz * sy * sz * tx * u_phy[3] - ny * sy * sz * tz * u_phy[0] - nz * sy * sz * ty * u_phy[0]) / ((nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx) * (nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx));
+	u_phy_T[5] = -((ny * ny) * sx * tx * u_phy[2] + (nz * nz) * sx * tx * u_phy[1] + (nx * nx) * sy * ty * u_phy[2] - (nz * nz) * sx * ty * u_phy[3] - (nz * nz) * sy * tx * u_phy[3] - (ny * ny) * sx * tz * u_phy[4] - (ny * ny) * sz * tx * u_phy[4] - (nx * nx) * sy * tz * u_phy[5] - (nx * nx) * sz * ty * u_phy[5] + (nz * nz) * sy * ty * u_phy[0] + (nx * nx) * sz * tz * u_phy[1] + (ny * ny) * sz * tz * u_phy[0] - nx * ny * sx * ty * u_phy[2] - nx * ny * sy * tx * u_phy[2] + nx * ny * sx * tz * u_phy[5] + nx * ny * sz * tx * u_phy[5] + nx * nz * sx * ty * u_phy[5] + nx * nz * sy * tx * u_phy[5] - 2 * ny * nz * sx * tx * u_phy[5] - nx * nz * sx * tz * u_phy[1] - nx * nz * sz * tx * u_phy[1] + nx * ny * sy * tz * u_phy[4] + nx * ny * sz * ty * u_phy[4] - 2 * nx * nz * sy * ty * u_phy[4] + ny * nz * sx * ty * u_phy[4] + ny * nz * sy * tx * u_phy[4] - 2 * nx * ny * sz * tz * u_phy[3] + nx * nz * sy * tz * u_phy[3] + nx * nz * sz * ty * u_phy[3] + ny * nz * sx * tz * u_phy[3] + ny * nz * sz * tx * u_phy[3] - ny * nz * sy * tz * u_phy[0] - ny * nz * sz * ty * u_phy[0]) / ((nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx) * (nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx));
+	u_phy_T[6] = (sx * ty * u_phy[8] - sy * tx * u_phy[8] - sx * tz * u_phy[7] + sz * tx * u_phy[7] + sy * tz * u_phy[6] - sz * ty * u_phy[6]) / (nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx);
+	u_phy_T[7] = -(nx * ty * u_phy[8] - ny * tx * u_phy[8] - nx * tz * u_phy[7] + nz * tx * u_phy[7] + ny * tz * u_phy[6] - nz * ty * u_phy[6]) / (nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx);
+	u_phy_T[8] = (nx * sy * u_phy[8] - ny * sx * u_phy[8] - nx * sz * u_phy[7] + nz * sx * u_phy[7] + ny * sz * u_phy[6] - nz * sy * u_phy[6]) / (nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx);
+
+	// Apply characteristic free surface boundary conditions
+	u_phy_T[1] -= u_phy_T[0] * lambda / (lambda + 2 * mu);
+	u_phy_T[2] -= u_phy_T[0] * lambda / (lambda + 2 * mu);
+	u_phy_T[7] -= u_phy_T[3] / (vs / buoyancy);
+	u_phy_T[8] -= u_phy_T[4] / (vs / buoyancy);
+	u_phy_T[6] -= u_phy_T[0] / (vp / buoyancy);
+	u_phy_T[0] = 0;
+	u_phy_T[3] = 0;
+	u_phy_T[4] = 0;
+
+	// Rotate back physical variables
+	u_phy[0] = u_phy_T[0] * (nx * nx) + 2 * u_phy_T[3] * nx * sx + 2 * u_phy_T[4] * nx * tx + u_phy_T[1] * (sx * sx) + 2 * u_phy_T[5] * sx * tx + u_phy_T[2] * (tx * tx);
+	u_phy[1] = u_phy_T[0] * (ny * ny) + 2 * u_phy_T[3] * ny * sy + 2 * u_phy_T[4] * ny * ty + u_phy_T[1] * (sy * sy) + 2 * u_phy_T[5] * sy * ty + u_phy_T[2] * (ty * ty);
+	u_phy[2] = u_phy_T[0] * (nz * nz) + 2 * u_phy_T[3] * nz * sz + 2 * u_phy_T[4] * nz * tz + u_phy_T[1] * (sz * sz) + 2 * u_phy_T[5] * sz * tz + u_phy_T[2] * (tz * tz);
+	u_phy[3] = u_phy_T[3] * (nx * sy + ny * sx) + u_phy_T[4] * (nx * ty + ny * tx) + u_phy_T[5] * (sx * ty + sy * tx) + nx * ny * u_phy_T[0] + sx * sy * u_phy_T[1] + tx * ty * u_phy_T[2];
+	u_phy[4] = u_phy_T[3] * (nx * sz + nz * sx) + u_phy_T[4] * (nx * tz + nz * tx) + u_phy_T[5] * (sx * tz + sz * tx) + nx * nz * u_phy_T[0] + sx * sz * u_phy_T[1] + tx * tz * u_phy_T[2];
+	u_phy[5] = u_phy_T[3] * (ny * sz + nz * sy) + u_phy_T[4] * (ny * tz + nz * ty) + u_phy_T[5] * (sy * tz + sz * ty) + ny * nz * u_phy_T[0] + sy * sz * u_phy_T[1] + ty * tz * u_phy_T[2];
+	u_phy[6] = nx * u_phy_T[6] + sx * u_phy_T[7] + tx * u_phy_T[8];
+	u_phy[7] = ny * u_phy_T[6] + sy * u_phy_T[7] + ty * u_phy_T[8];
+	u_phy[8] = nz * u_phy_T[6] + sz * u_phy_T[7] + tz * u_phy_T[8];
+
+	// Calculate conservative variables
+	u_conserv[0] = (u_phy[0] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * u_phy[1]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * u_phy[2]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
+	u_conserv[1] = (u_phy[1] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * u_phy[0]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * u_phy[2]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
+	u_conserv[2] = (u_phy[2] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * u_phy[0]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * u_phy[1]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
+	u_conserv[3] = u_phy[3] / (2 * mu);
+	u_conserv[4] = u_phy[5] / (2 * mu);
+	u_conserv[5] = u_phy[4] / (2 * mu);
+	u_conserv[6] = u_phy[6] / buoyancy;
+	u_conserv[7] = u_phy[7] / buoyancy;
+	u_conserv[8] = u_phy[8] / buoyancy;
+
+	// Put conservative variables back to wave.u
+	for (int n = 0; n < 9; n++)
+	{
+		W[index * WSIZE + n] = u_conserv[n];
+	}
+
+	// for (int n = 0; n < 9; n++)
+	// {
+	// 	for (int h = 1; h <= HALO; h++)
+	// 	{
+	// 		// W[INDEX(i, j, k + HALO - h) * WSIZE + n] = extrap3(W[INDEX(i, j, k + HALO - h + 1) * WSIZE + n],
+	// 		// 												   W[INDEX(i, j, k + HALO - h + 2) * WSIZE + n],
+	// 		// 												   W[INDEX(i, j, k + HALO - h + 3) * WSIZE + n],
+	// 		// 												   W[INDEX(i, j, k + HALO - h + 4) * WSIZE + n]);
+	// 		W[INDEX(i, j, k + h) * WSIZE + n] = extrap3(W[INDEX(i, j, k + h - 1) * WSIZE + n],
+	// 													W[INDEX(i, j, k + h - 2) * WSIZE + n],
+	// 													W[INDEX(i, j, k + h - 3) * WSIZE + n],
+	// 													W[INDEX(i, j, k + h - 4) * WSIZE + n]);
+	// 	}
+	// }
+
+	END_CALCULATE3D()
+}
+
+void charfreeSurfaceDeriv(
+	GRID grid, WAVE wave, FLOAT *CJM, Mat_rDZ mat_rDZ,
+#ifdef PML
+	PML_BETA pml_beta,
+#endif
+	int FB1, int FB2, int FB3, float DT)
+{
+	int _nx_ = grid._nx_;
+	int _ny_ = grid._ny_;
+	int _nz_ = grid._nz_;
+
+	float rDH = grid.rDH;
+
+	FLOAT *h_W = wave.h_W;
+	FLOAT *W = wave.W;
+
+#ifdef GPU_CUDA
+	int nx = _nx_ - 2 * HALO;
+	int ny = _ny_ - 2 * HALO;
+	// int nz = _nz_ - 2 * HALO;
+
+	dim3 threads(32, 4, 1);
+	dim3 blocks;
+
+	blocks.x = (nx + threads.x - 1) / threads.x;
+	blocks.y = (ny + threads.y - 1) / threads.y;
+	blocks.z = 1;
+
+	char_free_surface_deriv<<<blocks, threads>>>(h_W, W, CJM, mat_rDZ,
+#ifdef PML
+												 pml_beta,
+#endif
+												 _nx_, _ny_, _nz_, rDH, FB1, FB2, FB3, DT);
+
+#else
+
+	char_free_surface_deriv(h_W, W, CJM, mat_rDZ,
+#ifdef PML
+							pml_beta,
+#endif
+							_nx_, _ny_, _nz_, rDH, FB1, FB2, FB3, DT);
+
+#endif // GPU_CUDA
+}
+
 __GLOBAL__
 void free_surface_deriv(
 	FLOAT *h_W, FLOAT *W, FLOAT *CJM, Mat_rDZ mat_rDZ,
