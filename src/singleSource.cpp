@@ -179,7 +179,7 @@ void loadPointSource(GRID grid, SOURCE S, FLOAT *h_W, FLOAT *CJM, int it, int ir
 {
 	// load_point_source<<< 1, 1 >>>( S, h_W, _nx_, _ny_, _nz_, Jac, it, irk, DT, DH );
 
-	int nGauss = 3;
+	int nGauss = 1;
 
 	int _nx_ = grid._nx_;
 	int _ny_ = grid._ny_;
