@@ -136,13 +136,13 @@ __GLOBAL__
 void cal_flux(FLOAT *fu, FLOAT *gu, FLOAT *hu, FLOAT *u, FLOAT *CJM, int _nx_, int _ny_, int _nz_, MPI_COORD thisMPICoord, PARAMS params)
 {
 #ifdef GPU_CUDA
-    int i = threadIdx.x + blockIdx.x * blockDim.x + HALO;
-    int j = threadIdx.y + blockIdx.y * blockDim.y + HALO;
-    int k = threadIdx.z + blockIdx.z * blockDim.z + HALO;
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    int j = threadIdx.y + blockIdx.y * blockDim.y;
+    int k = threadIdx.z + blockIdx.z * blockDim.z;
 #else
-    int i = HALO;
-    int j = HALO;
-    int k = HALO;
+    int i = 0;
+    int j = 0;
+    int k = 0;
 #endif
     long long index;
 
@@ -231,13 +231,13 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     int _nz = _nz_ - HALO;
 
 #ifdef GPU_CUDA
-    int i = threadIdx.x + blockIdx.x * blockDim.x + HALO;
-    int j = threadIdx.y + blockIdx.y * blockDim.y + HALO;
-    int k = threadIdx.z + blockIdx.z * blockDim.z + HALO;
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    int j = threadIdx.y + blockIdx.y * blockDim.y;
+    int k = threadIdx.z + blockIdx.z * blockDim.z;
 #else
-    int i = HALO;
-    int j = HALO;
-    int k = HALO;
+    int i = 0;
+    int j = 0;
+    int k = 0;
 #endif
 
 #ifdef PML
@@ -515,13 +515,13 @@ void cal_du(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_ip12z, FLOAT *h_W,
     int _nz = _nz_ - HALO;
 
 #ifdef GPU_CUDA
-    int i = threadIdx.x + blockIdx.x * blockDim.x + HALO;
-    int j = threadIdx.y + blockIdx.y * blockDim.y + HALO;
-    int k = threadIdx.z + blockIdx.z * blockDim.z + HALO;
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    int j = threadIdx.y + blockIdx.y * blockDim.y;
+    int k = threadIdx.z + blockIdx.z * blockDim.z;
 #else
-    int i = HALO;
-    int j = HALO;
-    int k = HALO;
+    int i = 0;
+    int j = 0;
+    int k = 0;
 #endif
 
 #ifdef PML
