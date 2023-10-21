@@ -162,8 +162,10 @@ void propagate(
 #else
 			waveDeriv(grid, wave, CJM, FB1, FB2, FB3, DT);
 #endif // SCFDM
+#ifndef CHAR_FREE_SURFACE
 			if (IsFreeSurface)
 				freeSurfaceDeriv(grid, wave, CJM, mat_rDZ, FB1, FB2, FB3, DT);
+#endif // CHAR_FREE_SURFACE
 #endif // PML
 			waveRk(grid, irk, wave);
 #ifdef PML
@@ -173,6 +175,11 @@ void propagate(
 			FB2 *= -1;
 			FB3 *= -1; // reverse
 		}			   // for loop of irk: Range Kutta Four Step
+#ifdef CHAR_FREE_SURFACE
+		if (IsFreeSurface)
+			charfreeSurfaceDeriv(grid, wave, CJM, mat_rDZ, FB1, FB2, FB3, DT);
+#endif // CHAR_FREE_SURFACE
+
 		if (stationNum > 0)
 			storageStation(grid, NT, stationNum, station, wave.W, it);
 		if (IsFreeSurface)

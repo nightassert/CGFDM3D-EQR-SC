@@ -97,6 +97,13 @@ void freeSurfaceDeriv(
 #endif
 	int FB1, int FB2, int FB3, float DT);
 
+void charfreeSurfaceDeriv(
+	GRID grid, WAVE wave, FLOAT *CJM, Mat_rDZ mat_rDZ,
+#ifdef PML
+	PML_BETA pml_beta,
+#endif
+	int FB1, int FB2, int FB3, float DT);
+
 void waveRk(GRID grid, int irk, WAVE wave);
 
 void allocPMLParameter(GRID grid, PML_ALPHA *pml_alpha, PML_BETA *pml_beta, PML_D *pml_d);
