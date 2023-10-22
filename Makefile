@@ -11,14 +11,14 @@
 GPU_CUDA := ON
 
 XFAST := ON
-ZFAST := #ON
+ZFAST := # ON
 
 SCFDM := ON
 WENO := ON
-MP := # Not correct
+MP :=  # ! Not correct
 LF := ON
 FREE_SURFACE := ON
-CHAR_FREE_SURFACE := ON
+CHAR_FREE_SURFACE := ON # ! Not applicable to CGFDM
 PML :=
 SOLVE_DISPLACEMENT := ON
 Terrain_Smooth := ON 

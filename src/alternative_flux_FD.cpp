@@ -72,7 +72,7 @@ float minmod4(float w, float a, float b, float c)
 __DEVICE__
 float MP5_interpolation(float u1, float u2, float u3, float u4, float u5)
 {
-    float alpha = 0.8;
+    float alpha = 4;
     float FD_interp = (3 * u1 - 20 * u2 + 90 * u3 + 60 * u4 - 5 * u5) / 128;
     float U_mp = u3 + minmod(u4 - u3, alpha * (u3 - u2));
 
