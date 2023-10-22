@@ -13,12 +13,18 @@ GPU_CUDA := ON
 XFAST := ON
 ZFAST := # ON
 
+# ! For alternative flux finite difference by Tianhong Xu
+# * Only for GPU now
 SCFDM := ON
+# ! Shock Capturing Methods
 WENO := ON
 MP :=  # ! Not correct
+# ! Riemann Solvers
 LF := ON
+
+DFLAGS_LIST := SCFDM LF WENO MP
+
 FREE_SURFACE := ON
-CHAR_FREE_SURFACE := ON # ! Not applicable to CGFDM
 PML :=
 SOLVE_DISPLACEMENT := ON
 Terrain_Smooth := ON 
@@ -89,9 +95,8 @@ vpath % $(OBJDIR)
 vpath % $(BINDIR)
 
 
-DFLAGS_LIST := XFAST ZFAST GPU_CUDA FLOAT16 FREE_SURFACE PML SOLVE_DISPLACEMENT \
-			   Terrain_Smooth DealWithFirstLayer SET_BASIN LayeredStructureTerrain StructureTerrain \
-			   SCFDM LF WENO MP CHAR_FREE_SURFACE
+DFLAGS_LIST += XFAST ZFAST GPU_CUDA FLOAT16 FREE_SURFACE PML SOLVE_DISPLACEMENT \
+			   Terrain_Smooth DealWithFirstLayer SET_BASIN LayeredStructureTerrain StructureTerrain
 
 DFLAGS := $(foreach flag,$(DFLAGS_LIST),$(if $($(flag)),-D$(flag)))
 

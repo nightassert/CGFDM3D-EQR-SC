@@ -1,3 +1,13 @@
+/*================================================================
+*   ESS, Southern University of Science and Technology
+*
+*   File Name: alternative_flux_FD.cpp
+*   Author: Tianhong Xu, 12231218@mail.sustech.edu.cn
+*   Created Time: 2023-10-22
+*   Discription: Shock Capturing Finite Difference Method kernel file
+*
+=================================================================*/
+
 // ! For alternative flux finite difference by Tianhong Xu
 #ifdef SCFDM
 #include "header.h"

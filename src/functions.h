@@ -102,7 +102,7 @@ void charfreeSurfaceDeriv(
 #ifdef PML
 	PML_BETA pml_beta,
 #endif
-	int FB1, int FB2, int FB3, float DT);
+	int FB1, int FB2, int FB3, float DT); // ! For alternative flux finite difference by Tianhong Xu
 
 void waveRk(GRID grid, int irk, WAVE wave);
 

@@ -307,8 +307,9 @@ void calc_CFL(GRID grid, float *coord, float *medium, PARAMS params)
 	MPI_Barrier(MPI_COMM_WORLD);
 
 #ifdef SCFDM
-#ifdef LF
 	// ! For alternative flux finite difference by Tianhong Xu
+#ifdef LF
+	// ! For Lax-Friedriches Riemann solver: alpha = vp_max
 	vp_max_for_SCFDM = Vp_max;
 #endif
 #endif

@@ -19,6 +19,9 @@
 #define times_pml_beta_z
 #endif
 
+#ifdef SCFDM
+// ! For alternative flux finite difference by Tianhong Xu
+// ! Charateristic free surface boundary condition
 #define extrap3(k1, k2, k3, k4) (4.0f * k1 - 6.0f * k2 + 4.0f * k3 - k4)
 
 __GLOBAL__
@@ -206,6 +209,7 @@ void charfreeSurfaceDeriv(
 
 #endif // GPU_CUDA
 }
+#endif // CHAR_FREE_SURFACE
 
 __GLOBAL__
 void free_surface_deriv(

@@ -11,6 +11,4 @@ Related paper has been submitted to Geophysical Journal International (GJI).
 ## TODO LIST
 - Add output * buoyancy
 - Add GCL
-- Add Free surface
 - Test PML
-- Test multi-GPU

@@ -236,8 +236,9 @@ typedef struct WAVE
 	FLOAT *W;
 	FLOAT *t_W;
 	FLOAT *m_W;
-	FLOAT *Fu, *Gu, *Hu;				   // ! For alternative flux finite difference by Tianhong Xu
-	FLOAT *fu_ip12x, *fu_ip12y, *fu_ip12z; // ! For alternative flux finite difference by Tianhong Xu
+	// ! For alternative flux finite difference by Tianhong Xu
+	FLOAT *Fu, *Gu, *Hu;
+	FLOAT *fu_ip12x, *fu_ip12y, *fu_ip12z;
 } WAVE;
 
 typedef struct STATION

@@ -162,10 +162,6 @@ void load_smooth_source(SOURCE S, FLOAT *h_W, int _nx_, int _ny_, int _nz_,
 	h_W[index * WSIZE + 6] = u_conserv[6];
 	h_W[index * WSIZE + 7] = u_conserv[7];
 	h_W[index * WSIZE + 8] = u_conserv[8];
-
-	// h_W[index * WSIZE + 0] = ((float)h_W[index * WSIZE + 0] + value);
-	// h_W[index * WSIZE + 1] = ((float)h_W[index * WSIZE + 1] + value);
-	// h_W[index * WSIZE + 2] = ((float)h_W[index * WSIZE + 2] + value);
 #else
 	h_W[index * WSIZE + 3] = ((float)h_W[index * WSIZE + 3] + value);
 	h_W[index * WSIZE + 4] = ((float)h_W[index * WSIZE + 4] + value);
