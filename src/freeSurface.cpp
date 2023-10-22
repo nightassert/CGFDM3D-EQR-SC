@@ -34,10 +34,9 @@ void char_free_surface_deriv(
 	int _nz = _nz_ - HALO;
 
 #ifdef GPU_CUDA
-	int i = threadIdx.x + blockIdx.x * blockDim.x + HALO;
-	int j = threadIdx.y + blockIdx.y * blockDim.y + HALO;
-	// int k = threadIdx.z + blockIdx.z * blockDim.z + HALO;
-	int k = threadIdx.z + blockIdx.z * blockDim.z + _nz - HALO;
+	int i = threadIdx.x + blockIdx.x * blockDim.x;
+	int j = threadIdx.y + blockIdx.y * blockDim.y;
+	int k = 0;
 #else
 	// int i = HALO;
 	// int j = HALO;
@@ -69,10 +68,8 @@ void char_free_surface_deriv(
 
 	float u_conserv[9], u_phy[9], u_phy_T[9];
 
-	// CALCULATE3D(i, j, k, HALO, _nx, HALO, _ny, HALO, HALO + 1)
-	CALCULATE3D(i, j, k, HALO, _nx, HALO, _ny, _nz - HALO, _nz - HALO + 1)
-	// index = INDEX(i, j, _nz - 1);
-	index = INDEX(i, j, _nz - HALO - 1); // FIXME: correct wave but not correct location
+	CALCULATE3D(i, j, k, HALO, _nx, HALO, _ny, 0, 1)
+	index = INDEX(i, j, _nz - 1);
 	mu = CJM[index * CJMSIZE + 10];
 	lambda = CJM[index * CJMSIZE + 11];
 	buoyancy = CJM[index * CJMSIZE + 12];
@@ -151,20 +148,16 @@ void char_free_surface_deriv(
 		W[index * WSIZE + n] = u_conserv[n];
 	}
 
-	// for (int n = 0; n < 9; n++)
-	// {
-	// 	for (int h = 1; h <= HALO; h++)
-	// 	{
-	// 		// W[INDEX(i, j, k + HALO - h) * WSIZE + n] = extrap3(W[INDEX(i, j, k + HALO - h + 1) * WSIZE + n],
-	// 		// 												   W[INDEX(i, j, k + HALO - h + 2) * WSIZE + n],
-	// 		// 												   W[INDEX(i, j, k + HALO - h + 3) * WSIZE + n],
-	// 		// 												   W[INDEX(i, j, k + HALO - h + 4) * WSIZE + n]);
-	// 		W[INDEX(i, j, k + h) * WSIZE + n] = extrap3(W[INDEX(i, j, k + h - 1) * WSIZE + n],
-	// 													W[INDEX(i, j, k + h - 2) * WSIZE + n],
-	// 													W[INDEX(i, j, k + h - 3) * WSIZE + n],
-	// 													W[INDEX(i, j, k + h - 4) * WSIZE + n]);
-	// 	}
-	// }
+	for (int n = 0; n < 9; n++)
+	{
+		for (int h = 1; h <= HALO; h++)
+		{
+			W[INDEX(i, j, _nz - 1 + h) * WSIZE + n] = extrap3(W[INDEX(i, j, _nz - 1 + h - 1) * WSIZE + n],
+															  W[INDEX(i, j, _nz - 1 + h - 2) * WSIZE + n],
+															  W[INDEX(i, j, _nz - 1 + h - 3) * WSIZE + n],
+															  W[INDEX(i, j, _nz - 1 + h - 4) * WSIZE + n]);
+		}
+	}
 
 	END_CALCULATE3D()
 }
@@ -193,8 +186,8 @@ void charfreeSurfaceDeriv(
 	dim3 threads(32, 4, 1);
 	dim3 blocks;
 
-	blocks.x = (nx + threads.x - 1) / threads.x;
-	blocks.y = (ny + threads.y - 1) / threads.y;
+	blocks.x = (_nx_ + threads.x - 1) / threads.x;
+	blocks.y = (_ny_ + threads.y - 1) / threads.y;
 	blocks.z = 1;
 
 	char_free_surface_deriv<<<blocks, threads>>>(h_W, W, CJM, mat_rDZ,

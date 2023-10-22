@@ -145,6 +145,7 @@ void cal_flux(FLOAT *fu, FLOAT *gu, FLOAT *hu, FLOAT *u, FLOAT *CJM, int _nx_, i
     int k = 0;
 #endif
     long long index;
+    long long index_on_surf;
 
     float mu;
     float lambda;
@@ -162,7 +163,6 @@ void cal_flux(FLOAT *fu, FLOAT *gu, FLOAT *hu, FLOAT *u, FLOAT *CJM, int _nx_, i
 
     CALCULATE3D(i, j, k, 0, _nx_, 0, _ny_, 0, _nz_)
     index = INDEX(i, j, k);
-
     // index * VARSIZE + VAR
     xi_x_J = CJM[index * CJMSIZE + 0];
     xi_y_J = CJM[index * CJMSIZE + 1];
@@ -178,6 +178,25 @@ void cal_flux(FLOAT *fu, FLOAT *gu, FLOAT *hu, FLOAT *u, FLOAT *CJM, int _nx_, i
     lambda = CJM[index * CJMSIZE + 11];
     buoyancy = CJM[index * CJMSIZE + 12];
     buoyancy *= Crho;
+
+    // if ((k >= _nz_ - HALO - 1))
+    // {
+    //     index_on_surf = INDEX(i, j, _nz_ - HALO - 1);
+    //     xi_x_J = CJM[index_on_surf * CJMSIZE + 0];
+    //     xi_y_J = CJM[index_on_surf * CJMSIZE + 1];
+    //     xi_z_J = CJM[index_on_surf * CJMSIZE + 2];
+    //     et_x_J = CJM[index_on_surf * CJMSIZE + 3];
+    //     et_y_J = CJM[index_on_surf * CJMSIZE + 4];
+    //     et_z_J = CJM[index_on_surf * CJMSIZE + 5];
+    //     zt_x_J = CJM[index_on_surf * CJMSIZE + 6];
+    //     zt_y_J = CJM[index_on_surf * CJMSIZE + 7];
+    //     zt_z_J = CJM[index_on_surf * CJMSIZE + 8];
+
+    //     mu = CJM[index_on_surf * CJMSIZE + 10];
+    //     lambda = CJM[index_on_surf * CJMSIZE + 11];
+    //     buoyancy = CJM[index_on_surf * CJMSIZE + 12];
+    //     buoyancy *= Crho;
+    // }
 
     fu[index * WSIZE + 0] = -(xi_x_J * u[index * WSIZE + 6]) * buoyancy;
     fu[index * WSIZE + 1] = -(xi_y_J * u[index * WSIZE + 7]) * buoyancy;
@@ -570,9 +589,9 @@ void waveDeriv_alternative_flux_FD(GRID grid, WAVE wave, FLOAT *CJM,
     dim3 threads(1, 8, 64);
 #endif
     dim3 blocks;
-    blocks.x = (nx + threads.x - 1) / threads.x;
-    blocks.y = (ny + threads.y - 1) / threads.y;
-    blocks.z = (nz + threads.z - 1) / threads.z;
+    blocks.x = (_nx_ + threads.x - 1) / threads.x;
+    blocks.y = (_ny_ + threads.y - 1) / threads.y;
+    blocks.z = (_nz_ + threads.z - 1) / threads.z;
 
     // cout << "X = " << blocks.x << "Y = " << blocks.y << "Z = " << blocks.z << endl;
     cal_flux<<<blocks, threads>>>(wave.Fu, wave.Gu, wave.Hu, wave.W, CJM, _nx_, _ny_, _nz_, thisMPICoord, params);
