@@ -104,6 +104,8 @@ void charfreeSurfaceDeriv(
 #endif
 	int FB1, int FB2, int FB3, float DT); // ! For alternative flux finite difference by Tianhong Xu
 
+void expDecayLayers(GRID grid, WAVE wave); // Exponential attenuation absorption layer
+
 void waveRk(GRID grid, int irk, WAVE wave);
 
 void allocPMLParameter(GRID grid, PML_ALPHA *pml_alpha, PML_BETA *pml_beta, PML_D *pml_d);

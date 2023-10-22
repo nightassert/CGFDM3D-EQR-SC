@@ -176,11 +176,16 @@ void propagate(
 			FB3 *= -1; // reverse
 		}			   // for loop of irk: Range Kutta Four Step
 #ifdef SCFDM
+// ! For alternative flux finite difference by Tianhong Xu
 #ifdef FREE_SURFACE
 		if (IsFreeSurface)
 			charfreeSurfaceDeriv(grid, wave, CJM, mat_rDZ, FB1, FB2, FB3, DT);
-#endif // CHAR_FREE_SURFACE
+#endif // FREE_SURFACE
 #endif // SCFDM
+
+#ifdef EXP_DECAY
+		expDecayLayers(grid, wave);
+#endif // EXP_DECAY
 
 		if (stationNum > 0)
 			storageStation(grid, NT, stationNum, station, wave.W, it);

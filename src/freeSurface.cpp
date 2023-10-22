@@ -209,7 +209,7 @@ void charfreeSurfaceDeriv(
 
 #endif // GPU_CUDA
 }
-#endif // CHAR_FREE_SURFACE
+#endif // SCFDM
 
 __GLOBAL__
 void free_surface_deriv(

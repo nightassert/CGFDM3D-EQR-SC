@@ -25,7 +25,10 @@ LF := ON
 DFLAGS_LIST := SCFDM LF WENO MP
 
 FREE_SURFACE := ON
+
 PML :=
+EXP_DECAY := ON # ! SCFDM only can use EXP_DECAY now
+
 SOLVE_DISPLACEMENT := ON
 Terrain_Smooth := ON 
 DealWithFirstLayer := ON
@@ -95,7 +98,7 @@ vpath % $(OBJDIR)
 vpath % $(BINDIR)
 
 
-DFLAGS_LIST += XFAST ZFAST GPU_CUDA FLOAT16 FREE_SURFACE PML SOLVE_DISPLACEMENT \
+DFLAGS_LIST += XFAST ZFAST GPU_CUDA FLOAT16 FREE_SURFACE PML EXP_DECAY SOLVE_DISPLACEMENT \
 			   Terrain_Smooth DealWithFirstLayer SET_BASIN LayeredStructureTerrain StructureTerrain
 
 DFLAGS := $(foreach flag,$(DFLAGS_LIST),$(if $($(flag)),-D$(flag)))
@@ -107,7 +110,7 @@ OBJS := cjson.o init_gpu.o init_grid.o init_MPI.o main.o getParams.o create_dir.
 		contravariant.o MPI_send_recv.o MPI_send_recv_FLOAT.o multiSource.o wave_deriv.o wave_rk.o \
 		propagate.o freeSurface.o singleSource.o station.o PGV.o addMoment.o \
 		init_pml_para.o pml_deriv.o pml_rk.o pml_freeSurface.o \
-		alternative_flux_FD.o
+		alternative_flux_FD.o exp_decay_absorb.o
 
 OBJS := $(addprefix $(OBJDIR)/,$(OBJS))
 
