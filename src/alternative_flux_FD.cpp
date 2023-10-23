@@ -310,9 +310,9 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     idx_p2 = INDEX(i + 2, j, k);
     idx_p3 = INDEX(i + 3, j, k);
 
-    xi_x_J_h = CJM[idx * CJMSIZE + 0];
-    xi_y_J_h = CJM[idx * CJMSIZE + 1];
-    xi_z_J_h = CJM[idx * CJMSIZE + 2];
+    xi_x_J_h = CJM[idx * CJMSIZE + 13];
+    xi_y_J_h = CJM[idx * CJMSIZE + 14];
+    xi_z_J_h = CJM[idx * CJMSIZE + 15];
 
     mu = CJM[idx * CJMSIZE + 10];
     lambda = CJM[idx * CJMSIZE + 11];
@@ -389,9 +389,9 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     idx_p2 = INDEX(i, j + 2, k);
     idx_p3 = INDEX(i, j + 3, k);
 
-    et_x_J_h = CJM[idx * CJMSIZE + 3];
-    et_y_J_h = CJM[idx * CJMSIZE + 4];
-    et_z_J_h = CJM[idx * CJMSIZE + 5];
+    et_x_J_h = CJM[idx * CJMSIZE + 16];
+    et_y_J_h = CJM[idx * CJMSIZE + 17];
+    et_z_J_h = CJM[idx * CJMSIZE + 18];
 
     mu = CJM[idx * CJMSIZE + 10];
     lambda = CJM[idx * CJMSIZE + 11];
@@ -468,9 +468,9 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     idx_p2 = INDEX(i, j, k + 2);
     idx_p3 = INDEX(i, j, k + 3);
 
-    zt_x_J_h = CJM[idx * CJMSIZE + 6];
-    zt_y_J_h = CJM[idx * CJMSIZE + 7];
-    zt_z_J_h = CJM[idx * CJMSIZE + 8];
+    zt_x_J_h = CJM[idx * CJMSIZE + 19];
+    zt_y_J_h = CJM[idx * CJMSIZE + 20];
+    zt_z_J_h = CJM[idx * CJMSIZE + 21];
 
     mu = CJM[idx * CJMSIZE + 10];
     lambda = CJM[idx * CJMSIZE + 11];
@@ -533,7 +533,7 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
 }
 
 __GLOBAL__
-void cal_du(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_ip12z, FLOAT *h_W,
+void cal_du(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_ip12z, FLOAT *h_W, FLOAT *CJM,
 #ifdef PML
             PML_BETA pml_beta,
 #endif
@@ -560,6 +560,7 @@ void cal_du(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_ip12z, FLOAT *h_W,
 #endif
 
     long long idx, idx_n1, idy_n1, idz_n1;
+    float jac_inv;
 
     CALCULATE3D(i, j, k, HALO, _nx, HALO, _ny, HALO, _nz)
 
@@ -568,9 +569,11 @@ void cal_du(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_ip12z, FLOAT *h_W,
     idy_n1 = INDEX(i, j - 1, k);
     idz_n1 = INDEX(i, j, k - 1);
 
+    jac_inv = CJM[idx * CJMSIZE + 9];
+
     for (int n = 0; n < 9; n++)
     {
-        h_W[idx * WSIZE + n] = DT * (-(Fu_ip12x[idx * WSIZE + n] - Fu_ip12x[idx_n1 * WSIZE + n]) * rDH - (Fu_ip12y[idx * WSIZE + n] - Fu_ip12y[idy_n1 * WSIZE + n]) * rDH - (Fu_ip12z[idx * WSIZE + n] - Fu_ip12z[idz_n1 * WSIZE + n]) * rDH);
+        h_W[idx * WSIZE + n] = DT * (-(Fu_ip12x[idx * WSIZE + n] - Fu_ip12x[idx_n1 * WSIZE + n]) * rDH - (Fu_ip12y[idx * WSIZE + n] - Fu_ip12y[idy_n1 * WSIZE + n]) * rDH - (Fu_ip12z[idx * WSIZE + n] - Fu_ip12z[idz_n1 * WSIZE + n]) * rDH) / jac_inv;
     }
     END_CALCULATE3D()
 }
@@ -618,7 +621,7 @@ void waveDeriv_alternative_flux_FD(GRID grid, WAVE wave, FLOAT *CJM,
     );
 
     CHECK(cudaDeviceSynchronize());
-    cal_du<<<blocks, threads>>>(wave.fu_ip12x, wave.fu_ip12y, wave.fu_ip12z, wave.h_W,
+    cal_du<<<blocks, threads>>>(wave.fu_ip12x, wave.fu_ip12y, wave.fu_ip12z, wave.h_W, CJM,
 #ifdef PML
                                 pml_beta,
 #endif // PML
@@ -637,7 +640,7 @@ void waveDeriv_alternative_flux_FD(GRID grid, WAVE wave, FLOAT *CJM,
                                    vp_max_for_SCFDM
 #endif // LF
     );
-    cal_du(wave.fu_ip12x, wave.fu_ip12y, wave.fu_ip12z, wave.h_W,
+    cal_du(wave.fu_ip12x, wave.fu_ip12y, wave.fu_ip12z, wave.h_W, CJM,
 #ifdef PML
            pml_beta,
 #endif // PML

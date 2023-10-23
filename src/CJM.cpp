@@ -119,11 +119,23 @@ void set_CJM(FLOAT *CJM, float *medium, float *con, float *Jac, int num)
 	CJM[i * CJMSIZE + 7] = con[i * CONSIZE + 7];
 	CJM[i * CJMSIZE + 8] = con[i * CONSIZE + 8];
 
-	CJM[i * CJMSIZE + 9] = Jac[i];
+	CJM[i * CJMSIZE + 9] = Jac[i]; // ! This is actually the inverse of Jacobian if you use SCFDM, which is just a different formula but the same value
 
 	CJM[i * CJMSIZE + 10] = medium[i * MSIZE + 0];
 	CJM[i * CJMSIZE + 11] = medium[i * MSIZE + 1];
 	CJM[i * CJMSIZE + 12] = medium[i * MSIZE + 2] / c / Crho;
+
+#ifdef SCFDM
+	CJM[i * CJMSIZE + 13] = con[i * CONSIZE + 9];
+	CJM[i * CJMSIZE + 14] = con[i * CONSIZE + 10];
+	CJM[i * CJMSIZE + 15] = con[i * CONSIZE + 11];
+	CJM[i * CJMSIZE + 16] = con[i * CONSIZE + 12];
+	CJM[i * CJMSIZE + 17] = con[i * CONSIZE + 13];
+	CJM[i * CJMSIZE + 18] = con[i * CONSIZE + 14];
+	CJM[i * CJMSIZE + 19] = con[i * CONSIZE + 15];
+	CJM[i * CJMSIZE + 20] = con[i * CONSIZE + 16];
+	CJM[i * CJMSIZE + 21] = con[i * CONSIZE + 17];
+#endif
 
 	END_CALCULATE1D()
 }
