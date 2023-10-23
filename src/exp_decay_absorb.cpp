@@ -86,6 +86,18 @@ void exp_decay_layers(FLOAT *W, int _nx_, int _ny_, int _nz_, int _NX_, int _NY_
         }
     }
 
+#ifndef FREE_SURFACE
+    if (NZ_front >= _NZ_ - 2 * HALO - n_exp_decay_layers)
+    {
+        p = n_exp_decay_layers - (_NZ_ - 2 * HALO - NZ_front);
+        G = exp(-(exp_decay_alpha * (p)) * (exp_decay_alpha * (p)));
+        for (int n = 0; n < 9; n++)
+        {
+            W[index * WSIZE + n] *= G;
+        }
+    }
+#endif
+
     END_CALCULATE3D()
 }
 
