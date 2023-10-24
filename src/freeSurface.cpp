@@ -59,15 +59,15 @@ void char_free_surface_deriv(
 	float pml_beta_y = 0.0f;
 #endif
 
-	float nx = 0.0f;
-	float ny = 0.0f;
-	float nz = 1.0f;
-	float sx = 1.0f;
-	float sy = 0.0f;
-	float sz = 0.0f;
-	float tx = 0.0f;
-	float ty = 1.0f;
-	float tz = 0.0f;
+	float nx;
+	float ny;
+	float nz;
+	float sx;
+	float sy;
+	float sz;
+	float tx;
+	float ty;
+	float tz;
 
 	float u_conserv[9], u_phy[9], u_phy_T[9];
 
@@ -79,6 +79,25 @@ void char_free_surface_deriv(
 	buoyancy *= Crho;
 	vs = sqrt(mu * buoyancy);
 	vp = sqrt((lambda + 2 * mu) * buoyancy);
+
+	nx = CJM[index * CJMSIZE + 13];
+	ny = CJM[index * CJMSIZE + 14];
+	nz = CJM[index * CJMSIZE + 15];
+	// nx = 0.0f;
+	// ny = 0.0f;
+	// nz = 1.0f;
+	sx = CJM[index * CJMSIZE + 16];
+	sy = CJM[index * CJMSIZE + 17];
+	sz = CJM[index * CJMSIZE + 18];
+	tx = CJM[index * CJMSIZE + 19];
+	ty = CJM[index * CJMSIZE + 20];
+	tz = CJM[index * CJMSIZE + 21];
+	// sx = 1.0f;
+	// sy = 0.0f;
+	// sz = 0.0f;
+	// tx = 0.0f;
+	// ty = 1.0f;
+	// tz = 0.0f;
 
 #ifdef PML
 	pml_beta_x = pml_beta.x[i];

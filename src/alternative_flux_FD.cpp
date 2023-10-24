@@ -310,9 +310,12 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     idx_p2 = INDEX(i + 2, j, k);
     idx_p3 = INDEX(i + 3, j, k);
 
-    xi_x_J_h = CJM[idx * CJMSIZE + 13];
-    xi_y_J_h = CJM[idx * CJMSIZE + 14];
-    xi_z_J_h = CJM[idx * CJMSIZE + 15];
+    // xi_x_J_h = CJM[idx * CJMSIZE + 13];
+    // xi_y_J_h = CJM[idx * CJMSIZE + 14];
+    // xi_z_J_h = CJM[idx * CJMSIZE + 15];
+    xi_x_J_h = CJM[idx * CJMSIZE + 0];
+    xi_y_J_h = CJM[idx * CJMSIZE + 1];
+    xi_z_J_h = CJM[idx * CJMSIZE + 2];
 
     mu = CJM[idx * CJMSIZE + 10];
     lambda = CJM[idx * CJMSIZE + 11];
@@ -389,9 +392,12 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     idx_p2 = INDEX(i, j + 2, k);
     idx_p3 = INDEX(i, j + 3, k);
 
-    et_x_J_h = CJM[idx * CJMSIZE + 16];
-    et_y_J_h = CJM[idx * CJMSIZE + 17];
-    et_z_J_h = CJM[idx * CJMSIZE + 18];
+    // et_x_J_h = CJM[idx * CJMSIZE + 16];
+    // et_y_J_h = CJM[idx * CJMSIZE + 17];
+    // et_z_J_h = CJM[idx * CJMSIZE + 18];
+    et_x_J_h = CJM[idx * CJMSIZE + 3];
+    et_y_J_h = CJM[idx * CJMSIZE + 4];
+    et_z_J_h = CJM[idx * CJMSIZE + 5];
 
     mu = CJM[idx * CJMSIZE + 10];
     lambda = CJM[idx * CJMSIZE + 11];
@@ -468,9 +474,12 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     idx_p2 = INDEX(i, j, k + 2);
     idx_p3 = INDEX(i, j, k + 3);
 
-    zt_x_J_h = CJM[idx * CJMSIZE + 19];
-    zt_y_J_h = CJM[idx * CJMSIZE + 20];
-    zt_z_J_h = CJM[idx * CJMSIZE + 21];
+    // zt_x_J_h = CJM[idx * CJMSIZE + 19];
+    // zt_y_J_h = CJM[idx * CJMSIZE + 20];
+    // zt_z_J_h = CJM[idx * CJMSIZE + 21];
+    zt_x_J_h = CJM[idx * CJMSIZE + 6];
+    zt_y_J_h = CJM[idx * CJMSIZE + 7];
+    zt_z_J_h = CJM[idx * CJMSIZE + 8];
 
     mu = CJM[idx * CJMSIZE + 10];
     lambda = CJM[idx * CJMSIZE + 11];

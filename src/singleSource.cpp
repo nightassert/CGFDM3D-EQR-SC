@@ -142,6 +142,9 @@ void load_smooth_source(SOURCE S, FLOAT *h_W, int _nx_, int _ny_, int _nz_,
 	u_phy[0] += value;
 	u_phy[1] += value;
 	u_phy[2] += value;
+	// u_phy[3] += value;
+	// u_phy[4] += value;
+	// u_phy[5] += value;
 
 	u_conserv[0] = (u_phy[0] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * u_phy[1]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * u_phy[2]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
 	u_conserv[1] = (u_phy[1] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * u_phy[0]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * u_phy[2]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));

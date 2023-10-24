@@ -63,6 +63,150 @@ void freeJac(float *Jac)
  * =============================================
  */
 
+#ifdef SCFDM
+
+#define central_difference2(u1, u_1, rdh) (0.5 * (u1 - u_1) * rdh)
+#define Covariant_Size 9
+
+__GLOBAL__
+void solve_con_jac_CMM(float *con, float *coord, float *Jac_inv, float *Covariant, int _nx_, int _ny_, int _nz_, float rDH)
+{
+#ifdef GPU_CUDA
+	int i = threadIdx.x + blockIdx.x * blockDim.x;
+	int j = threadIdx.y + blockIdx.y * blockDim.y;
+	int k = threadIdx.z + blockIdx.z * blockDim.z;
+#else
+	int i = 0;
+	int j = 0;
+	int k = 0;
+#endif
+
+	long long idx = 0;
+	long long idx_p1, idx_n1, idy_p1, idy_n1, idz_p1, idz_n1;
+
+	CALCULATE3D(i, j, k, 1, _nx_ - 1, 1, _ny_ - 1, 1, _nz_ - 1)
+	idx = INDEX(i, j, k);
+	idx_p1 = INDEX(i + 1, j, k);
+	idx_n1 = INDEX(i - 1, j, k);
+	idy_p1 = INDEX(i, j + 1, k);
+	idy_n1 = INDEX(i, j - 1, k);
+	idz_p1 = INDEX(i, j, k + 1);
+	idz_n1 = INDEX(i, j, k - 1);
+	Covariant[idx * Covariant_Size + 0] = central_difference2(coord[idx_p1 * CSIZE + 0], coord[idx_n1 * CSIZE + 0], rDH);			  // x_xi
+	Covariant[idx * Covariant_Size + 1] = central_difference2(coord[idx_p1 * CSIZE + 1], coord[idx_n1 * CSIZE + 1], rDH);			  // y_xi
+	Covariant[idx * Covariant_Size + 2] = central_difference2(coord[idx_p1 * CSIZE + 2], coord[idx_n1 * CSIZE + 2], rDH);			  // z_xi
+	Covariant[idx * Covariant_Size + 3] = central_difference2(coord[idy_p1 * CSIZE + 0], coord[idy_n1 * CSIZE + 0], rDH);			  // x_et
+	Covariant[idx * Covariant_Size + 4] = central_difference2(coord[idy_p1 * CSIZE + 1], coord[idy_n1 * CSIZE + 1], rDH);			  // y_et
+	Covariant[idx * Covariant_Size + 5] = central_difference2(coord[idy_p1 * CSIZE + 2], coord[idy_n1 * CSIZE + 2], rDH);			  // z_et
+	Covariant[idx * Covariant_Size + 6] = central_difference2(coord[idz_p1 * CSIZE + 0], coord[idz_n1 * CSIZE + 0], rDH);			  // x_zt
+	Covariant[idx * Covariant_Size + 7] = central_difference2(coord[idz_p1 * CSIZE + 1], coord[idz_n1 * CSIZE + 1], rDH);			  // y_zt
+	Covariant[idx * Covariant_Size + 8] = central_difference2(coord[idz_p1 * CSIZE + 2], coord[idz_n1 * CSIZE + 2], rDH);			  // z_zt
+	Jac_inv[idx] = Covariant[idx * Covariant_Size + 0] * Covariant[idx * Covariant_Size + 4] * Covariant[idx * Covariant_Size + 8]	  // x_xi * y_et * z_zt
+				   + Covariant[idx * Covariant_Size + 1] * Covariant[idx * Covariant_Size + 5] * Covariant[idx * Covariant_Size + 6]  // y_xi * z_et * x_zt
+				   + Covariant[idx * Covariant_Size + 2] * Covariant[idx * Covariant_Size + 3] * Covariant[idx * Covariant_Size + 7]  // z_xi * x_et * y_zt
+				   - Covariant[idx * Covariant_Size + 2] * Covariant[idx * Covariant_Size + 4] * Covariant[idx * Covariant_Size + 6]  // z_xi * y_et * x_zt
+				   - Covariant[idx * Covariant_Size + 1] * Covariant[idx * Covariant_Size + 3] * Covariant[idx * Covariant_Size + 8]  // y_xi * x_et * z_zt
+				   - Covariant[idx * Covariant_Size + 0] * Covariant[idx * Covariant_Size + 7] * Covariant[idx * Covariant_Size + 5]; // x_xi * z_et * y_zt
+
+	END_CALCULATE3D()
+
+	cudaDeviceSynchronize();
+
+	CALCULATE3D(i, j, k, 2, _nx_ - 2, 2, _ny_ - 2, 2, _nz_ - 2)
+	idx = INDEX(i, j, k);
+	idx_p1 = INDEX(i + 1, j, k);
+	idx_n1 = INDEX(i - 1, j, k);
+	idy_p1 = INDEX(i, j + 1, k);
+	idy_n1 = INDEX(i, j - 1, k);
+	idz_p1 = INDEX(i, j, k + 1);
+	idz_n1 = INDEX(i, j, k - 1);
+
+	// NO CMM
+	con[idx * CONSIZE + 0] = (Covariant[idx * Covariant_Size + 4] * Covariant[idx * Covariant_Size + 8] - Covariant[idx * Covariant_Size + 5] * Covariant[idx * Covariant_Size + 7]); // xi_x_J
+	con[idx * CONSIZE + 1] = (Covariant[idx * Covariant_Size + 5] * Covariant[idx * Covariant_Size + 6] - Covariant[idx * Covariant_Size + 3] * Covariant[idx * Covariant_Size + 8]); // xi_y_J
+	con[idx * CONSIZE + 2] = (Covariant[idx * Covariant_Size + 3] * Covariant[idx * Covariant_Size + 7] - Covariant[idx * Covariant_Size + 4] * Covariant[idx * Covariant_Size + 6]); // xi_z_J
+	con[idx * CONSIZE + 3] = (Covariant[idx * Covariant_Size + 7] * Covariant[idx * Covariant_Size + 2] - Covariant[idx * Covariant_Size + 8] * Covariant[idx * Covariant_Size + 1]); // et_x_J
+	con[idx * CONSIZE + 4] = (Covariant[idx * Covariant_Size + 8] * Covariant[idx * Covariant_Size + 0] - Covariant[idx * Covariant_Size + 6] * Covariant[idx * Covariant_Size + 2]); // et_y_J
+	con[idx * CONSIZE + 5] = (Covariant[idx * Covariant_Size + 6] * Covariant[idx * Covariant_Size + 1] - Covariant[idx * Covariant_Size + 7] * Covariant[idx * Covariant_Size + 0]); // et_z_J
+	con[idx * CONSIZE + 6] = (Covariant[idx * Covariant_Size + 1] * Covariant[idx * Covariant_Size + 5] - Covariant[idx * Covariant_Size + 2] * Covariant[idx * Covariant_Size + 4]); // zt_x_J
+	con[idx * CONSIZE + 7] = (Covariant[idx * Covariant_Size + 2] * Covariant[idx * Covariant_Size + 3] - Covariant[idx * Covariant_Size + 0] * Covariant[idx * Covariant_Size + 5]); // zt_y_J
+	con[idx * CONSIZE + 8] = (Covariant[idx * Covariant_Size + 0] * Covariant[idx * Covariant_Size + 4] - Covariant[idx * Covariant_Size + 1] * Covariant[idx * Covariant_Size + 3]); // zt_z_J
+
+	// ! CMM: NOT CORRECT
+	// // xi_x_J = (y_eta * z)_zt - (y_zt * z)_et
+	// con[idx * CONSIZE + 0] = central_difference2(Covariant[idz_p1 * Covariant_Size + 4] * coord[idz_p1 * CSIZE + 2], Covariant[idz_n1 * Covariant_Size + 4] * coord[idz_n1 * CSIZE + 2], rDH)	 // (y_et * z)_zt
+	// 						 - central_difference2(Covariant[idy_p1 * Covariant_Size + 7] * coord[idy_p1 * CSIZE + 2], Covariant[idy_n1 * Covariant_Size + 7] * coord[idy_n1 * CSIZE + 2], rDH); // (y_zt * z)_et
+	// // xi_y_J = (z_eta * x)_zt - (z_zt * x)_et
+	// con[idx * CONSIZE + 1] = central_difference2(Covariant[idz_p1 * Covariant_Size + 5] * coord[idz_p1 * CSIZE + 0], Covariant[idz_n1 * Covariant_Size + 5] * coord[idz_n1 * CSIZE + 0], rDH)	 // (z_et * x)_zt
+	// 						 - central_difference2(Covariant[idy_p1 * Covariant_Size + 8] * coord[idy_p1 * CSIZE + 0], Covariant[idy_n1 * Covariant_Size + 8] * coord[idy_n1 * CSIZE + 0], rDH); // (z_zt * x)_et
+	// // xi_z_J = (x_eta * y)_zt - (x_zt * y)_et
+	// con[idx * CONSIZE + 2] = central_difference2(Covariant[idz_p1 * Covariant_Size + 3] * coord[idz_p1 * CSIZE + 1], Covariant[idz_n1 * Covariant_Size + 3] * coord[idz_n1 * CSIZE + 1], rDH)	 // (x_et * y)_zt
+	// 						 - central_difference2(Covariant[idy_p1 * Covariant_Size + 6] * coord[idy_p1 * CSIZE + 1], Covariant[idy_n1 * Covariant_Size + 6] * coord[idy_n1 * CSIZE + 1], rDH); // (x_zt * y)_et
+	// // eta_x_J = (y_zt * z)_xi - (y_xi * z)_zt
+	// con[idx * CONSIZE + 3] = central_difference2(Covariant[idx_p1 * Covariant_Size + 7] * coord[idx_p1 * CSIZE + 2], Covariant[idx_n1 * Covariant_Size + 7] * coord[idx_n1 * CSIZE + 2], rDH)	 // (y_zt * z)_xi
+	// 						 - central_difference2(Covariant[idz_p1 * Covariant_Size + 1] * coord[idz_p1 * CSIZE + 2], Covariant[idz_n1 * Covariant_Size + 1] * coord[idz_n1 * CSIZE + 2], rDH); // (y_xi * z)_zt
+	// // eta_y_J = (z_zt * x)_xi - (z_xi * x)_zt
+	// con[idx * CONSIZE + 4] = central_difference2(Covariant[idx_p1 * Covariant_Size + 8] * coord[idx_p1 * CSIZE + 0], Covariant[idx_n1 * Covariant_Size + 8] * coord[idx_n1 * CSIZE + 0], rDH)	 // (z_zt * x)_xi
+	// 						 - central_difference2(Covariant[idz_p1 * Covariant_Size + 2] * coord[idz_p1 * CSIZE + 0], Covariant[idz_n1 * Covariant_Size + 2] * coord[idz_n1 * CSIZE + 0], rDH); // (z_xi * x)_zt
+	// // eta_z_J = (x_zt * y)_xi - (x_xi * y)_zt
+	// con[idx * CONSIZE + 5] = central_difference2(Covariant[idx_p1 * Covariant_Size + 6] * coord[idx_p1 * CSIZE + 1], Covariant[idx_n1 * Covariant_Size + 6] * coord[idx_n1 * CSIZE + 1], rDH)	 // (x_zt * y)_xi
+	// 						 - central_difference2(Covariant[idz_p1 * Covariant_Size + 0] * coord[idz_p1 * CSIZE + 1], Covariant[idz_n1 * Covariant_Size + 0] * coord[idz_n1 * CSIZE + 1], rDH); // (x_xi * y)_zt
+	// // zeta_x_J = (y_xi * z)_et - (y_et * z)_xi
+	// con[idx * CONSIZE + 6] = central_difference2(Covariant[idy_p1 * Covariant_Size + 1] * coord[idy_p1 * CSIZE + 2], Covariant[idy_n1 * Covariant_Size + 1] * coord[idy_n1 * CSIZE + 2], rDH)	 // (y_xi * z)_et
+	// 						 - central_difference2(Covariant[idx_p1 * Covariant_Size + 5] * coord[idx_p1 * CSIZE + 2], Covariant[idx_n1 * Covariant_Size + 5] * coord[idx_n1 * CSIZE + 2], rDH); // (y_et * z)_xi
+	// // zeta_y_J = (z_xi * x)_et - (z_et * x)_xi
+	// con[idx * CONSIZE + 7] = central_difference2(Covariant[idy_p1 * Covariant_Size + 2] * coord[idy_p1 * CSIZE + 0], Covariant[idy_n1 * Covariant_Size + 2] * coord[idy_n1 * CSIZE + 0], rDH)	 // (z_xi * x)_et
+	// 						 - central_difference2(Covariant[idx_p1 * Covariant_Size + 8] * coord[idx_p1 * CSIZE + 0], Covariant[idx_n1 * Covariant_Size + 8] * coord[idx_n1 * CSIZE + 0], rDH); // (z_et * x)_xi
+	// // zeta_z_J = (x_xi * y)_et - (x_et * y)_xi
+	// con[idx * CONSIZE + 8] = central_difference2(Covariant[idy_p1 * Covariant_Size + 0] * coord[idy_p1 * CSIZE + 1], Covariant[idy_n1 * Covariant_Size + 0] * coord[idy_n1 * CSIZE + 1], rDH)	 // (x_xi * y)_et
+	// 						 - central_difference2(Covariant[idx_p1 * Covariant_Size + 6] * coord[idx_p1 * CSIZE + 1], Covariant[idx_n1 * Covariant_Size + 6] * coord[idx_n1 * CSIZE + 1], rDH); // (x_et * y)_xi
+	END_CALCULATE3D()
+
+	cudaDeviceSynchronize();
+
+	// FIXME
+	CALCULATE3D(i, j, k, 1, _nx_ - 1, 1, _ny_ - 1, 1, _nz_ - 1)
+	idx = INDEX(i, j, k);
+	idx_p1 = INDEX(i + 1, j, k);
+	idy_p1 = INDEX(i, j + 1, k);
+	idz_p1 = INDEX(i, j, k + 1);
+
+	// con[idx * CONSIZE + 9] = 0.5f * (con[idx * CONSIZE + 0] + con[idx_p1 * CONSIZE + 0]);
+	// con[idx * CONSIZE + 10] = 0.5f * (con[idx * CONSIZE + 1] + con[idx_p1 * CONSIZE + 1]);
+	// con[idx * CONSIZE + 11] = 0.5f * (con[idx * CONSIZE + 2] + con[idx_p1 * CONSIZE + 2]);
+	// con[idx * CONSIZE + 12] = 0.5f * (con[idx * CONSIZE + 3] + con[idy_p1 * CONSIZE + 3]);
+	// con[idx * CONSIZE + 13] = 0.5f * (con[idx * CONSIZE + 4] + con[idy_p1 * CONSIZE + 4]);
+	// con[idx * CONSIZE + 14] = 0.5f * (con[idx * CONSIZE + 5] + con[idy_p1 * CONSIZE + 5]);
+	// con[idx * CONSIZE + 15] = 0.5f * (con[idx * CONSIZE + 6] + con[idz_p1 * CONSIZE + 6]);
+	// con[idx * CONSIZE + 16] = 0.5f * (con[idx * CONSIZE + 7] + con[idz_p1 * CONSIZE + 7]);
+	// con[idx * CONSIZE + 17] = 0.5f * (con[idx * CONSIZE + 8] + con[idz_p1 * CONSIZE + 8]);
+	// con[idx * CONSIZE + 9] = con[idx * CONSIZE + 0];
+	// con[idx * CONSIZE + 10] = con[idx * CONSIZE + 1];
+	// con[idx * CONSIZE + 11] = con[idx * CONSIZE + 2];
+	// con[idx * CONSIZE + 12] = con[idx * CONSIZE + 3];
+	// con[idx * CONSIZE + 13] = con[idx * CONSIZE + 4];
+	// con[idx * CONSIZE + 14] = con[idx * CONSIZE + 5];
+	// con[idx * CONSIZE + 15] = con[idx * CONSIZE + 6];
+	// con[idx * CONSIZE + 16] = con[idx * CONSIZE + 7];
+	// con[idx * CONSIZE + 17] = con[idx * CONSIZE + 8];
+
+	// ！ For a short time
+	con[idx * CONSIZE + 9] = (con[idx * CONSIZE + 6] / Jac_inv[idx]) / (sqrt((con[idx * CONSIZE + 6] / Jac_inv[idx]) * (con[idx * CONSIZE + 6] / Jac_inv[idx]) + (con[idx * CONSIZE + 7] / Jac_inv[idx]) * (con[idx * CONSIZE + 7] / Jac_inv[idx]) + (con[idx * CONSIZE + 8] / Jac_inv[idx]) * (con[idx * CONSIZE + 8] / Jac_inv[idx])));  // nx
+	con[idx * CONSIZE + 10] = (con[idx * CONSIZE + 7] / Jac_inv[idx]) / (sqrt((con[idx * CONSIZE + 6] / Jac_inv[idx]) * (con[idx * CONSIZE + 6] / Jac_inv[idx]) + (con[idx * CONSIZE + 7] / Jac_inv[idx]) * (con[idx * CONSIZE + 7] / Jac_inv[idx]) + (con[idx * CONSIZE + 8] / Jac_inv[idx]) * (con[idx * CONSIZE + 8] / Jac_inv[idx]))); // ny
+	con[idx * CONSIZE + 11] = (con[idx * CONSIZE + 8] / Jac_inv[idx]) / (sqrt((con[idx * CONSIZE + 6] / Jac_inv[idx]) * (con[idx * CONSIZE + 6] / Jac_inv[idx]) + (con[idx * CONSIZE + 7] / Jac_inv[idx]) * (con[idx * CONSIZE + 7] / Jac_inv[idx]) + (con[idx * CONSIZE + 8] / Jac_inv[idx]) * (con[idx * CONSIZE + 8] / Jac_inv[idx]))); // nz
+	con[idx * CONSIZE + 12] = Covariant[idx * Covariant_Size + 0] / (sqrt(Covariant[idx * Covariant_Size + 0] * Covariant[idx * Covariant_Size + 0] + Covariant[idx * Covariant_Size + 1] * Covariant[idx * Covariant_Size + 1] + Covariant[idx * Covariant_Size + 2] * Covariant[idx * Covariant_Size + 2]));							   // sx
+	con[idx * CONSIZE + 13] = Covariant[idx * Covariant_Size + 1] / (sqrt(Covariant[idx * Covariant_Size + 0] * Covariant[idx * Covariant_Size + 0] + Covariant[idx * Covariant_Size + 1] * Covariant[idx * Covariant_Size + 1] + Covariant[idx * Covariant_Size + 2] * Covariant[idx * Covariant_Size + 2]));							   // sy
+	con[idx * CONSIZE + 14] = Covariant[idx * Covariant_Size + 2] / (sqrt(Covariant[idx * Covariant_Size + 0] * Covariant[idx * Covariant_Size + 0] + Covariant[idx * Covariant_Size + 1] * Covariant[idx * Covariant_Size + 1] + Covariant[idx * Covariant_Size + 2] * Covariant[idx * Covariant_Size + 2]));							   // sz
+	con[idx * CONSIZE + 15] = Covariant[idx * Covariant_Size + 3] / (sqrt(Covariant[idx * Covariant_Size + 3] * Covariant[idx * Covariant_Size + 3] + Covariant[idx * Covariant_Size + 4] * Covariant[idx * Covariant_Size + 4] + Covariant[idx * Covariant_Size + 5] * Covariant[idx * Covariant_Size + 5]));							   // tx
+	con[idx * CONSIZE + 16] = Covariant[idx * Covariant_Size + 4] / (sqrt(Covariant[idx * Covariant_Size + 3] * Covariant[idx * Covariant_Size + 3] + Covariant[idx * Covariant_Size + 4] * Covariant[idx * Covariant_Size + 4] + Covariant[idx * Covariant_Size + 5] * Covariant[idx * Covariant_Size + 5]));							   // ty
+	con[idx * CONSIZE + 17] = Covariant[idx * Covariant_Size + 5] / (sqrt(Covariant[idx * Covariant_Size + 3] * Covariant[idx * Covariant_Size + 3] + Covariant[idx * Covariant_Size + 4] * Covariant[idx * Covariant_Size + 4] + Covariant[idx * Covariant_Size + 5] * Covariant[idx * Covariant_Size + 5]));							   // tz
+	END_CALCULATE3D()
+
+	cudaDeviceSynchronize();
+}
+
+#endif
+
 __GLOBAL__
 void solve_con_jac(float *con, float *coord, float *Jac, int _nx_, int _ny_, int _nz_, float rDH)
 {
@@ -419,11 +563,26 @@ void solveContravariantJac(MPI_Comm comm_cart, GRID grid, float *con, float *coo
 
 	dim3 threads(32, 4, 4);
 	dim3 blocks;
+
+#ifdef SCFDM
+	blocks.x = (_nx_ + threads.x - 1) / threads.x;
+	blocks.y = (_ny_ + threads.y - 1) / threads.y;
+	blocks.z = (_nz_ + threads.z - 1) / threads.z;
+
+	float *Cov;
+	Malloc((void **)&Cov, sizeof(float) * _nx_ * _ny_ * _nz_ * Covariant_Size);
+#else
 	blocks.x = (nx + threads.x - 1) / threads.x;
 	blocks.y = (ny + threads.y - 1) / threads.y;
 	blocks.z = (nz + threads.z - 1) / threads.z;
+#endif
 
+#ifdef SCFDM
+	solve_con_jac_CMM<<<blocks, threads>>>(con, coord, Jac, Cov, _nx_, _ny_, _nz_, rDH);
+	cudaFree(Cov);
+#else
 	solve_con_jac<<<blocks, threads>>>(con, coord, Jac, _nx_, _ny_, _nz_, rDH);
+#endif
 #else
 	solve_con_jac(con, coord, Jac, _nx_, _ny_, _nz_, rDH);
 #endif
