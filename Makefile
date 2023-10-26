@@ -78,8 +78,8 @@ OBJDIR := ./obj
 BINDIR := ./bin
 
 
-CFLAGS := -c -O3 
-LFLAGS := -O3
+CFLAGS := -c -O2
+LFLAGS := -O2
 
 GCFLAGS := 
 

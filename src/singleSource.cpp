@@ -49,7 +49,7 @@ float sourceFunction(float rickerfc, int it, int irk, float DT)
 	float rr = r * r;
 	float s = r * (2.0f * rr - 3.0) * exp(-rr) * f0 * PI * rickerfc;
 
-	float M0 = 1e16;
+	float M0 = 1e9; // ! When M0 > 1e9, S wave residue in SCFDM
 	s *= M0;
 
 	return s;
@@ -116,55 +116,17 @@ void load_smooth_source(SOURCE S, FLOAT *h_W, int _nx_, int _ny_, int _nz_,
 	value *= Cs * DT;
 
 #ifdef SCFDM
-	// ! For alternative flux finite difference by Tianhong Xu
-	float u_conserv[9], u_phy[9];
 
-	for (int n = 0; n < 9; n++)
-	{
-		u_conserv[n] = h_W[index * WSIZE + n];
-	}
+	float mu, lambda, buoyancy;
 
-	float mu = CJM[index * CJMSIZE + 10];
-	float lambda = CJM[index * CJMSIZE + 11];
-	float buoyancy = CJM[index * CJMSIZE + 12];
-	buoyancy *= Crho;
+	mu = CJM[index * CJMSIZE + 10];
+	lambda = CJM[index * CJMSIZE + 11];
 
-	u_phy[0] = lambda * u_conserv[1] + lambda * u_conserv[2] + u_conserv[0] * (lambda + 2 * mu);
-	u_phy[1] = lambda * u_conserv[0] + lambda * u_conserv[2] + u_conserv[1] * (lambda + 2 * mu);
-	u_phy[2] = lambda * u_conserv[0] + lambda * u_conserv[1] + u_conserv[2] * (lambda + 2 * mu);
-	u_phy[3] = 2 * mu * u_conserv[3];
-	u_phy[4] = 2 * mu * u_conserv[5];
-	u_phy[5] = 2 * mu * u_conserv[4];
-	u_phy[6] = u_conserv[6] * buoyancy;
-	u_phy[7] = u_conserv[7] * buoyancy;
-	u_phy[8] = u_conserv[8] * buoyancy;
+	value = value / (3 * lambda + 2 * mu);
 
-	u_phy[0] += value;
-	u_phy[1] += value;
-	u_phy[2] += value;
-	// u_phy[3] += value;
-	// u_phy[4] += value;
-	// u_phy[5] += value;
-
-	u_conserv[0] = (u_phy[0] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * u_phy[1]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * u_phy[2]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
-	u_conserv[1] = (u_phy[1] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * u_phy[0]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * u_phy[2]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
-	u_conserv[2] = (u_phy[2] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * u_phy[0]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * u_phy[1]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
-	u_conserv[3] = u_phy[3] / (2 * mu);
-	u_conserv[4] = u_phy[5] / (2 * mu);
-	u_conserv[5] = u_phy[4] / (2 * mu);
-	u_conserv[6] = u_phy[6] / buoyancy;
-	u_conserv[7] = u_phy[7] / buoyancy;
-	u_conserv[8] = u_phy[8] / buoyancy;
-
-	h_W[index * WSIZE + 0] = u_conserv[0];
-	h_W[index * WSIZE + 1] = u_conserv[1];
-	h_W[index * WSIZE + 2] = u_conserv[2];
-	h_W[index * WSIZE + 3] = u_conserv[3];
-	h_W[index * WSIZE + 4] = u_conserv[5];
-	h_W[index * WSIZE + 5] = u_conserv[4];
-	h_W[index * WSIZE + 6] = u_conserv[6];
-	h_W[index * WSIZE + 7] = u_conserv[7];
-	h_W[index * WSIZE + 8] = u_conserv[8];
+	h_W[index * WSIZE + 0] = ((float)h_W[index * WSIZE + 0] + value);
+	h_W[index * WSIZE + 1] = ((float)h_W[index * WSIZE + 1] + value);
+	h_W[index * WSIZE + 2] = ((float)h_W[index * WSIZE + 2] + value);
 #else
 	h_W[index * WSIZE + 3] = ((float)h_W[index * WSIZE + 3] + value);
 	h_W[index * WSIZE + 4] = ((float)h_W[index * WSIZE + 4] + value);
@@ -178,7 +140,7 @@ void loadPointSource(GRID grid, SOURCE S, FLOAT *h_W, FLOAT *CJM, int it, int ir
 {
 	// load_point_source<<< 1, 1 >>>( S, h_W, _nx_, _ny_, _nz_, Jac, it, irk, DT, DH );
 
-	int nGauss = 1;
+	int nGauss = 3;
 
 	int _nx_ = grid._nx_;
 	int _ny_ = grid._ny_;
