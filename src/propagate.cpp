@@ -138,7 +138,12 @@ void propagate(
 			loadPointSource(grid, S, wave.W, CJM, it, 0, DT, DH, params.rickerfc);
 
 		if (useMultiSource)
-			addMomenteRate(grid, src_in, wave.W, srcIndex, momentRate, momentRateSlice, it, 0, DT, DH, gaussFactor, nGauss, IsFreeSurface);
+			addMomenteRate(grid, src_in, wave.W, srcIndex, momentRate, momentRateSlice, it, 0, DT, DH, gaussFactor, nGauss, IsFreeSurface
+#ifdef SCFDM
+						   ,
+						   CJM
+#endif
+			);
 
 		for (irk = 0; irk < 4; irk++)
 		{

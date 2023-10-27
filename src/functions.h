@@ -56,7 +56,12 @@ void addMomenteRate(GRID grid, SOURCE_FILE_INPUT src_in,
 					FLOAT *hW, long long *srcIndex,
 					float *momentRate, float *momentRateSlice,
 					int it, int irk, float DT, float DH,
-					float *gaussFactor, int nGauss, int flagSurf);
+					float *gaussFactor, int nGauss, int flagSurf
+#ifdef SCFDM
+					,
+					FLOAT *CJM
+#endif
+);
 
 void finish_MultiSource(long long *srcIndex, float *momentRate, float *momentRateSlice, long long npts);
 

@@ -173,7 +173,12 @@ void addSource(FLOAT *hW, float *momentRateSlice, long long *srcIndex, int npts,
 }
 
 __GLOBAL__
-void addSource1(FLOAT *hW, float *momentRateSlice, long long *srcIndex, int npts, float DT)
+void addSource1(FLOAT *hW, float *momentRateSlice, long long *srcIndex, int npts, float DT
+#ifdef SCFDM
+				,
+				FLOAT *CJM
+#endif
+)
 {
 
 #ifdef GPU_CUDA
@@ -182,18 +187,46 @@ void addSource1(FLOAT *hW, float *momentRateSlice, long long *srcIndex, int npts
 	long long i = 0;
 #endif
 	long long idx = 0;
-	// float V = 1.0;
+// float V = 1.0;
+#ifdef SCFDM
+	float mu, lambda;
+	float m_stress[6], m_strain[6];
+#endif
 
 	CALCULATE1D(i, 0, npts)
 	idx = srcIndex[i];
 	// V = Jac[idx] * DH * DH * DH;
 	// V = -1.0 / V;
+
+#ifdef SCFDM
+	mu = CJM[idx * CJMSIZE + 10];
+	lambda = CJM[idx * CJMSIZE + 11];
+
+	for (int n = 0; n < 6; n++)
+	{
+		m_stress[n] = momentRateSlice[i * MOMSIZE + n];
+	}
+
+	m_strain[0] = (m_stress[0] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * m_stress[1]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * m_stress[2]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
+	m_strain[1] = (m_stress[1] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * m_stress[0]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * m_stress[2]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
+	m_strain[2] = (m_stress[2] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * m_stress[0]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * m_stress[1]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
+	m_strain[3] = m_stress[3] / (2 * mu);
+	m_strain[4] = m_stress[5] / (2 * mu);
+	m_strain[5] = m_stress[4] / (2 * mu);
+
+	for (int n = 0; n < 6; n++)
+	{
+		hW[idx * WSIZE + n] -= m_strain[n] * DT;
+	}
+
+#else
 	hW[idx * WSIZE + 3] -= momentRateSlice[i * MOMSIZE + 0] * DT;
 	hW[idx * WSIZE + 4] -= momentRateSlice[i * MOMSIZE + 1] * DT;
 	hW[idx * WSIZE + 5] -= momentRateSlice[i * MOMSIZE + 2] * DT;
 	hW[idx * WSIZE + 6] -= momentRateSlice[i * MOMSIZE + 3] * DT;
 	hW[idx * WSIZE + 7] -= momentRateSlice[i * MOMSIZE + 4] * DT;
 	hW[idx * WSIZE + 8] -= momentRateSlice[i * MOMSIZE + 5] * DT;
+#endif
 	/*
 	if ( i == 10000 && it == 2000 )
 	{
@@ -212,9 +245,13 @@ void addMomenteRate(GRID grid, SOURCE_FILE_INPUT src_in,
 					FLOAT *hW, long long *srcIndex,
 					float *momentRate, float *momentRateSlice,
 					int it, int irk, float DT, float DH,
-					float *gaussFactor, int nGauss, int flagSurf)
+					float *gaussFactor, int nGauss, int flagSurf
+#ifdef SCFDM
+					,
+					FLOAT *CJM
+#endif
+)
 {
-
 	MPI_Barrier(MPI_COMM_WORLD);
 
 	long long npts = src_in.npts;
@@ -266,7 +303,12 @@ void addMomenteRate(GRID grid, SOURCE_FILE_INPUT src_in,
 	interp_momentRate<<<blocks, threads>>>(npts, momentRate, momentRateSlice, t_weight, srcIt);
 	CHECK(cudaDeviceSynchronize());
 #ifdef NO_SOURCE_SMOOTH
-	addSource1<<<blocks, threads>>>(hW, momentRateSlice, srcIndex, npts, DT);
+	addSource1<<<blocks, threads>>>(hW, momentRateSlice, srcIndex, npts, DT
+#ifdef SCFDM
+									,
+									CJM
+#endif
+	);
 	CHECK(cudaDeviceSynchronize());
 
 #else
