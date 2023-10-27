@@ -417,10 +417,77 @@ void data2D_output_bin(GRID grid, SLICE slice,
 	}
 }
 
-void data2D_XYZ_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, FLOAT *wave, SLICE slice, SLICE_DATA sliceData, SLICE_DATA sliceDataCpu, char var, int it)
+__GLOBAL__
+void wave_conserv2phy(FLOAT *wave_conserv, FLOAT *wave_phy, FLOAT *CJM, int _nx_, int _ny_, int _nz_)
+{
+#ifdef GPU_CUDA
+	int i = threadIdx.x + blockIdx.x * blockDim.x;
+	int j = threadIdx.y + blockIdx.y * blockDim.y;
+	int k = threadIdx.z + blockIdx.z * blockDim.z;
+#else
+	int i = 0;
+	int j = 0;
+	int k = 0;
+#endif
+
+	float u_conserv[9], u_phy[9];
+	long long index;
+	float mu, lambda, buoyancy;
+
+	CALCULATE3D(i, j, k, 0, _nx_, 0, _ny_, 0, _nz_)
+	index = INDEX(i, j, k);
+
+	mu = CJM[index * CJMSIZE + 10];
+	lambda = CJM[index * CJMSIZE + 11];
+	buoyancy = CJM[index * CJMSIZE + 12];
+	buoyancy *= Crho;
+
+	for (int n = 0; n < 9; n++)
+	{
+		u_conserv[n] = wave_conserv[index * WSIZE + n];
+	}
+
+	// Calculate physical variables
+	u_phy[0] = lambda * u_conserv[1] + lambda * u_conserv[2] + u_conserv[0] * (lambda + 2 * mu);
+	u_phy[1] = lambda * u_conserv[0] + lambda * u_conserv[2] + u_conserv[1] * (lambda + 2 * mu);
+	u_phy[2] = lambda * u_conserv[0] + lambda * u_conserv[1] + u_conserv[2] * (lambda + 2 * mu);
+	u_phy[3] = 2 * mu * u_conserv[3];
+	u_phy[4] = 2 * mu * u_conserv[5];
+	u_phy[5] = 2 * mu * u_conserv[4];
+	u_phy[6] = u_conserv[6] * buoyancy;
+	u_phy[7] = u_conserv[7] * buoyancy;
+	u_phy[8] = u_conserv[8] * buoyancy;
+
+	for (int n = 0; n < 9; n++)
+	{
+		wave_phy[index * WSIZE + n] = u_phy[n];
+	}
+
+	END_CALCULATE3D()
+}
+
+void data2D_XYZ_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, FLOAT *wave, SLICE slice, SLICE_DATA sliceData, SLICE_DATA sliceDataCpu, char var, int it
+#ifdef SCFDM
+					,
+					FLOAT *CJM
+#endif
+)
 {
 
 	// printf( "wave = %p\n", wave );
+
+#ifdef SCFDM
+	FLOAT *wave_phy; // Txx, Tyy, Tzz, Txy, Txz, Tyz, Vx, Vy, Vz
+	CHECK(Malloc((void **)&wave_phy, sizeof(FLOAT) * WSIZE * grid._nx_ * grid._ny_ * grid._nz_));
+
+	dim3 threads(32, 4, 4);
+	dim3 blocks;
+	blocks.x = (grid._nx_ + threads.x - 1) / threads.x;
+	blocks.y = (grid._ny_ + threads.y - 1) / threads.y;
+	blocks.z = (grid._nz_ + threads.z - 1) / threads.z;
+
+	wave_conserv2phy<<<blocks, threads>>>(wave, wave_phy, CJM, grid._nx_, grid._ny_, grid._nz_);
+#endif
 
 	int FP_TYPE = 2;
 	switch (var)
@@ -435,9 +502,9 @@ void data2D_XYZ_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, FLOAT *wav
 		sprintf(VzFileName, "%s/Vz_%d", params.OUT, it);
 #ifdef SCFDM
 		// ! For alternative flux finite difference by Tianhong Xu
-		data2D_output_bin(grid, slice, thisMPICoord, wave, 6 /*x*/, WSIZE, sliceData, sliceDataCpu, VxFileName, 1, FP_TYPE);
-		data2D_output_bin(grid, slice, thisMPICoord, wave, 7 /*x*/, WSIZE, sliceData, sliceDataCpu, VyFileName, 1, FP_TYPE);
-		data2D_output_bin(grid, slice, thisMPICoord, wave, 8 /*x*/, WSIZE, sliceData, sliceDataCpu, VzFileName, 1, FP_TYPE);
+		data2D_output_bin(grid, slice, thisMPICoord, wave_phy, 6 /*x*/, WSIZE, sliceData, sliceDataCpu, VxFileName, 1, FP_TYPE);
+		data2D_output_bin(grid, slice, thisMPICoord, wave_phy, 7 /*x*/, WSIZE, sliceData, sliceDataCpu, VyFileName, 1, FP_TYPE);
+		data2D_output_bin(grid, slice, thisMPICoord, wave_phy, 8 /*x*/, WSIZE, sliceData, sliceDataCpu, VzFileName, 1, FP_TYPE);
 #else
 		data2D_output_bin(grid, slice, thisMPICoord, wave, 0 /*x*/, WSIZE, sliceData, sliceDataCpu, VxFileName, 1, FP_TYPE);
 		data2D_output_bin(grid, slice, thisMPICoord, wave, 1 /*x*/, WSIZE, sliceData, sliceDataCpu, VyFileName, 1, FP_TYPE);
@@ -460,6 +527,13 @@ void data2D_XYZ_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, FLOAT *wav
 		sprintf(TyzFileName, "%s/Tyz_%d", params.OUT, it);
 
 #ifdef SCFDM
+		data2D_output_bin(grid, slice, thisMPICoord, wave_phy, 0 /*x*/, WSIZE, sliceData, sliceDataCpu, TxxFileName, 2, FP_TYPE);
+		data2D_output_bin(grid, slice, thisMPICoord, wave_phy, 1 /*x*/, WSIZE, sliceData, sliceDataCpu, TyyFileName, 2, FP_TYPE);
+		data2D_output_bin(grid, slice, thisMPICoord, wave_phy, 2 /*x*/, WSIZE, sliceData, sliceDataCpu, TzzFileName, 2, FP_TYPE);
+
+		data2D_output_bin(grid, slice, thisMPICoord, wave_phy, 3 /*x*/, WSIZE, sliceData, sliceDataCpu, TxyFileName, 2, FP_TYPE);
+		data2D_output_bin(grid, slice, thisMPICoord, wave_phy, 4 /*x*/, WSIZE, sliceData, sliceDataCpu, TxzFileName, 2, FP_TYPE);
+		data2D_output_bin(grid, slice, thisMPICoord, wave_phy, 5 /*x*/, WSIZE, sliceData, sliceDataCpu, TyzFileName, 2, FP_TYPE);
 #else
 		data2D_output_bin(grid, slice, thisMPICoord, wave, 3 /*x*/, WSIZE, sliceData, sliceDataCpu, TxxFileName, 2, FP_TYPE);
 		data2D_output_bin(grid, slice, thisMPICoord, wave, 4 /*x*/, WSIZE, sliceData, sliceDataCpu, TyyFileName, 2, FP_TYPE);
@@ -480,6 +554,9 @@ void data2D_XYZ_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, FLOAT *wav
 		sprintf(VzFileName, "%s/FreeSurfVz_%d", params.OUT, it);
 
 #ifdef SCFDM
+		data2D_output_bin(grid, slice, thisMPICoord, wave_phy, 6 /*x*/, WSIZE, sliceData, sliceDataCpu, VxFileName, 1, FP_TYPE);
+		data2D_output_bin(grid, slice, thisMPICoord, wave_phy, 7 /*x*/, WSIZE, sliceData, sliceDataCpu, VyFileName, 1, FP_TYPE);
+		data2D_output_bin(grid, slice, thisMPICoord, wave_phy, 8 /*x*/, WSIZE, sliceData, sliceDataCpu, VzFileName, 1, FP_TYPE);
 #else
 		data2D_output_bin(grid, slice, thisMPICoord, wave, 0 /*x*/, WSIZE, sliceData, sliceDataCpu, VxFileName, 1, FP_TYPE);
 		data2D_output_bin(grid, slice, thisMPICoord, wave, 1 /*x*/, WSIZE, sliceData, sliceDataCpu, VyFileName, 1, FP_TYPE);

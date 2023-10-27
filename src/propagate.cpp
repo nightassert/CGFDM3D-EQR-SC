@@ -188,15 +188,35 @@ void propagate(
 #endif // EXP_DECAY
 
 		if (stationNum > 0)
-			storageStation(grid, NT, stationNum, station, wave.W, it);
+			storageStation(grid, NT, stationNum, station, wave.W, it
+#ifdef SCFDM
+						   ,
+						   CJM
+#endif
+			);
 		if (IsFreeSurface)
-			comparePGV(grid, thisMPICoord, wave.W, pgv);
+			comparePGV(grid, thisMPICoord, wave.W, pgv
+#ifdef SCFDM
+					   ,
+					   CJM
+#endif
+			);
 
 		if (it % IT_SKIP == 0)
 		{
-			data2D_XYZ_out(thisMPICoord, params, grid, wave.W, slice, sliceData, sliceDataCpu, 'V', it);
+			data2D_XYZ_out(thisMPICoord, params, grid, wave.W, slice, sliceData, sliceDataCpu, 'V', it
+#ifdef SCFDM
+						   ,
+						   CJM
+#endif
+			);
 			if (IsFreeSurface && sliceFreeSurf)
-				data2D_XYZ_out(thisMPICoord, params, grid, wave.W, freeSurfSlice, freeSurfData, freeSurfDataCpu, 'F', it);
+				data2D_XYZ_out(thisMPICoord, params, grid, wave.W, freeSurfSlice, freeSurfData, freeSurfDataCpu, 'F', it
+#ifdef SCFDM
+							   ,
+							   CJM
+#endif
+				);
 		}
 		/*
 		 */

@@ -45,7 +45,12 @@ void freePGV(float *pgv, float *cpu_pgv)
 }
 
 __GLOBAL__
-void compare_pgv(float *pgv, FLOAT *W, int nx, int ny, int nz)
+void compare_pgv(float *pgv, FLOAT *W, int nx, int ny, int nz
+#ifdef SCFDM
+				 ,
+				 FLOAT *CJM
+#endif
+)
 {
 	int _nx_ = nx + 2 * HALO;
 	int _ny_ = ny + 2 * HALO;
@@ -67,6 +72,10 @@ void compare_pgv(float *pgv, FLOAT *W, int nx, int ny, int nz)
 
 	long long index, pos;
 
+#ifdef SCFDM
+	float buoyancy;
+#endif
+
 	float Vx = 0.0f, Vy = 0.0f, Vz = 0.0f, Vh = 0.0f, V = 0.0f;
 
 	double c = 1.0 / Cv;
@@ -79,9 +88,18 @@ void compare_pgv(float *pgv, FLOAT *W, int nx, int ny, int nz)
 	// if ( i0 == nx - 1 && j0 == ny - 1 )
 	//	printf( "nx = %d, ny = %d, pos = %d, pgvh = %p, pgv = %p\n", nx, ny, pos, pgv.pgvh, pgv.pgv );
 
+#ifdef SCFDM
+	buoyancy = CJM[index * CJMSIZE + 12];
+	buoyancy *= Crho;
+
+	Vx = (float)W[index * WSIZE + 6] * c * buoyancy;
+	Vy = (float)W[index * WSIZE + 7] * c * buoyancy;
+	Vz = (float)W[index * WSIZE + 8] * c * buoyancy;
+#else
 	Vx = (float)W[index * WSIZE + 0] * c;
 	Vy = (float)W[index * WSIZE + 1] * c;
 	Vz = (float)W[index * WSIZE + 2] * c;
+#endif
 
 	Vh = sqrtf(Vx * Vx + Vy * Vy);
 	V = sqrtf(Vx * Vx + Vy * Vy + Vz * Vz);
@@ -107,7 +125,12 @@ void outputPgvData(PARAMS params, MPI_COORD thisMPICoord, float *cpuPgv, int nx,
 	fclose(filePgv);
 }
 
-void comparePGV(GRID grid, MPI_COORDINATE thisMPICoord, FLOAT *W, float *pgv)
+void comparePGV(GRID grid, MPI_COORDINATE thisMPICoord, FLOAT *W, float *pgv
+#ifdef SCFDM
+				,
+				FLOAT *CJM
+#endif
+)
 {
 	int nx = grid.nx;
 	int ny = grid.ny;
@@ -119,7 +142,12 @@ void comparePGV(GRID grid, MPI_COORDINATE thisMPICoord, FLOAT *W, float *pgv)
 	blocks.y = (ny + threads.y - 1) / threads.y;
 	blocks.z = 1;
 
-	compare_pgv<<<blocks, threads>>>(pgv, W, nx, ny, nz);
+	compare_pgv<<<blocks, threads>>>(pgv, W, nx, ny, nz
+#ifdef SCFDM
+									 ,
+									 CJM
+#endif
+	);
 	CHECK(cudaDeviceSynchronize());
 #else
 	compare_pgv(pgv, W, nx, ny, nz);

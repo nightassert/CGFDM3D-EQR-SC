@@ -143,7 +143,12 @@ void freeStation(STATION station, STATION cpu_station);
 int readStationIndex(GRID grid);
 void initStationIndex(GRID grid, STATION station);
 void stationCPU2GPU(STATION station, STATION station_cpu, int stationNum);
-void storageStation(GRID grid, int NT, int stationNum, STATION station, FLOAT *W, int it);
+void storageStation(GRID grid, int NT, int stationNum, STATION station, FLOAT *W, int it
+#ifdef SCFDM
+					,
+					FLOAT *CJM
+#endif
+);
 void stationGPU2CPU(STATION station, STATION station_cpu, int stationNum, int NT);
 void stationWrite(PARAMS params, GRID grid, MPI_COORD thisMPICoord, STATION station, int NT, int stationNum);
 
@@ -162,7 +167,12 @@ void data2D_output_bin(GRID grid, SLICE slice,
 					   MPI_COORD thisMPICoord,
 					   float *datain, SLICE_DATA sliceData, SLICE_DATA sliceDataCpu,
 					   const char *name);
-void data2D_XYZ_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, FLOAT *wave, SLICE slice, SLICE_DATA sliceData, SLICE_DATA sliceDataCpu, char var, int it);
+void data2D_XYZ_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, FLOAT *wave, SLICE slice, SLICE_DATA sliceData, SLICE_DATA sliceDataCpu, char var, int it
+#ifdef SCFDM
+					,
+					FLOAT *CJM
+#endif
+);
 void data2D_Model_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, float *coord, float *medium, SLICE slice, SLICE_DATA sliceData, SLICE_DATA sliceDataCpu);
 
 void allocSendRecv(GRID grid, MPI_NEIGHBOR mpiNeighbor, SEND_RECV_DATA *sr, int VARSIZE);
@@ -176,6 +186,11 @@ void FLOAT_mpiSendRecv(MPI_Comm comm_cart, MPI_NEIGHBOR mpiNeighbor, GRID grid, 
 void allocatePGV(GRID grid, float **pgv, float **cpu_pgv);
 void freePGV(float *pgv, float *cpu_pgv);
 void outputPGV(PARAMS params, GRID grid, MPI_COORDINATE thisMPICoord, float *pgv, float *cpuPgv);
-void comparePGV(GRID grid, MPI_COORDINATE thisMPICoord, FLOAT *W, float *pgv);
+void comparePGV(GRID grid, MPI_COORDINATE thisMPICoord, FLOAT *W, float *pgv
+#ifdef SCFDM
+				,
+				FLOAT *CJM
+#endif
+);
 
 #endif //__FUNCTIONS__
