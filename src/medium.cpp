@@ -70,9 +70,14 @@ void construct_homo_medium(float *medium, int _nx_, int _ny_, int _nz_)
 
 	CALCULATE3D(i, j, k, 0, _nx_, 0, _ny_, 0, _nz_)
 	index = INDEX(i, j, k) * MSIZE;
-	medium[index + 0] = 3464.0f;
-	medium[index + 1] = 6000.0f;
-	medium[index + 2] = 2670.0f;
+	// medium[index + 0] = 3464.0f;
+	// medium[index + 1] = 6000.0f;
+	// medium[index + 2] = 2670.0f;
+
+	// ! TPV10
+	medium[index + 0] = 3300.0f;
+	medium[index + 1] = 5716.0f;
+	medium[index + 2] = 2700.0f;
 	END_CALCULATE3D()
 }
 
