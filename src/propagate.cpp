@@ -274,4 +274,8 @@ void propagate(
 		if (sliceFreeSurf)
 			freeSliceData(grid, freeSurfSlice, freeSurfData, freeSurfDataCpu);
 	}
+
+#ifdef SOLVE_DISPLACEMENT
+	Free(Dis);
+#endif
 }

@@ -564,6 +564,10 @@ void data2D_XYZ_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, FLOAT *wav
 #endif
 	}
 	}
+
+#ifdef SCFDM
+	Free(wave_phy);
+#endif
 }
 
 void data2D_Model_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, float *coord, float *medium, SLICE slice, SLICE_DATA sliceData, SLICE_DATA sliceDataCpu)
@@ -606,7 +610,7 @@ void data2D_XYZ_out_Dis(MPI_COORD thisMPICoord, PARAMS params, GRID grid, SLICE 
 	sprintf(UyFileName, "%s/FreeSurfUy_%d", params.OUT, it);
 	sprintf(UzFileName, "%s/FreeSurfUz_%d", params.OUT, it);
 
-	data2D_output_bin(grid, slice, thisMPICoord, Dis, 0 /*x*/, WSIZE, sliceData, sliceDataCpu, UxFileName, 1, FP_TYPE);
-	data2D_output_bin(grid, slice, thisMPICoord, Dis, 1 /*x*/, WSIZE, sliceData, sliceDataCpu, UyFileName, 1, FP_TYPE);
-	data2D_output_bin(grid, slice, thisMPICoord, Dis, 2 /*x*/, WSIZE, sliceData, sliceDataCpu, UzFileName, 1, FP_TYPE);
+	data2D_output_bin(grid, slice, thisMPICoord, Dis, 0 /*x*/, 3, sliceData, sliceDataCpu, UxFileName, 1, FP_TYPE);
+	data2D_output_bin(grid, slice, thisMPICoord, Dis, 1 /*x*/, 3, sliceData, sliceDataCpu, UyFileName, 1, FP_TYPE);
+	data2D_output_bin(grid, slice, thisMPICoord, Dis, 2 /*x*/, 3, sliceData, sliceDataCpu, UzFileName, 1, FP_TYPE);
 }
