@@ -15,7 +15,7 @@ ZFAST := # ON
 
 # ! For alternative flux finite difference by Tianhong Xu
 # * Only for GPU now
-SCFDM := ON
+SCFDM := 
 # ! Shock Capturing Methods
 WENO := ON
 MP :=  # ! Not correct
@@ -110,7 +110,7 @@ OBJS := cjson.o init_gpu.o init_grid.o init_MPI.o main.o getParams.o create_dir.
 		contravariant.o MPI_send_recv.o MPI_send_recv_FLOAT.o multiSource.o wave_deriv.o wave_rk.o \
 		propagate.o freeSurface.o singleSource.o station.o PGV.o addMoment.o \
 		init_pml_para.o pml_deriv.o pml_rk.o pml_freeSurface.o \
-		alternative_flux_FD.o exp_decay_absorb.o
+		alternative_flux_FD.o exp_decay_absorb.o solve_displacement.o
 
 OBJS := $(addprefix $(OBJDIR)/,$(OBJS))
 

@@ -51,6 +51,12 @@ void propagate(
 	locateFreeSurfSlice(grid, &freeSurfSlice);
 	SLICE_DATA freeSurfData, freeSurfDataCpu;
 
+#ifdef SOLVE_DISPLACEMENT
+	FLOAT *Dis;
+	CHECK(Malloc((void **)&Dis, sizeof(FLOAT) * 3 * grid._nx_ * grid._ny_ * grid._nz_));
+	CHECK(Memset(Dis, 0, sizeof(FLOAT) * 3 * grid._nx_ * grid._ny_ * grid._nz_));
+#endif
+
 	int IsFreeSurface = 0;
 #ifdef FREE_SURFACE
 	if (thisMPICoord.Z == grid.PZ - 1)
@@ -192,6 +198,10 @@ void propagate(
 		expDecayLayers(grid, wave);
 #endif // EXP_DECAY
 
+#ifdef SOLVE_DISPLACEMENT
+		SolveDisplacement(grid, wave.W, Dis, CJM, DT);
+#endif // SOLVE_DISPLACEMENT
+
 		if (stationNum > 0)
 			storageStation(grid, NT, stationNum, station, wave.W, it
 #ifdef SCFDM
@@ -216,12 +226,17 @@ void propagate(
 #endif
 			);
 			if (IsFreeSurface && sliceFreeSurf)
+			{
 				data2D_XYZ_out(thisMPICoord, params, grid, wave.W, freeSurfSlice, freeSurfData, freeSurfDataCpu, 'F', it
 #ifdef SCFDM
 							   ,
 							   CJM
 #endif
 				);
+#ifdef SOLVE_DISPLACEMENT
+				data2D_XYZ_out_Dis(thisMPICoord, params, grid, freeSurfSlice, freeSurfData, freeSurfDataCpu, it, Dis);
+#endif
+			}
 		}
 		/*
 		 */

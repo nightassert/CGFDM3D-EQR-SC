@@ -595,3 +595,18 @@ void data2D_Model_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, float *c
 		data2D_output_bin(grid, slice, thisMPICoord, medium, 2 /*Rho*/, MSIZE, sliceData, sliceDataCpu, ZName, 0, FP_TYPE);
 	}
 }
+
+void data2D_XYZ_out_Dis(MPI_COORD thisMPICoord, PARAMS params, GRID grid, SLICE slice, SLICE_DATA sliceData, SLICE_DATA sliceDataCpu, int it, FLOAT *Dis)
+{
+
+	int FP_TYPE = 2;
+
+	char UxFileName[128], UyFileName[128], UzFileName[128];
+	sprintf(UxFileName, "%s/FreeSurfUx_%d", params.OUT, it);
+	sprintf(UyFileName, "%s/FreeSurfUy_%d", params.OUT, it);
+	sprintf(UzFileName, "%s/FreeSurfUz_%d", params.OUT, it);
+
+	data2D_output_bin(grid, slice, thisMPICoord, Dis, 0 /*x*/, WSIZE, sliceData, sliceDataCpu, UxFileName, 1, FP_TYPE);
+	data2D_output_bin(grid, slice, thisMPICoord, Dis, 1 /*x*/, WSIZE, sliceData, sliceDataCpu, UyFileName, 1, FP_TYPE);
+	data2D_output_bin(grid, slice, thisMPICoord, Dis, 2 /*x*/, WSIZE, sliceData, sliceDataCpu, UzFileName, 1, FP_TYPE);
+}
