@@ -471,6 +471,7 @@ void solveMomentRate(SOURCE_FILE_INPUT src_in, float *momentRate, long long poin
 		for (it = 0; it < nt; it++)
 		{
 			index = it + p * nt;
+			// r = rake[index];
 			r = rake[index] * DEGREE2RADIAN;
 			rt = rate[index];
 

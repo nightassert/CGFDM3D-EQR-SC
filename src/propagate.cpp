@@ -9,6 +9,11 @@
 ================================================================*/
 
 #include "header.h"
+#ifdef SCFDM
+#define RK_NUM 3
+#else
+#define RK_NUM 4
+#endif
 
 void isMPIBorder(GRID grid, MPI_COORD thisMPICoord, MPI_BORDER *border)
 {
@@ -151,7 +156,7 @@ void propagate(
 #endif
 			);
 
-		for (irk = 0; irk < 4; irk++)
+		for (irk = 0; irk < RK_NUM; irk++)
 		{
 			MPI_Barrier(comm_cart);
 			FLOAT_mpiSendRecv(comm_cart, mpiNeighbor, grid, wave.W, sr_wave, WSIZE);
@@ -178,7 +183,12 @@ void propagate(
 #endif // SCFDM
 
 #endif // PML
+
+#ifdef SCFDM
+			waveRk_tvd(grid, irk, wave);
+#else
 			waveRk(grid, irk, wave);
+#endif
 #ifdef PML
 			pmlRk(grid, border, irk, Aux6);
 #endif

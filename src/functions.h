@@ -112,6 +112,7 @@ void charfreeSurfaceDeriv(
 void expDecayLayers(GRID grid, WAVE wave); // Exponential attenuation absorption layer
 
 void waveRk(GRID grid, int irk, WAVE wave);
+void waveRk_tvd(GRID grid, int irk, WAVE wave);
 
 void allocPMLParameter(GRID grid, PML_ALPHA *pml_alpha, PML_BETA *pml_beta, PML_D *pml_d);
 
