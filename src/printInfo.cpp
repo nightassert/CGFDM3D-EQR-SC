@@ -20,6 +20,15 @@ void printInfo(GRID grid, PARAMS params)
 		"GRID: NX = %5d, NY = %5d, NZ = %5d\n"
 		"NT: %5d\n"
 		"DH = %5.2e\n"
+#ifdef SCFDM
+		"You are using SCFDM by Tianhong Xu\n"
+#else
+		"You are using CGFDM by Wenqiang Wang\n"
+#endif
+
+#ifdef EXP_DECAY
+		"EXP_DECAY is defined\n"
+#endif
 		"=============================================\n",
 		grid.PX, grid.PY, grid.PZ,
 		grid.NX, grid.NY, grid.NZ,
