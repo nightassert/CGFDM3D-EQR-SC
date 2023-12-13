@@ -437,7 +437,7 @@ void freeMomentRate_cpu(float *cpu_momentRate, long long pointNum)
 	free(cpu_momentRate);
 }
 
-void solveMomentRate(SOURCE_FILE_INPUT src_in, float *momentRate, long long pointNum)
+void solveMomentRate(PARAMS params, SOURCE_FILE_INPUT src_in, float *momentRate, long long pointNum)
 {
 	if (0 == pointNum)
 		return;
@@ -471,8 +471,11 @@ void solveMomentRate(SOURCE_FILE_INPUT src_in, float *momentRate, long long poin
 		for (it = 0; it < nt; it++)
 		{
 			index = it + p * nt;
-			// r = rake[index];
-			r = rake[index] * DEGREE2RADIAN;
+
+			if (params.degree2radian == 0)
+				r = rake[index];
+			else
+				r = rake[index] * DEGREE2RADIAN;
 			rt = rate[index];
 
 			/*
@@ -810,7 +813,7 @@ void init_MultiSource(PARAMS params, GRID grid, MPI_COORD thisMPICoord, float *c
 	float *momentRateOld;
 	allocMomentRate_cpu(&momentRateOld, pointNum, src_in.nt); // A3
 
-	solveMomentRate(src_in, momentRateOld, pointNum);
+	solveMomentRate(params, src_in, momentRateOld, pointNum);
 	freeSourceParams(src_in, pointNum); // F2
 
 	dealDuplicateIndex(momentRateOld, point_index, index_point, src_in);

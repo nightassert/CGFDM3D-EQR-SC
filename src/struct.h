@@ -96,6 +96,7 @@ typedef struct PARAMS
 	char sourceFile[256];
 	char sourceDir[256];
 
+	int degree2radian;
 } PARAMS;
 
 typedef struct COORD
