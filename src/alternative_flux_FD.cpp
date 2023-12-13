@@ -109,25 +109,6 @@ void cal_flux(FLOAT *fu, FLOAT *gu, FLOAT *hu, FLOAT *u, FLOAT *CJM, int _nx_, i
     buoyancy = CJM[index * CJMSIZE + 12];
     buoyancy *= Crho;
 
-    // if ((k >= _nz_ - HALO - 1))
-    // {
-    //     index_on_surf = INDEX(i, j, _nz_ - HALO - 1);
-    //     xi_x_J = CJM[index_on_surf * CJMSIZE + 0];
-    //     xi_y_J = CJM[index_on_surf * CJMSIZE + 1];
-    //     xi_z_J = CJM[index_on_surf * CJMSIZE + 2];
-    //     et_x_J = CJM[index_on_surf * CJMSIZE + 3];
-    //     et_y_J = CJM[index_on_surf * CJMSIZE + 4];
-    //     et_z_J = CJM[index_on_surf * CJMSIZE + 5];
-    //     zt_x_J = CJM[index_on_surf * CJMSIZE + 6];
-    //     zt_y_J = CJM[index_on_surf * CJMSIZE + 7];
-    //     zt_z_J = CJM[index_on_surf * CJMSIZE + 8];
-
-    //     mu = CJM[index_on_surf * CJMSIZE + 10];
-    //     lambda = CJM[index_on_surf * CJMSIZE + 11];
-    //     buoyancy = CJM[index_on_surf * CJMSIZE + 12];
-    //     buoyancy *= Crho;
-    // }
-
     fu[index * WSIZE + 0] = -(xi_x_J * u[index * WSIZE + 6]) * buoyancy;
     fu[index * WSIZE + 1] = -(xi_y_J * u[index * WSIZE + 7]) * buoyancy;
     fu[index * WSIZE + 2] = -(xi_z_J * u[index * WSIZE + 8]) * buoyancy;
