@@ -164,7 +164,6 @@ void solve_con_jac_CMM(float *con, float *coord, float *Jac_inv, float *Covarian
 
 	cudaDeviceSynchronize();
 
-	// FIXME
 	CALCULATE3D(i, j, k, 1, _nx_ - 1, 1, _ny_ - 1, 1, _nz_ - 1)
 	idx = INDEX(i, j, k);
 	idx_p1 = INDEX(i + 1, j, k);

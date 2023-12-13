@@ -7,7 +7,3 @@ Shenzhen, China
 ## Introduction
 The code is based on Wenqiang Wang's CGFDM3D program to add shock capture schemes module. \
 Related paper has been submitted to Geophysical Journal International (GJI).
-
-## TODO LIST
-- Add GCL
-- Test PML
