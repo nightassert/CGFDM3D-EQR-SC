@@ -205,8 +205,8 @@ void getParams(PARAMS *params)
 		strcpy(params->sourceFile, item->valuestring);
 	if (item = cJSON_GetObjectItem(object, "sourceDir"))
 		strcpy(params->sourceDir, item->valuestring);
-	if (item = cJSON_GetObjectItem(object, "degreeORradian"))
-		params->degreeORradian = item->valueint;
+	if (item = cJSON_GetObjectItem(object, "degree2radian"))
+		params->degree2radian = item->valueint;
 
 	if (!params->useTerrain)
 	{

@@ -1,6 +1,6 @@
 # SCFDM_TianhongXu
 Shock Capturing Finite Difference Method for Computational Seismology \
-Tianhong Xu, Zhenguo Zhang*, Wenqiang Wang, Zijia Wang \
+Tianhong Xu, Zhenguo Zhang*
 Southern University of Science and Technology \
 Shenzhen, China
 
