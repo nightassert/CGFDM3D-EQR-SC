@@ -340,15 +340,15 @@ void storage_station(int stationNum, STATION station, FLOAT *W, int _nx_, int _n
 	u_phy[7] = u_conserv[7] * buoyancy;
 	u_phy[8] = u_conserv[8] * buoyancy;
 
-	station.wave[pos * WSIZE + 0] = (float)u_phy[0];
-	station.wave[pos * WSIZE + 1] = (float)u_phy[1];
-	station.wave[pos * WSIZE + 2] = (float)u_phy[2];
-	station.wave[pos * WSIZE + 3] = (float)u_phy[3];
-	station.wave[pos * WSIZE + 4] = (float)u_phy[4];
-	station.wave[pos * WSIZE + 5] = (float)u_phy[5];
-	station.wave[pos * WSIZE + 6] = (float)u_phy[6];
-	station.wave[pos * WSIZE + 7] = (float)u_phy[7];
-	station.wave[pos * WSIZE + 8] = (float)u_phy[8];
+	station.wave[pos * WSIZE + 0] = (float)u_phy[6];
+	station.wave[pos * WSIZE + 1] = (float)u_phy[7];
+	station.wave[pos * WSIZE + 2] = (float)u_phy[8];
+	station.wave[pos * WSIZE + 3] = (float)u_phy[0];
+	station.wave[pos * WSIZE + 4] = (float)u_phy[1];
+	station.wave[pos * WSIZE + 5] = (float)u_phy[2];
+	station.wave[pos * WSIZE + 6] = (float)u_phy[3];
+	station.wave[pos * WSIZE + 7] = (float)u_phy[4];
+	station.wave[pos * WSIZE + 8] = (float)u_phy[5];
 #else
 
 	station.wave[pos * WSIZE + 0] = (float)W[index * WSIZE + 0] * C1;
