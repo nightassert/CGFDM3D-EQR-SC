@@ -61,6 +61,40 @@ float WENO5_interpolation(float u1, float u2, float u3, float u4, float u5)
     return w1 * v1 + w2 * v2 + w3 * v3;
 }
 
+__DEVICE__
+void WENO5_weights(float u1, float u2, float u3, float u4, float u5, float w[3])
+{
+    // linear weights
+    float d1 = 0.3125f, d2 = 0.625f, d3 = 0.0625f;
+
+    // smoothness indicators
+    float WENO_beta1 = 0.3333333333f * (10 * u3 * u3 - 31 * u3 * u4 + 25 * u4 * u4 + 11 * u3 * u5 - 19 * u4 * u5 + 4 * u5 * u5);
+    float WENO_beta2 = 0.3333333333f * (4 * u2 * u2 - 13 * u2 * u3 + 13 * u3 * u3 + 5 * u2 * u4 - 13 * u3 * u4 + 4 * u4 * u4);
+    float WENO_beta3 = 0.3333333333f * (4 * u1 * u1 - 19 * u1 * u2 + 25 * u2 * u2 + 11 * u1 * u3 - 31 * u2 * u3 + 10 * u3 * u3);
+
+    float epsilon = 1e-6;
+
+    float WENO_alpha1 = d1 / ((WENO_beta1 + epsilon) * (WENO_beta1 + epsilon));
+    float WENO_alpha2 = d2 / ((WENO_beta2 + epsilon) * (WENO_beta2 + epsilon));
+    float WENO_alpha3 = d3 / ((WENO_beta3 + epsilon) * (WENO_beta3 + epsilon));
+
+    // nonlinear weights
+    w[0] = WENO_alpha1 / (WENO_alpha1 + WENO_alpha2 + WENO_alpha3);
+    w[1] = WENO_alpha2 / (WENO_alpha1 + WENO_alpha2 + WENO_alpha3);
+    w[2] = WENO_alpha3 / (WENO_alpha1 + WENO_alpha2 + WENO_alpha3);
+}
+
+__DEVICE__
+float WENO5_interpolation_weights(float u1, float u2, float u3, float u4, float u5, float w[3])
+{
+    // small stencils
+    float v1 = 0.375f * u3 + 0.75f * u4 - 0.125f * u5;
+    float v2 = -0.125f * u2 + 0.75f * u3 + 0.375f * u4;
+    float v3 = 0.375f * u1 - 1.25f * u2 + 1.875f * u3;
+
+    return w[0] * v1 + w[1] * v2 + w[2] * v3;
+}
+
 // Calculate flux
 __GLOBAL__
 void cal_flux(FLOAT *fu, FLOAT *gu, FLOAT *hu, FLOAT *u, FLOAT *CJM, int _nx_, int _ny_, int _nz_, MPI_COORD thisMPICoord, PARAMS params)
@@ -194,6 +228,7 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
 
     float u_ip12n[9], u_ip12p[9];
     float fu_ip12n[9], fu_ip12p[9];
+    float weights_n[3], weights_p[3];
 
     // * X direction
     CALCULATE3D(i, j, k, HALO - 1, _nx, HALO, _ny, HALO, _nz)
@@ -224,10 +259,19 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     buoyancy *= Crho;
 
     // Shock capture interpolation
+    // for (int n = 0; n < 9; n++)
+    // {
+    //     u_ip12n[n] = WENO5_interpolation(W[idx_n2 * WSIZE + n], W[idx_n1 * WSIZE + n], W[idx * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx_p2 * WSIZE + n]);
+    //     u_ip12p[n] = WENO5_interpolation(W[idx_p3 * WSIZE + n], W[idx_p2 * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx * WSIZE + n], W[idx_n1 * WSIZE + n]);
+    // }
+
+    WENO5_weights(W[idx_n2 * WSIZE + 0], W[idx_n1 * WSIZE + 0], W[idx * WSIZE + 0], W[idx_p1 * WSIZE + 0], W[idx_p2 * WSIZE + 0], weights_n);
+    WENO5_weights(W[idx_p3 * WSIZE + 0], W[idx_p2 * WSIZE + 0], W[idx_p1 * WSIZE + 0], W[idx * WSIZE + 0], W[idx_n1 * WSIZE + 0], weights_p);
+
     for (int n = 0; n < 9; n++)
     {
-        u_ip12n[n] = WENO5_interpolation(W[idx_n2 * WSIZE + n], W[idx_n1 * WSIZE + n], W[idx * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx_p2 * WSIZE + n]);
-        u_ip12p[n] = WENO5_interpolation(W[idx_p3 * WSIZE + n], W[idx_p2 * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx * WSIZE + n], W[idx_n1 * WSIZE + n]);
+        u_ip12n[n] = WENO5_interpolation_weights(W[idx_n2 * WSIZE + n], W[idx_n1 * WSIZE + n], W[idx * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx_p2 * WSIZE + n], weights_n);
+        u_ip12p[n] = WENO5_interpolation_weights(W[idx_p3 * WSIZE + n], W[idx_p2 * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx * WSIZE + n], W[idx_n1 * WSIZE + n], weights_p);
     }
 
 #ifdef LF
@@ -290,10 +334,19 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     buoyancy *= Crho;
 
     // Shock capture interpolation
+    // for (int n = 0; n < 9; n++)
+    // {
+    //     u_ip12n[n] = WENO5_interpolation(W[idx_n2 * WSIZE + n], W[idx_n1 * WSIZE + n], W[idx * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx_p2 * WSIZE + n]);
+    //     u_ip12p[n] = WENO5_interpolation(W[idx_p3 * WSIZE + n], W[idx_p2 * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx * WSIZE + n], W[idx_n1 * WSIZE + n]);
+    // }
+
+    WENO5_weights(W[idx_n2 * WSIZE + 0], W[idx_n1 * WSIZE + 0], W[idx * WSIZE + 0], W[idx_p1 * WSIZE + 0], W[idx_p2 * WSIZE + 0], weights_n);
+    WENO5_weights(W[idx_p3 * WSIZE + 0], W[idx_p2 * WSIZE + 0], W[idx_p1 * WSIZE + 0], W[idx * WSIZE + 0], W[idx_n1 * WSIZE + 0], weights_p);
+
     for (int n = 0; n < 9; n++)
     {
-        u_ip12n[n] = WENO5_interpolation(W[idx_n2 * WSIZE + n], W[idx_n1 * WSIZE + n], W[idx * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx_p2 * WSIZE + n]);
-        u_ip12p[n] = WENO5_interpolation(W[idx_p3 * WSIZE + n], W[idx_p2 * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx * WSIZE + n], W[idx_n1 * WSIZE + n]);
+        u_ip12n[n] = WENO5_interpolation_weights(W[idx_n2 * WSIZE + n], W[idx_n1 * WSIZE + n], W[idx * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx_p2 * WSIZE + n], weights_n);
+        u_ip12p[n] = WENO5_interpolation_weights(W[idx_p3 * WSIZE + n], W[idx_p2 * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx * WSIZE + n], W[idx_n1 * WSIZE + n], weights_p);
     }
 
 #ifdef LF
@@ -356,10 +409,19 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     buoyancy *= Crho;
 
     // Shock capture interpolation
+    // for (int n = 0; n < 9; n++)
+    // {
+    //     u_ip12n[n] = WENO5_interpolation(W[idx_n2 * WSIZE + n], W[idx_n1 * WSIZE + n], W[idx * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx_p2 * WSIZE + n]);
+    //     u_ip12p[n] = WENO5_interpolation(W[idx_p3 * WSIZE + n], W[idx_p2 * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx * WSIZE + n], W[idx_n1 * WSIZE + n]);
+    // }
+
+    WENO5_weights(W[idx_n2 * WSIZE + 0], W[idx_n1 * WSIZE + 0], W[idx * WSIZE + 0], W[idx_p1 * WSIZE + 0], W[idx_p2 * WSIZE + 0], weights_n);
+    WENO5_weights(W[idx_p3 * WSIZE + 0], W[idx_p2 * WSIZE + 0], W[idx_p1 * WSIZE + 0], W[idx * WSIZE + 0], W[idx_n1 * WSIZE + 0], weights_p);
+
     for (int n = 0; n < 9; n++)
     {
-        u_ip12n[n] = WENO5_interpolation(W[idx_n2 * WSIZE + n], W[idx_n1 * WSIZE + n], W[idx * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx_p2 * WSIZE + n]);
-        u_ip12p[n] = WENO5_interpolation(W[idx_p3 * WSIZE + n], W[idx_p2 * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx * WSIZE + n], W[idx_n1 * WSIZE + n]);
+        u_ip12n[n] = WENO5_interpolation_weights(W[idx_n2 * WSIZE + n], W[idx_n1 * WSIZE + n], W[idx * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx_p2 * WSIZE + n], weights_n);
+        u_ip12p[n] = WENO5_interpolation_weights(W[idx_p3 * WSIZE + n], W[idx_p2 * WSIZE + n], W[idx_p1 * WSIZE + n], W[idx * WSIZE + n], W[idx_n1 * WSIZE + n], weights_p);
     }
 
 #ifdef LF
