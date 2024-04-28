@@ -65,7 +65,7 @@ void run(MPI_Comm comm_cart, MPI_COORD thisMPICoord, MPI_NEIGHBOR mpiNeighbor, G
 #endif
 
 	if (thisRank == 0)
-		printf("Geometrical Information Calculating: Contravariant and Jacbian...\n");
+		printf("Geometrical Information Calculating: Contravariant and Jacobian...\n");
 	MPI_Barrier(MPI_COMM_WORLD);
 	constructCJM(comm_cart, mpiNeighbor, grid, CJM, coord, medium, mat_rDZ);
 	// data2D_Model_out( thisMPICoord, params, grid, coord, medium, slice, sliceData, sliceDataCpu );
