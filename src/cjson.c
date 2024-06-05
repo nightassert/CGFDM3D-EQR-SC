@@ -124,7 +124,7 @@ static const char *parse_number(cJSON *item, const char *num)
 		do
 			n = (n * 10.0) + (*num++ - '0'), scale--;
 		while (*num >= '0' && *num <= '9');
-	}								/* Fractional part? */
+	} /* Fractional part? */
 	if (*num == 'e' || *num == 'E') /* Exponent? */
 	{
 		num++;
@@ -624,7 +624,7 @@ static const char *parse_object(cJSON *item, const char *value)
 	{
 		ep = value;
 		return 0;
-	}												   /* fail! */
+	} /* fail! */
 	value = skip(parse_value(child, skip(value + 1))); /* skip any spacing, get the value. */
 	if (!value)
 		return 0;
@@ -646,7 +646,7 @@ static const char *parse_object(cJSON *item, const char *value)
 		{
 			ep = value;
 			return 0;
-		}												   /* fail! */
+		} /* fail! */
 		value = skip(parse_value(child, skip(value + 1))); /* skip any spacing, get the value. */
 		if (!value)
 			return 0;

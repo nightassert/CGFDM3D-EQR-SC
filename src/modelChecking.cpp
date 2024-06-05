@@ -1,9 +1,16 @@
-/***********************************************************
-  File Name: modelChecking.cpp
-  Author: Wenqiang Wang
-  Mail: 11849528@mail.sustech.edu.cn
-  Created Time: Fri 04 Nov 2022 12:20:38 AM CST
- *******************************************************/
+/*================================================================
+*   ESS, Southern University of Science and Technology
+*
+*   File Name: modelChecking.cpp
+*   Author: Wenqiang Wang, 11849528@mail.sustech.edu.cn
+*   Created Time: 2022-11-04
+*   Discription: Check if the model is set correctly
+*
+*   Reference:
+*      1. Wang, W., Zhang, Z., Zhang, W., Yu, H., Liu, Q., Zhang, W., & Chen, X. (2022). CGFDM3D‐EQR: A platform for rapid response to earthquake disasters in 3D complex media. Seismological Research Letters, 93(4), 2320-2334. https://doi.org/https://doi.org/10.1785/0220210172
+*      2. Xu, T., & Zhang, Z. (2024). Numerical simulation of 3D seismic wave based on alternative flux finite-difference WENO scheme. Geophysical Journal International, 238(1), 496-512. https://doi.org/https://doi.org/10.1093/gji/ggae167
+*
+=================================================================*/
 
 #include "header.h"
 
