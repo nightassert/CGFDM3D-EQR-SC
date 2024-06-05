@@ -38,29 +38,29 @@ void modelChecking(PARAMS params)
 		MPI_Barrier(MPI_COMM_WORLD);
 		MPI_Abort(MPI_COMM_WORLD, 180);
 	}
-	if (params.ShenModel && params.Crust_1Medel)
+	if (params.ShenModel && params.Crust_1Model)
 	{
 
 		if (0 == thisRank)
 			printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
-				   "You set ShenModel and Crust_1Medel both to be 1. We will use homogenourse model!\n"
+				   "You set ShenModel and Crust_1Model both to be 1. We will use homogenourse model!\n"
 				   "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 
 		params.ShenModel = 0;
-		params.Crust_1Medel = 0;
+		params.Crust_1Model = 0;
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 
-	if ((params.ShenModel || params.Crust_1Medel) && params.LayeredModel)
+	if ((params.ShenModel || params.Crust_1Model) && params.LayeredModel)
 	{
 
 		if (0 == thisRank)
 			printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
-				   "You set ShenModel, Crust_1Medel and LayeredModel both to be 1. We will use Layed model!\n"
+				   "You set ShenModel, Crust_1Model and LayeredModel both to be 1. We will use Layed model!\n"
 				   "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 
 		params.ShenModel = 0;
-		params.Crust_1Medel = 0;
+		params.Crust_1Model = 0;
 		params.LayeredModel = 1;
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
@@ -113,17 +113,17 @@ void modelChecking(PARAMS params)
 		if (0 == thisRank)
 			printf("ShenModel is used!\n");
 	}
-	if (params.Crust_1Medel == 0)
+	if (params.Crust_1Model == 0)
 	{
 
 		if (0 == thisRank)
-			printf("No Crust_1Medel is used!\n");
+			printf("No Crust_1Model is used!\n");
 	}
-	if (params.Crust_1Medel == 1)
+	if (params.Crust_1Model == 1)
 	{
 
 		if (0 == thisRank)
-			printf("Crust_1Medel is used!\n");
+			printf("Crust_1Model is used!\n");
 	}
 
 	if (params.LayeredModel == 0)

@@ -126,8 +126,8 @@ void getParams(PARAMS *params)
 
 	if (item = cJSON_GetObjectItem(object, "ShenModel"))
 		params->ShenModel = item->valueint;
-	if (item = cJSON_GetObjectItem(object, "Crust_1Medel"))
-		params->Crust_1Medel = item->valueint;
+	if (item = cJSON_GetObjectItem(object, "Crust_1Model"))
+		params->Crust_1Model = item->valueint;
 
 	if (item = cJSON_GetObjectItem(object, "itSlice"))
 		params->itSlice = item->valueint;

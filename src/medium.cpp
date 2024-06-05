@@ -277,7 +277,7 @@ void constructMedium(MPI_COORD thisMPICoord, PARAMS params, GRID grid, float *cp
 	MPI_Barrier(MPI_COMM_WORLD);
 	if (params.useMedium)
 	{
-		if (params.Crust_1Medel)
+		if (params.Crust_1Model)
 			readCrustal_1(params, grid, thisMPICoord, cpu_coord, cpu_medium);
 		if (params.ShenModel)
 			readWeisenShenModel(params, grid, thisMPICoord, cpu_coord, cpu_terrain, cpu_medium);

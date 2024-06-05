@@ -61,7 +61,7 @@ typedef struct PARAMS
 	float rickerfc;
 
 	int ShenModel;
-	int Crust_1Medel;
+	int Crust_1Model;
 	int LayeredModel;
 
 	char LayeredFileName[256];
