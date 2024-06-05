@@ -7,7 +7,7 @@
 *   Discription: Moment rate source
 *
 *	Update: Tianhong Xu, 12231218@mail.sustech.edu.cn
-*   Update Time: 2024-11-16
+*   Update Time: 2023-11-16
 *   Update Content: Add SCFDM
 *
 *   Reference:
