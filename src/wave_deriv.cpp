@@ -66,7 +66,6 @@ void allocWave(GRID grid, WAVE *wave)
 	wave->fu_ip12x = pWave + 7 * WSIZE * num;
 	wave->fu_ip12y = pWave + 8 * WSIZE * num;
 	wave->fu_ip12z = pWave + 9 * WSIZE * num;
-	wave->E = pWave + 10 * WSIZE * num;
 #endif
 }
 
