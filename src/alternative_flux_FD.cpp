@@ -46,24 +46,25 @@ float WENO5_interpolation(float u1, float u2, float u3, float u4, float u5)
     // linear weights
     float d1 = 0.3125f, d2 = 0.625f, d3 = 0.0625f;
 
-    // smoothness indicators
-    float WENO_beta1 = 0.3333333333f * (10 * u3 * u3 - 31 * u3 * u4 + 25 * u4 * u4 + 11 * u3 * u5 - 19 * u4 * u5 + 4 * u5 * u5);
-    float WENO_beta2 = 0.3333333333f * (4 * u2 * u2 - 13 * u2 * u3 + 13 * u3 * u3 + 5 * u2 * u4 - 13 * u3 * u4 + 4 * u4 * u4);
-    float WENO_beta3 = 0.3333333333f * (4 * u1 * u1 - 19 * u1 * u2 + 25 * u2 * u2 + 11 * u1 * u3 - 31 * u2 * u3 + 10 * u3 * u3);
+    // // smoothness indicators
+    // float WENO_beta1 = 0.3333333333f * (10 * u3 * u3 - 31 * u3 * u4 + 25 * u4 * u4 + 11 * u3 * u5 - 19 * u4 * u5 + 4 * u5 * u5);
+    // float WENO_beta2 = 0.3333333333f * (4 * u2 * u2 - 13 * u2 * u3 + 13 * u3 * u3 + 5 * u2 * u4 - 13 * u3 * u4 + 4 * u4 * u4);
+    // float WENO_beta3 = 0.3333333333f * (4 * u1 * u1 - 19 * u1 * u2 + 25 * u2 * u2 + 11 * u1 * u3 - 31 * u2 * u3 + 10 * u3 * u3);
 
-    float epsilon = 1e-6;
+    // float epsilon = 1e-6;
 
-    float WENO_alpha1 = d1 / ((WENO_beta1 + epsilon) * (WENO_beta1 + epsilon));
-    float WENO_alpha2 = d2 / ((WENO_beta2 + epsilon) * (WENO_beta2 + epsilon));
-    float WENO_alpha3 = d3 / ((WENO_beta3 + epsilon) * (WENO_beta3 + epsilon));
+    // float WENO_alpha1 = d1 / ((WENO_beta1 + epsilon) * (WENO_beta1 + epsilon));
+    // float WENO_alpha2 = d2 / ((WENO_beta2 + epsilon) * (WENO_beta2 + epsilon));
+    // float WENO_alpha3 = d3 / ((WENO_beta3 + epsilon) * (WENO_beta3 + epsilon));
 
-    // nonlinear weights
-    float w1 = WENO_alpha1 / (WENO_alpha1 + WENO_alpha2 + WENO_alpha3);
-    float w2 = WENO_alpha2 / (WENO_alpha1 + WENO_alpha2 + WENO_alpha3);
-    float w3 = WENO_alpha3 / (WENO_alpha1 + WENO_alpha2 + WENO_alpha3);
+    // // nonlinear weights
+    // float w1 = WENO_alpha1 / (WENO_alpha1 + WENO_alpha2 + WENO_alpha3);
+    // float w2 = WENO_alpha2 / (WENO_alpha1 + WENO_alpha2 + WENO_alpha3);
+    // float w3 = WENO_alpha3 / (WENO_alpha1 + WENO_alpha2 + WENO_alpha3);
 
     // WENO interpolation
-    return w1 * v1 + w2 * v2 + w3 * v3;
+    // return w1 * v1 + w2 * v2 + w3 * v3;
+    return d1 * v1 + d2 * v2 + d3 * v3;
 }
 
 // Calculate flux
@@ -198,8 +199,11 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     long long idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
 
     float u_ip12n[9], u_ip12p[9];
+    float Riemann_flux[9];
+
+#ifdef LF
     float fu_ip12n[9], fu_ip12p[9];
-    float weights_n[3], weights_p[3];
+#endif
 
     // * X direction
     CALCULATE3D(i, j, k, HALO - 1, _nx, HALO, _ny, HALO, _nz)
@@ -254,12 +258,22 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     fu_ip12p[6] = -xi_x_J_h * (2 * mu * u_ip12p[0] + lambda * (u_ip12p[0] + u_ip12p[1] + u_ip12p[2])) - 2 * mu * xi_y_J_h * u_ip12p[3] - 2 * mu * xi_z_J_h * u_ip12p[5];
     fu_ip12p[7] = -xi_y_J_h * (2 * mu * u_ip12p[1] + lambda * (u_ip12p[0] + u_ip12p[1] + u_ip12p[2])) - 2 * mu * xi_x_J_h * u_ip12p[3] - 2 * mu * xi_z_J_h * u_ip12p[4];
     fu_ip12p[8] = -xi_z_J_h * (2 * mu * u_ip12p[2] + lambda * (u_ip12p[0] + u_ip12p[1] + u_ip12p[2])) - 2 * mu * xi_x_J_h * u_ip12p[5] - 2 * mu * xi_y_J_h * u_ip12p[4];
+
+    Riemann_flux[0] = 0.5f * (fu_ip12p[0] + fu_ip12n[0] - alpha * (u_ip12p[0] - u_ip12n[0]));
+    Riemann_flux[1] = 0.5f * (fu_ip12p[1] + fu_ip12n[1] - alpha * (u_ip12p[1] - u_ip12n[1]));
+    Riemann_flux[2] = 0.5f * (fu_ip12p[2] + fu_ip12n[2] - alpha * (u_ip12p[2] - u_ip12n[2]));
+    Riemann_flux[3] = 0.5f * (fu_ip12p[3] + fu_ip12n[3] - alpha * (u_ip12p[3] - u_ip12n[3]));
+    Riemann_flux[4] = 0.5f * (fu_ip12p[4] + fu_ip12n[4] - alpha * (u_ip12p[4] - u_ip12n[4]));
+    Riemann_flux[5] = 0.5f * (fu_ip12p[5] + fu_ip12n[5] - alpha * (u_ip12p[5] - u_ip12n[5]));
+    Riemann_flux[6] = 0.5f * (fu_ip12p[6] + fu_ip12n[6] - alpha * (u_ip12p[6] - u_ip12n[6]));
+    Riemann_flux[7] = 0.5f * (fu_ip12p[7] + fu_ip12n[7] - alpha * (u_ip12p[7] - u_ip12n[7]));
+    Riemann_flux[8] = 0.5f * (fu_ip12p[8] + fu_ip12n[8] - alpha * (u_ip12p[8] - u_ip12n[8]));
 #endif
 
     for (int n = 0; n < 9; n++)
     {
 #ifdef LF
-        Fu_ip12x[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n])) - 1.0f / 24 * order2_approximation(Fu[idx_n2 * WSIZE + n], Fu[idx_n1 * WSIZE + n], Fu[idx * WSIZE + n], Fu[idx_p1 * WSIZE + n], Fu[idx_p2 * WSIZE + n], Fu[idx_p3 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Fu[idx_n2 * WSIZE + n], Fu[idx_n1 * WSIZE + n], Fu[idx * WSIZE + n], Fu[idx_p1 * WSIZE + n], Fu[idx_p2 * WSIZE + n], Fu[idx_p3 * WSIZE + n]);
+        Fu_ip12x[idx * WSIZE + n] = Riemann_flux[n] - 1.0f / 24 * order2_approximation(Fu[idx_n2 * WSIZE + n], Fu[idx_n1 * WSIZE + n], Fu[idx * WSIZE + n], Fu[idx_p1 * WSIZE + n], Fu[idx_p2 * WSIZE + n], Fu[idx_p3 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Fu[idx_n2 * WSIZE + n], Fu[idx_n1 * WSIZE + n], Fu[idx * WSIZE + n], Fu[idx_p1 * WSIZE + n], Fu[idx_p2 * WSIZE + n], Fu[idx_p3 * WSIZE + n]);
 #endif // LF
     }
     END_CALCULATE3D()
@@ -317,12 +331,22 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     fu_ip12p[6] = -et_x_J_h * (2 * mu * u_ip12p[0] + lambda * (u_ip12p[0] + u_ip12p[1] + u_ip12p[2])) - 2 * mu * et_y_J_h * u_ip12p[3] - 2 * mu * et_z_J_h * u_ip12p[5];
     fu_ip12p[7] = -et_y_J_h * (2 * mu * u_ip12p[1] + lambda * (u_ip12p[0] + u_ip12p[1] + u_ip12p[2])) - 2 * mu * et_x_J_h * u_ip12p[3] - 2 * mu * et_z_J_h * u_ip12p[4];
     fu_ip12p[8] = -et_z_J_h * (2 * mu * u_ip12p[2] + lambda * (u_ip12p[0] + u_ip12p[1] + u_ip12p[2])) - 2 * mu * et_x_J_h * u_ip12p[5] - 2 * mu * et_y_J_h * u_ip12p[4];
+
+    Riemann_flux[0] = 0.5f * (fu_ip12p[0] + fu_ip12n[0] - alpha * (u_ip12p[0] - u_ip12n[0]));
+    Riemann_flux[1] = 0.5f * (fu_ip12p[1] + fu_ip12n[1] - alpha * (u_ip12p[1] - u_ip12n[1]));
+    Riemann_flux[2] = 0.5f * (fu_ip12p[2] + fu_ip12n[2] - alpha * (u_ip12p[2] - u_ip12n[2]));
+    Riemann_flux[3] = 0.5f * (fu_ip12p[3] + fu_ip12n[3] - alpha * (u_ip12p[3] - u_ip12n[3]));
+    Riemann_flux[4] = 0.5f * (fu_ip12p[4] + fu_ip12n[4] - alpha * (u_ip12p[4] - u_ip12n[4]));
+    Riemann_flux[5] = 0.5f * (fu_ip12p[5] + fu_ip12n[5] - alpha * (u_ip12p[5] - u_ip12n[5]));
+    Riemann_flux[6] = 0.5f * (fu_ip12p[6] + fu_ip12n[6] - alpha * (u_ip12p[6] - u_ip12n[6]));
+    Riemann_flux[7] = 0.5f * (fu_ip12p[7] + fu_ip12n[7] - alpha * (u_ip12p[7] - u_ip12n[7]));
+    Riemann_flux[8] = 0.5f * (fu_ip12p[8] + fu_ip12n[8] - alpha * (u_ip12p[8] - u_ip12n[8]));
 #endif
 
     for (int n = 0; n < 9; n++)
     {
 #ifdef LF
-        Fu_ip12y[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n])) - 1.0f / 24 * order2_approximation(Gu[idx_n2 * WSIZE + n], Gu[idx_n1 * WSIZE + n], Gu[idx * WSIZE + n], Gu[idx_p1 * WSIZE + n], Gu[idx_p2 * WSIZE + n], Gu[idx_p3 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Gu[idx_n2 * WSIZE + n], Gu[idx_n1 * WSIZE + n], Gu[idx * WSIZE + n], Gu[idx_p1 * WSIZE + n], Gu[idx_p2 * WSIZE + n], Gu[idx_p3 * WSIZE + n]);
+        Fu_ip12y[idx * WSIZE + n] = Riemann_flux[n] - 1.0f / 24 * order2_approximation(Gu[idx_n2 * WSIZE + n], Gu[idx_n1 * WSIZE + n], Gu[idx * WSIZE + n], Gu[idx_p1 * WSIZE + n], Gu[idx_p2 * WSIZE + n], Gu[idx_p3 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Gu[idx_n2 * WSIZE + n], Gu[idx_n1 * WSIZE + n], Gu[idx * WSIZE + n], Gu[idx_p1 * WSIZE + n], Gu[idx_p2 * WSIZE + n], Gu[idx_p3 * WSIZE + n]);
 #endif // LF
     }
     END_CALCULATE3D()
@@ -380,12 +404,22 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     fu_ip12p[6] = -zt_x_J_h * (2 * mu * u_ip12p[0] + lambda * (u_ip12p[0] + u_ip12p[1] + u_ip12p[2])) - 2 * mu * zt_y_J_h * u_ip12p[3] - 2 * mu * zt_z_J_h * u_ip12p[5];
     fu_ip12p[7] = -zt_y_J_h * (2 * mu * u_ip12p[1] + lambda * (u_ip12p[0] + u_ip12p[1] + u_ip12p[2])) - 2 * mu * zt_x_J_h * u_ip12p[3] - 2 * mu * zt_z_J_h * u_ip12p[4];
     fu_ip12p[8] = -zt_z_J_h * (2 * mu * u_ip12p[2] + lambda * (u_ip12p[0] + u_ip12p[1] + u_ip12p[2])) - 2 * mu * zt_x_J_h * u_ip12p[5] - 2 * mu * zt_y_J_h * u_ip12p[4];
+
+    Riemann_flux[0] = 0.5f * (fu_ip12p[0] + fu_ip12n[0] - alpha * (u_ip12p[0] - u_ip12n[0]));
+    Riemann_flux[1] = 0.5f * (fu_ip12p[1] + fu_ip12n[1] - alpha * (u_ip12p[1] - u_ip12n[1]));
+    Riemann_flux[2] = 0.5f * (fu_ip12p[2] + fu_ip12n[2] - alpha * (u_ip12p[2] - u_ip12n[2]));
+    Riemann_flux[3] = 0.5f * (fu_ip12p[3] + fu_ip12n[3] - alpha * (u_ip12p[3] - u_ip12n[3]));
+    Riemann_flux[4] = 0.5f * (fu_ip12p[4] + fu_ip12n[4] - alpha * (u_ip12p[4] - u_ip12n[4]));
+    Riemann_flux[5] = 0.5f * (fu_ip12p[5] + fu_ip12n[5] - alpha * (u_ip12p[5] - u_ip12n[5]));
+    Riemann_flux[6] = 0.5f * (fu_ip12p[6] + fu_ip12n[6] - alpha * (u_ip12p[6] - u_ip12n[6]));
+    Riemann_flux[7] = 0.5f * (fu_ip12p[7] + fu_ip12n[7] - alpha * (u_ip12p[7] - u_ip12n[7]));
+    Riemann_flux[8] = 0.5f * (fu_ip12p[8] + fu_ip12n[8] - alpha * (u_ip12p[8] - u_ip12n[8]));
 #endif
 
     for (int n = 0; n < 9; n++)
     {
 #ifdef LF
-        Fu_ip12z[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n])) - 1.0f / 24 * order2_approximation(Hu[idx_n2 * WSIZE + n], Hu[idx_n1 * WSIZE + n], Hu[idx * WSIZE + n], Hu[idx_p1 * WSIZE + n], Hu[idx_p2 * WSIZE + n], Hu[idx_p3 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Hu[idx_n2 * WSIZE + n], Hu[idx_n1 * WSIZE + n], Hu[idx * WSIZE + n], Hu[idx_p1 * WSIZE + n], Hu[idx_p2 * WSIZE + n], Hu[idx_p3 * WSIZE + n]);
+        Fu_ip12z[idx * WSIZE + n] = Riemann_flux[n] - 1.0f / 24 * order2_approximation(Hu[idx_n2 * WSIZE + n], Hu[idx_n1 * WSIZE + n], Hu[idx * WSIZE + n], Hu[idx_p1 * WSIZE + n], Hu[idx_p2 * WSIZE + n], Hu[idx_p3 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Hu[idx_n2 * WSIZE + n], Hu[idx_n1 * WSIZE + n], Hu[idx * WSIZE + n], Hu[idx_p1 * WSIZE + n], Hu[idx_p2 * WSIZE + n], Hu[idx_p3 * WSIZE + n]);
 #endif // LF
     }
     END_CALCULATE3D()
