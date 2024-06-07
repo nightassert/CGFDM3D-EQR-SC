@@ -27,8 +27,9 @@ SCFDM := ON
 
 # Riemann Solvers
 LF := ON
+UW := 
 
-DFLAGS_LIST := SCFDM LF WENO
+DFLAGS_LIST := SCFDM LF UW
 
 FREE_SURFACE := ON
 
