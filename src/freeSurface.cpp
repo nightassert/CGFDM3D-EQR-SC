@@ -88,24 +88,15 @@ void char_free_surface_deriv(
 	vs = sqrt(mu * buoyancy);
 	vp = sqrt((lambda + 2 * mu) * buoyancy);
 
-	nx = CJM[index * CJMSIZE + 13];
-	ny = CJM[index * CJMSIZE + 14];
-	nz = CJM[index * CJMSIZE + 15];
-	// nx = 0.0f;
-	// ny = 0.0f;
-	// nz = 1.0f;
-	sx = CJM[index * CJMSIZE + 16];
-	sy = CJM[index * CJMSIZE + 17];
-	sz = CJM[index * CJMSIZE + 18];
-	tx = CJM[index * CJMSIZE + 19];
-	ty = CJM[index * CJMSIZE + 20];
-	tz = CJM[index * CJMSIZE + 21];
-	// sx = 1.0f;
-	// sy = 0.0f;
-	// sz = 0.0f;
-	// tx = 0.0f;
-	// ty = 1.0f;
-	// tz = 0.0f;
+	nx = (CJM[index * CJMSIZE + 6] / CJM[index * CJMSIZE + 9]) / (sqrt((CJM[index * CJMSIZE + 6] / CJM[index * CJMSIZE + 9]) * (CJM[index * CJMSIZE + 6] / CJM[index * CJMSIZE + 9]) + (CJM[index * CJMSIZE + 7] / CJM[index * CJMSIZE + 9]) * (CJM[index * CJMSIZE + 7] / CJM[index * CJMSIZE + 9]) + (CJM[index * CJMSIZE + 8] / CJM[index * CJMSIZE + 9]) * (CJM[index * CJMSIZE + 8] / CJM[index * CJMSIZE + 9]))); // nx;
+	ny = (CJM[index * CJMSIZE + 7] / CJM[index * CJMSIZE + 9]) / (sqrt((CJM[index * CJMSIZE + 6] / CJM[index * CJMSIZE + 9]) * (CJM[index * CJMSIZE + 6] / CJM[index * CJMSIZE + 9]) + (CJM[index * CJMSIZE + 7] / CJM[index * CJMSIZE + 9]) * (CJM[index * CJMSIZE + 7] / CJM[index * CJMSIZE + 9]) + (CJM[index * CJMSIZE + 8] / CJM[index * CJMSIZE + 9]) * (CJM[index * CJMSIZE + 8] / CJM[index * CJMSIZE + 9]))); // ny;
+	nz = (CJM[index * CJMSIZE + 8] / CJM[index * CJMSIZE + 9]) / (sqrt((CJM[index * CJMSIZE + 6] / CJM[index * CJMSIZE + 9]) * (CJM[index * CJMSIZE + 6] / CJM[index * CJMSIZE + 9]) + (CJM[index * CJMSIZE + 7] / CJM[index * CJMSIZE + 9]) * (CJM[index * CJMSIZE + 7] / CJM[index * CJMSIZE + 9]) + (CJM[index * CJMSIZE + 8] / CJM[index * CJMSIZE + 9]) * (CJM[index * CJMSIZE + 8] / CJM[index * CJMSIZE + 9]))); // nz;
+	sx = CJM[index * CJMSIZE + 13] / (sqrt(CJM[index * CJMSIZE + 13] * CJM[index * CJMSIZE + 13] + CJM[index * CJMSIZE + 14] * CJM[index * CJMSIZE + 14] + CJM[index * CJMSIZE + 15] * CJM[index * CJMSIZE + 15]));																																																		// sx;
+	sy = CJM[index * CJMSIZE + 14] / (sqrt(CJM[index * CJMSIZE + 13] * CJM[index * CJMSIZE + 13] + CJM[index * CJMSIZE + 14] * CJM[index * CJMSIZE + 14] + CJM[index * CJMSIZE + 15] * CJM[index * CJMSIZE + 15]));																																																		// sy;
+	sz = CJM[index * CJMSIZE + 15] / (sqrt(CJM[index * CJMSIZE + 13] * CJM[index * CJMSIZE + 13] + CJM[index * CJMSIZE + 14] * CJM[index * CJMSIZE + 14] + CJM[index * CJMSIZE + 15] * CJM[index * CJMSIZE + 15]));																																																		// sz;
+	tx = CJM[index * CJMSIZE + 16] / (sqrt(CJM[index * CJMSIZE + 16] * CJM[index * CJMSIZE + 16] + CJM[index * CJMSIZE + 17] * CJM[index * CJMSIZE + 17] + CJM[index * CJMSIZE + 18] * CJM[index * CJMSIZE + 18]));																																																		// tx;
+	ty = CJM[index * CJMSIZE + 17] / (sqrt(CJM[index * CJMSIZE + 16] * CJM[index * CJMSIZE + 16] + CJM[index * CJMSIZE + 17] * CJM[index * CJMSIZE + 17] + CJM[index * CJMSIZE + 18] * CJM[index * CJMSIZE + 18]));																																																		// ty;
+	tz = CJM[index * CJMSIZE + 18] / (sqrt(CJM[index * CJMSIZE + 16] * CJM[index * CJMSIZE + 16] + CJM[index * CJMSIZE + 17] * CJM[index * CJMSIZE + 17] + CJM[index * CJMSIZE + 18] * CJM[index * CJMSIZE + 18]));																																																		// tz;
 
 #ifdef PML
 	pml_beta_x = pml_beta.x[i];

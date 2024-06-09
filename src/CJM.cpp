@@ -118,15 +118,15 @@ void set_CJM(FLOAT *CJM, float *medium, float *con, float *Jac, int num)
 
 	CALCULATE1D(i, 0, num)
 
-	CJM[i * CJMSIZE + 0] = con[i * CONSIZE + 0];
-	CJM[i * CJMSIZE + 1] = con[i * CONSIZE + 1];
-	CJM[i * CJMSIZE + 2] = con[i * CONSIZE + 2];
-	CJM[i * CJMSIZE + 3] = con[i * CONSIZE + 3];
-	CJM[i * CJMSIZE + 4] = con[i * CONSIZE + 4];
-	CJM[i * CJMSIZE + 5] = con[i * CONSIZE + 5];
-	CJM[i * CJMSIZE + 6] = con[i * CONSIZE + 6];
-	CJM[i * CJMSIZE + 7] = con[i * CONSIZE + 7];
-	CJM[i * CJMSIZE + 8] = con[i * CONSIZE + 8];
+	CJM[i * CJMSIZE + 0] = con[i * CONSIZE + 0]; // xi_x_J
+	CJM[i * CJMSIZE + 1] = con[i * CONSIZE + 1]; // xi_y_J
+	CJM[i * CJMSIZE + 2] = con[i * CONSIZE + 2]; // xi_z_J
+	CJM[i * CJMSIZE + 3] = con[i * CONSIZE + 3]; // et_x_J
+	CJM[i * CJMSIZE + 4] = con[i * CONSIZE + 4]; // et_y_J
+	CJM[i * CJMSIZE + 5] = con[i * CONSIZE + 5]; // et_z_J
+	CJM[i * CJMSIZE + 6] = con[i * CONSIZE + 6]; // zt_x_J
+	CJM[i * CJMSIZE + 7] = con[i * CONSIZE + 7]; // zt_y_J
+	CJM[i * CJMSIZE + 8] = con[i * CONSIZE + 8]; // zt_z_J
 
 	CJM[i * CJMSIZE + 9] = Jac[i]; // ! This is actually the inverse of Jacobian if you use SCFDM, which is just a different formula but the same value
 
@@ -135,15 +135,15 @@ void set_CJM(FLOAT *CJM, float *medium, float *con, float *Jac, int num)
 	CJM[i * CJMSIZE + 12] = medium[i * MSIZE + 2] / c / Crho;
 
 #ifdef SCFDM
-	CJM[i * CJMSIZE + 13] = con[i * CONSIZE + 9];
-	CJM[i * CJMSIZE + 14] = con[i * CONSIZE + 10];
-	CJM[i * CJMSIZE + 15] = con[i * CONSIZE + 11];
-	CJM[i * CJMSIZE + 16] = con[i * CONSIZE + 12];
-	CJM[i * CJMSIZE + 17] = con[i * CONSIZE + 13];
-	CJM[i * CJMSIZE + 18] = con[i * CONSIZE + 14];
-	CJM[i * CJMSIZE + 19] = con[i * CONSIZE + 15];
-	CJM[i * CJMSIZE + 20] = con[i * CONSIZE + 16];
-	CJM[i * CJMSIZE + 21] = con[i * CONSIZE + 17];
+	CJM[i * CJMSIZE + 13] = con[i * CONSIZE + 9];  // x_xi
+	CJM[i * CJMSIZE + 14] = con[i * CONSIZE + 10]; // y_xi
+	CJM[i * CJMSIZE + 15] = con[i * CONSIZE + 11]; // z_xi
+	CJM[i * CJMSIZE + 16] = con[i * CONSIZE + 12]; // x_et
+	CJM[i * CJMSIZE + 17] = con[i * CONSIZE + 13]; // y_et
+	CJM[i * CJMSIZE + 18] = con[i * CONSIZE + 14]; // z_et
+	CJM[i * CJMSIZE + 19] = con[i * CONSIZE + 15]; // x_zt
+	CJM[i * CJMSIZE + 20] = con[i * CONSIZE + 16]; // y_zt
+	CJM[i * CJMSIZE + 21] = con[i * CONSIZE + 17]; // z_zt
 #endif
 
 	END_CALCULATE1D()
