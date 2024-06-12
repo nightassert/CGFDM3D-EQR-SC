@@ -10,9 +10,14 @@
 *   Update Time: 2023-11-16
 *   Update Content: Add SCFDM
 *
+*	Update: Tianhong Xu, 12231218@mail.sustech.edu.cn
+*   Update Time: 2024-06-11
+*   Update Content: Modify the equations to Wenqiang Zhang (2023)
+*
 *   Reference:
 *      1. Wang, W., Zhang, Z., Zhang, W., Yu, H., Liu, Q., Zhang, W., & Chen, X. (2022). CGFDM3D‐EQR: A platform for rapid response to earthquake disasters in 3D complex media. Seismological Research Letters, 93(4), 2320-2334. https://doi.org/https://doi.org/10.1785/0220210172
 *      2. Xu, T., & Zhang, Z. (2024). Numerical simulation of 3D seismic wave based on alternative flux finite-difference WENO scheme. Geophysical Journal International, 238(1), 496-512. https://doi.org/https://doi.org/10.1093/gji/ggae167
+*      3. Zhang, W., Liu, Y., & Chen, X. (2023). A Mixed‐Flux‐Based Nodal Discontinuous Galerkin Method for 3D Dynamic Rupture Modeling. Journal of Geophysical Research: Solid Earth, e2022JB025817. 
 *
 =================================================================*/
 
@@ -221,14 +226,16 @@ void addSource1(FLOAT *hW, float *momentRateSlice, long long *srcIndex, int npts
 	m_strain[0] = (m_stress[0] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * m_stress[1]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * m_stress[2]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
 	m_strain[1] = (m_stress[1] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * m_stress[0]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * m_stress[2]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
 	m_strain[2] = (m_stress[2] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * m_stress[0]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * m_stress[1]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
-	m_strain[3] = m_stress[3] / (2 * mu);
-	m_strain[4] = m_stress[5] / (2 * mu);
-	m_strain[5] = m_stress[4] / (2 * mu);
+	m_strain[3] = m_stress[5] / (mu);
+	m_strain[4] = m_stress[4] / (mu);
+	m_strain[5] = m_stress[3] / (mu);
 
-	for (int n = 0; n < 6; n++)
-	{
-		hW[idx * WSIZE + n] -= m_strain[n] * DT;
-	}
+	hW[idx * WSIZE + 3] -= m_strain[0] * DT;
+	hW[idx * WSIZE + 4] -= m_strain[1] * DT;
+	hW[idx * WSIZE + 5] -= m_strain[2] * DT;
+	hW[idx * WSIZE + 6] -= m_strain[3] * DT;
+	hW[idx * WSIZE + 7] -= m_strain[4] * DT;
+	hW[idx * WSIZE + 8] -= m_strain[5] * DT;
 
 #else
 	hW[idx * WSIZE + 3] -= momentRateSlice[i * MOMSIZE + 0] * DT;

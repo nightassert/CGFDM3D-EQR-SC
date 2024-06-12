@@ -6,9 +6,14 @@
 *   Created Time: 2021-09-14
 *   Discription: Multisource
 *
+*	Update: Tianhong Xu, 12231218@mail.sustech.edu.cn
+*   Update Time: 2024-06-11
+*   Update Content: Modify the equations to Wenqiang Zhang (2023)
+*
 *   Reference:
 *      1. Wang, W., Zhang, Z., Zhang, W., Yu, H., Liu, Q., Zhang, W., & Chen, X. (2022). CGFDM3D‐EQR: A platform for rapid response to earthquake disasters in 3D complex media. Seismological Research Letters, 93(4), 2320-2334. https://doi.org/https://doi.org/10.1785/0220210172
 *      2. Xu, T., & Zhang, Z. (2024). Numerical simulation of 3D seismic wave based on alternative flux finite-difference WENO scheme. Geophysical Journal International, 238(1), 496-512. https://doi.org/https://doi.org/10.1093/gji/ggae167
+*      3. Zhang, W., Liu, Y., & Chen, X. (2023). A Mixed‐Flux‐Based Nodal Discontinuous Galerkin Method for 3D Dynamic Rupture Modeling. Journal of Geophysical Research: Solid Earth, e2022JB025817. 
 *
 =================================================================*/
 
@@ -506,12 +511,12 @@ void solveMomentRate(PARAMS params, SOURCE_FILE_INPUT src_in, float *momentRate,
 			M13 = -(cos(d) * cos(r) * cos(s) + cos(2.0 * d) * sin(r) * sin(s));
 			M23 = -(cos(d) * cos(r) * sin(s) - cos(2.0 * d) * sin(r) * cos(s));
 
-			momentRate[index * MOMSIZE + 0] = M22 * a * rt;
-			momentRate[index * MOMSIZE + 1] = M11 * a * rt;
-			momentRate[index * MOMSIZE + 2] = M33 * a * rt;
-			momentRate[index * MOMSIZE + 3] = M12 * a * rt;
-			momentRate[index * MOMSIZE + 4] = -M23 * a * rt;
-			momentRate[index * MOMSIZE + 5] = -M13 * a * rt;
+			momentRate[index * MOMSIZE + 0] = M22 * a * rt;	 // Mxx
+			momentRate[index * MOMSIZE + 1] = M11 * a * rt;	 // Myy
+			momentRate[index * MOMSIZE + 2] = M33 * a * rt;	 // Mzz
+			momentRate[index * MOMSIZE + 3] = M12 * a * rt;	 // Mxy
+			momentRate[index * MOMSIZE + 4] = -M23 * a * rt; // Mxz
+			momentRate[index * MOMSIZE + 5] = -M13 * a * rt; // Myz
 
 			/*
 			if ( p == 10000 && it == 500 )

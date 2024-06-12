@@ -10,9 +10,14 @@
 *   Update Time: 2023-11-16
 *   Update Content: Add SCFDM
 *
-*   Reference: 
+*	Update: Tianhong Xu, 12231218@mail.sustech.edu.cn
+*   Update Time: 2024-06-11
+*   Update Content: Modify the equations to Wenqiang Zhang (2023)
+*
+*   Reference:
 *      1. Wang, W., Zhang, Z., Zhang, W., Yu, H., Liu, Q., Zhang, W., & Chen, X. (2022). CGFDM3D‐EQR: A platform for rapid response to earthquake disasters in 3D complex media. Seismological Research Letters, 93(4), 2320-2334. https://doi.org/https://doi.org/10.1785/0220210172
 *      2. Xu, T., & Zhang, Z. (2024). Numerical simulation of 3D seismic wave based on alternative flux finite-difference WENO scheme. Geophysical Journal International, 238(1), 496-512. https://doi.org/https://doi.org/10.1093/gji/ggae167
+*      3. Zhang, W., Liu, Y., & Chen, X. (2023). A Mixed‐Flux‐Based Nodal Discontinuous Galerkin Method for 3D Dynamic Rupture Modeling. Journal of Geophysical Research: Solid Earth, e2022JB025817. 
 *
 =================================================================*/
 
@@ -132,9 +137,9 @@ void load_smooth_source(SOURCE S, FLOAT *h_W, int _nx_, int _ny_, int _nz_,
 
 	value = value / (3 * lambda + 2 * mu);
 
-	h_W[index * WSIZE + 0] = ((float)h_W[index * WSIZE + 0] + value);
-	h_W[index * WSIZE + 1] = ((float)h_W[index * WSIZE + 1] + value);
-	h_W[index * WSIZE + 2] = ((float)h_W[index * WSIZE + 2] + value);
+	h_W[index * WSIZE + 3] = ((float)h_W[index * WSIZE + 3] + value);
+	h_W[index * WSIZE + 4] = ((float)h_W[index * WSIZE + 4] + value);
+	h_W[index * WSIZE + 5] = ((float)h_W[index * WSIZE + 5] + value);
 #else
 	h_W[index * WSIZE + 3] = ((float)h_W[index * WSIZE + 3] + value);
 	h_W[index * WSIZE + 4] = ((float)h_W[index * WSIZE + 4] + value);

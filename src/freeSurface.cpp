@@ -10,9 +10,14 @@
 *   Update Time: 2023-11-16
 *   Update Content: Add SCFDM and Charateristic free surface boundary condition
 *
+*	Update: Tianhong Xu, 12231218@mail.sustech.edu.cn
+*   Update Time: 2024-06-11
+*   Update Content: Modify the equations to Wenqiang Zhang (2023)
+*
 *   Reference:
 *      1. Wang, W., Zhang, Z., Zhang, W., Yu, H., Liu, Q., Zhang, W., & Chen, X. (2022). CGFDM3D‐EQR: A platform for rapid response to earthquake disasters in 3D complex media. Seismological Research Letters, 93(4), 2320-2334. https://doi.org/https://doi.org/10.1785/0220210172
 *      2. Xu, T., & Zhang, Z. (2024). Numerical simulation of 3D seismic wave based on alternative flux finite-difference WENO scheme. Geophysical Journal International, 238(1), 496-512. https://doi.org/https://doi.org/10.1093/gji/ggae167
+*      3. Zhang, W., Liu, Y., & Chen, X. (2023). A Mixed‐Flux‐Based Nodal Discontinuous Galerkin Method for 3D Dynamic Rupture Modeling. Journal of Geophysical Research: Solid Earth, e2022JB025817. 
 *
 =================================================================*/
 
@@ -110,15 +115,15 @@ void char_free_surface_deriv(
 	}
 
 	// Calculate physical variables
-	u_phy[0] = lambda * u_conserv[1] + lambda * u_conserv[2] + u_conserv[0] * (lambda + 2 * mu);
-	u_phy[1] = lambda * u_conserv[0] + lambda * u_conserv[2] + u_conserv[1] * (lambda + 2 * mu);
-	u_phy[2] = lambda * u_conserv[0] + lambda * u_conserv[1] + u_conserv[2] * (lambda + 2 * mu);
-	u_phy[3] = 2 * mu * u_conserv[3];
-	u_phy[4] = 2 * mu * u_conserv[5];
-	u_phy[5] = 2 * mu * u_conserv[4];
-	u_phy[6] = u_conserv[6] * buoyancy;
-	u_phy[7] = u_conserv[7] * buoyancy;
-	u_phy[8] = u_conserv[8] * buoyancy;
+	u_phy[0] = lambda * u_conserv[4] + lambda * u_conserv[5] + u_conserv[3] * (lambda + 2 * mu);
+	u_phy[1] = lambda * u_conserv[3] + lambda * u_conserv[5] + u_conserv[4] * (lambda + 2 * mu);
+	u_phy[2] = lambda * u_conserv[3] + lambda * u_conserv[4] + u_conserv[5] * (lambda + 2 * mu);
+	u_phy[3] = mu * u_conserv[8];
+	u_phy[4] = mu * u_conserv[7];
+	u_phy[5] = mu * u_conserv[6];
+	u_phy[6] = u_conserv[0] * buoyancy;
+	u_phy[7] = u_conserv[1] * buoyancy;
+	u_phy[8] = u_conserv[2] * buoyancy;
 
 	// Rotate physical variables
 	u_phy_T[0] = (u_phy[2] * (sx * sx) * (ty * ty) - 2 * u_phy[5] * (sx * sx) * ty * tz + u_phy[1] * (sx * sx) * (tz * tz) - 2 * u_phy[2] * sx * sy * tx * ty + 2 * u_phy[5] * sx * sy * tx * tz + 2 * u_phy[4] * sx * sy * ty * tz - 2 * u_phy[3] * sx * sy * (tz * tz) + 2 * u_phy[5] * sx * sz * tx * ty - 2 * u_phy[1] * sx * sz * tx * tz - 2 * u_phy[4] * sx * sz * (ty * ty) + 2 * u_phy[3] * sx * sz * ty * tz + u_phy[2] * (sy * sy) * (tx * tx) - 2 * u_phy[4] * (sy * sy) * tx * tz + u_phy[0] * (sy * sy) * (tz * tz) - 2 * u_phy[5] * sy * sz * (tx * tx) + 2 * u_phy[4] * sy * sz * tx * ty + 2 * u_phy[3] * sy * sz * tx * tz - 2 * u_phy[0] * sy * sz * ty * tz + u_phy[1] * (sz * sz) * (tx * tx) - 2 * u_phy[3] * (sz * sz) * tx * ty + u_phy[0] * (sz * sz) * (ty * ty)) / ((nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx) * (nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx));
@@ -132,6 +137,7 @@ void char_free_surface_deriv(
 	u_phy_T[8] = (nx * sy * u_phy[8] - ny * sx * u_phy[8] - nx * sz * u_phy[7] + nz * sx * u_phy[7] + ny * sz * u_phy[6] - nz * sy * u_phy[6]) / (nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx);
 
 	// Apply characteristic free surface boundary conditions
+	// ! Not correct
 	u_phy_T[1] -= u_phy_T[0] * lambda / (lambda + 2 * mu);
 	u_phy_T[2] -= u_phy_T[0] * lambda / (lambda + 2 * mu);
 	u_phy_T[7] -= u_phy_T[3] / (vs / buoyancy);
@@ -153,15 +159,15 @@ void char_free_surface_deriv(
 	u_phy[8] = nz * u_phy_T[6] + sz * u_phy_T[7] + tz * u_phy_T[8];
 
 	// Calculate conservative variables
-	u_conserv[0] = (u_phy[0] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * u_phy[1]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * u_phy[2]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
-	u_conserv[1] = (u_phy[1] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * u_phy[0]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * u_phy[2]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
-	u_conserv[2] = (u_phy[2] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * u_phy[0]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * u_phy[1]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
-	u_conserv[3] = u_phy[3] / (2 * mu);
-	u_conserv[4] = u_phy[5] / (2 * mu);
-	u_conserv[5] = u_phy[4] / (2 * mu);
-	u_conserv[6] = u_phy[6] / buoyancy;
-	u_conserv[7] = u_phy[7] / buoyancy;
-	u_conserv[8] = u_phy[8] / buoyancy;
+	u_conserv[0] = u_phy[6] / buoyancy;
+	u_conserv[1] = u_phy[7] / buoyancy;
+	u_conserv[2] = u_phy[8] / buoyancy;
+	u_conserv[3] = (2 * lambda * u_phy[0] - lambda * u_phy[1] - lambda * u_phy[2] + 2 * mu * u_phy[0]) / (2 * mu * (3 * lambda + 2 * mu));
+	u_conserv[4] = -(lambda * u_phy[0] - 2 * lambda * u_phy[1] + lambda * u_phy[2] - 2 * mu * u_phy[1]) / (2 * mu * (3 * lambda + 2 * mu));
+	u_conserv[5] = -(lambda * u_phy[0] + lambda * u_phy[1] - 2 * lambda * u_phy[2] - 2 * mu * u_phy[2]) / (2 * mu * (3 * lambda + 2 * mu));
+	u_conserv[6] = u_phy[5] / mu;
+	u_conserv[7] = u_phy[4] / mu;
+	u_conserv[8] = u_phy[3] / mu;
 
 	// Put conservative variables back to wave.u
 	for (int n = 0; n < 9; n++)

@@ -10,9 +10,14 @@
 *   Update Time: 2023-11-16
 *   Update Content: Add SCFDM
 *
+*	Update: Tianhong Xu, 12231218@mail.sustech.edu.cn
+*   Update Time: 2024-06-11
+*   Update Content: Modify the equations to Wenqiang Zhang (2023)
+*
 *   Reference:
 *      1. Wang, W., Zhang, Z., Zhang, W., Yu, H., Liu, Q., Zhang, W., & Chen, X. (2022). CGFDM3D‐EQR: A platform for rapid response to earthquake disasters in 3D complex media. Seismological Research Letters, 93(4), 2320-2334. https://doi.org/https://doi.org/10.1785/0220210172
 *      2. Xu, T., & Zhang, Z. (2024). Numerical simulation of 3D seismic wave based on alternative flux finite-difference WENO scheme. Geophysical Journal International, 238(1), 496-512. https://doi.org/https://doi.org/10.1093/gji/ggae167
+*      3. Zhang, W., Liu, Y., & Chen, X. (2023). A Mixed‐Flux‐Based Nodal Discontinuous Galerkin Method for 3D Dynamic Rupture Modeling. Journal of Geophysical Research: Solid Earth, e2022JB025817. 
 *
 =================================================================*/
 
@@ -101,9 +106,9 @@ void compare_pgv(float *pgv, FLOAT *W, int nx, int ny, int nz
 	buoyancy = CJM[index * CJMSIZE + 12];
 	buoyancy *= Crho;
 
-	Vx = (float)W[index * WSIZE + 6] * c * buoyancy;
-	Vy = (float)W[index * WSIZE + 7] * c * buoyancy;
-	Vz = (float)W[index * WSIZE + 8] * c * buoyancy;
+	Vx = (float)W[index * WSIZE + 0] * c * buoyancy;
+	Vy = (float)W[index * WSIZE + 1] * c * buoyancy;
+	Vz = (float)W[index * WSIZE + 2] * c * buoyancy;
 #else
 	Vx = (float)W[index * WSIZE + 0] * c;
 	Vy = (float)W[index * WSIZE + 1] * c;

@@ -10,9 +10,14 @@
 *   Update Time: 2023-11-16
 *   Update Content: Add SCFDM
 *
+*	Update: Tianhong Xu, 12231218@mail.sustech.edu.cn
+*   Update Time: 2024-06-11
+*   Update Content: Modify the equations to Wenqiang Zhang (2023)
+*
 *   Reference:
 *      1. Wang, W., Zhang, Z., Zhang, W., Yu, H., Liu, Q., Zhang, W., & Chen, X. (2022). CGFDM3D‐EQR: A platform for rapid response to earthquake disasters in 3D complex media. Seismological Research Letters, 93(4), 2320-2334. https://doi.org/https://doi.org/10.1785/0220210172
 *      2. Xu, T., & Zhang, Z. (2024). Numerical simulation of 3D seismic wave based on alternative flux finite-difference WENO scheme. Geophysical Journal International, 238(1), 496-512. https://doi.org/https://doi.org/10.1093/gji/ggae167
+*      3. Zhang, W., Liu, Y., & Chen, X. (2023). A Mixed‐Flux‐Based Nodal Discontinuous Galerkin Method for 3D Dynamic Rupture Modeling. Journal of Geophysical Research: Solid Earth, e2022JB025817. 
 *
 =================================================================*/
 
@@ -457,15 +462,15 @@ void wave_conserv2phy(FLOAT *wave_conserv, FLOAT *wave_phy, FLOAT *CJM, int _nx_
 	}
 
 	// Calculate physical variables
-	u_phy[0] = lambda * u_conserv[1] + lambda * u_conserv[2] + u_conserv[0] * (lambda + 2 * mu);
-	u_phy[1] = lambda * u_conserv[0] + lambda * u_conserv[2] + u_conserv[1] * (lambda + 2 * mu);
-	u_phy[2] = lambda * u_conserv[0] + lambda * u_conserv[1] + u_conserv[2] * (lambda + 2 * mu);
-	u_phy[3] = 2 * mu * u_conserv[3];
-	u_phy[4] = 2 * mu * u_conserv[5];
-	u_phy[5] = 2 * mu * u_conserv[4];
-	u_phy[6] = u_conserv[6] * buoyancy;
-	u_phy[7] = u_conserv[7] * buoyancy;
-	u_phy[8] = u_conserv[8] * buoyancy;
+	u_phy[0] = lambda * u_conserv[4] + lambda * u_conserv[5] + u_conserv[3] * (lambda + 2 * mu);
+	u_phy[1] = lambda * u_conserv[3] + lambda * u_conserv[5] + u_conserv[4] * (lambda + 2 * mu);
+	u_phy[2] = lambda * u_conserv[3] + lambda * u_conserv[4] + u_conserv[5] * (lambda + 2 * mu);
+	u_phy[3] = mu * u_conserv[8];
+	u_phy[4] = mu * u_conserv[7];
+	u_phy[5] = mu * u_conserv[6];
+	u_phy[6] = u_conserv[0] * buoyancy;
+	u_phy[7] = u_conserv[1] * buoyancy;
+	u_phy[8] = u_conserv[2] * buoyancy;
 
 	for (int n = 0; n < 9; n++)
 	{
