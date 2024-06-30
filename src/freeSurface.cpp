@@ -137,7 +137,6 @@ void char_free_surface_deriv(
 	u_phy_T[8] = (nx * sy * u_phy[8] - ny * sx * u_phy[8] - nx * sz * u_phy[7] + nz * sx * u_phy[7] + ny * sz * u_phy[6] - nz * sy * u_phy[6]) / (nx * sy * tz - nx * sz * ty - ny * sx * tz + ny * sz * tx + nz * sx * ty - nz * sy * tx);
 
 	// Apply characteristic free surface boundary conditions
-	// ! Not correct
 	u_phy_T[1] -= u_phy_T[0] * lambda / (lambda + 2 * mu);
 	u_phy_T[2] -= u_phy_T[0] * lambda / (lambda + 2 * mu);
 	u_phy_T[7] -= u_phy_T[3] / (vs / buoyancy);
