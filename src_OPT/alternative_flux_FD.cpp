@@ -10,10 +10,15 @@
 *   Update Time: 2024-06-11
 *   Update Content: Modify the equations to Wenqiang Zhang (2023)
 *
+*	Update: Tianhong Xu, 12231218@mail.sustech.edu.cn
+*   Update Time: 2024-07-02
+*   Update Content: Modify the high order approximation to Chu et al. (2023)
+*
 *   Reference:
 *      1. Wang, W., Zhang, Z., Zhang, W., Yu, H., Liu, Q., Zhang, W., & Chen, X. (2022). CGFDM3D‐EQR: A platform for rapid response to earthquake disasters in 3D complex media. Seismological Research Letters, 93(4), 2320-2334. https://doi.org/https://doi.org/10.1785/0220210172
 *      2. Xu, T., & Zhang, Z. (2024). Numerical simulation of 3D seismic wave based on alternative flux finite-difference WENO scheme. Geophysical Journal International, 238(1), 496-512. https://doi.org/https://doi.org/10.1093/gji/ggae167
 *      3. Zhang, W., Liu, Y., & Chen, X. (2023). A Mixed‐Flux‐Based Nodal Discontinuous Galerkin Method for 3D Dynamic Rupture Modeling. Journal of Geophysical Research: Solid Earth, e2022JB025817.
+*      4. Chu, Shaoshuai and Kurganov, Alexander and Xin, Ruixiao, New More Efficient A-Weno Schemes. Available at SSRN: https://ssrn.com/abstract=4486288 or http://dx.doi.org/10.2139/ssrn.4486288
 *
 =================================================================*/
 
@@ -31,9 +36,8 @@
 #define TIMES_PML_BETA_Z
 #endif
 
-#define order2_approximation(u1, u2, u3, u4, u5, u6) (1.0f / 48 * (-5 * u1 + 39 * u2 - 34 * u3 - 34 * u4 + 39 * u5 - 5 * u6))
-#define order4_approximation(u1, u2, u3, u4, u5, u6) (1.0f / 2 * (u1 - 3 * u2 + 2 * u3 + 2 * u4 - 3 * u5 + u6))
-#define WENO5_interp_weights(u1, u2, u3, u4, u5, w) ((0.375f * u3 + 0.75f * u4 - 0.125f * u5) * w[0] + (-0.125f * u2 + 0.75f * u3 + 0.375f * u4) * w[1] + (0.375f * u1 - 1.25f * u2 + 1.875f * u3) * w[2])
+#define order2_approximation(u1, u2, u3, u4, u5) (1.0f / 12 * (-u1 + 16 * u2 - 30 * u3 + 16 * u4 - u5))
+#define order4_approximation(u1, u2, u3, u4, u5) ((u1 - 4 * u2 + 6 * u3 - 4 * u4 + u5))
 
 #ifdef LF
 extern float vp_max_for_SCFDM;
@@ -72,99 +76,15 @@ float WENO5_interpolation(float u1, float u2, float u3, float u4, float u5)
     // return d1 * v1 + d2 * v2 + d3 * v3;
 }
 
-// Calculate flux
 __GLOBAL__
-void cal_flux(FLOAT *fu, FLOAT *gu, FLOAT *hu, FLOAT *u, FLOAT *CJM, int _nx_, int _ny_, int _nz_, MPI_COORD thisMPICoord, PARAMS params)
-{
-#ifdef GPU_CUDA
-    int i = threadIdx.x + blockIdx.x * blockDim.x;
-    int j = threadIdx.y + blockIdx.y * blockDim.y;
-    int k = threadIdx.z + blockIdx.z * blockDim.z;
-#else
-    int i = 0;
-    int j = 0;
-    int k = 0;
-#endif
-    long long index;
-
-    float mu;
-    float lambda;
-    float buoyancy;
-
-    float xi_x_J;
-    float xi_y_J;
-    float xi_z_J;
-    float et_x_J;
-    float et_y_J;
-    float et_z_J;
-    float zt_x_J;
-    float zt_y_J;
-    float zt_z_J;
-
-    CALCULATE3D(i, j, k, 0, _nx_, 0, _ny_, 0, _nz_)
-    index = INDEX(i, j, k);
-    // index * VARSIZE + VAR
-    mu = CJM[index * CJMSIZE + 10];
-    lambda = CJM[index * CJMSIZE + 11];
-    buoyancy = CJM[index * CJMSIZE + 12];
-
-    // calculate flux fu
-    xi_x_J = CJM[index * CJMSIZE + 0];
-    xi_y_J = CJM[index * CJMSIZE + 1];
-    xi_z_J = CJM[index * CJMSIZE + 2];
-
-    fu[index * WSIZE + 0] = -(xi_x_J * (lambda * u[index * WSIZE + 4] + lambda * u[index * WSIZE + 5] + u[index * WSIZE + 3] * (lambda + 2 * mu)) + mu * xi_y_J * u[index * WSIZE + 8] + mu * xi_z_J * u[index * WSIZE + 7]);
-    fu[index * WSIZE + 1] = -(xi_y_J * (lambda * u[index * WSIZE + 3] + lambda * u[index * WSIZE + 5] + u[index * WSIZE + 4] * (lambda + 2 * mu)) + mu * xi_x_J * u[index * WSIZE + 8] + mu * xi_z_J * u[index * WSIZE + 6]);
-    fu[index * WSIZE + 2] = -(xi_z_J * (lambda * u[index * WSIZE + 3] + lambda * u[index * WSIZE + 4] + u[index * WSIZE + 5] * (lambda + 2 * mu)) + mu * xi_x_J * u[index * WSIZE + 7] + mu * xi_y_J * u[index * WSIZE + 6]);
-    fu[index * WSIZE + 3] = -((xi_x_J * u[index * WSIZE + 0]) * buoyancy);
-    fu[index * WSIZE + 4] = -((xi_y_J * u[index * WSIZE + 1]) * buoyancy);
-    fu[index * WSIZE + 5] = -((xi_z_J * u[index * WSIZE + 2]) * buoyancy);
-    fu[index * WSIZE + 6] = -((xi_y_J * u[index * WSIZE + 2]) * buoyancy + (xi_z_J * u[index * WSIZE + 1]) * buoyancy);
-    fu[index * WSIZE + 7] = -((xi_x_J * u[index * WSIZE + 2]) * buoyancy + (xi_z_J * u[index * WSIZE + 0]) * buoyancy);
-    fu[index * WSIZE + 8] = -((xi_x_J * u[index * WSIZE + 1]) * buoyancy + (xi_y_J * u[index * WSIZE + 0]) * buoyancy);
-
-    // calculate flux gu
-    et_x_J = CJM[index * CJMSIZE + 3];
-    et_y_J = CJM[index * CJMSIZE + 4];
-    et_z_J = CJM[index * CJMSIZE + 5];
-
-    gu[index * WSIZE + 0] = -(et_x_J * (lambda * u[index * WSIZE + 4] + lambda * u[index * WSIZE + 5] + u[index * WSIZE + 3] * (lambda + 2 * mu)) + mu * et_y_J * u[index * WSIZE + 8] + mu * et_z_J * u[index * WSIZE + 7]);
-    gu[index * WSIZE + 1] = -(et_y_J * (lambda * u[index * WSIZE + 3] + lambda * u[index * WSIZE + 5] + u[index * WSIZE + 4] * (lambda + 2 * mu)) + mu * et_x_J * u[index * WSIZE + 8] + mu * et_z_J * u[index * WSIZE + 6]);
-    gu[index * WSIZE + 2] = -(et_z_J * (lambda * u[index * WSIZE + 3] + lambda * u[index * WSIZE + 4] + u[index * WSIZE + 5] * (lambda + 2 * mu)) + mu * et_x_J * u[index * WSIZE + 7] + mu * et_y_J * u[index * WSIZE + 6]);
-    gu[index * WSIZE + 3] = -((et_x_J * u[index * WSIZE + 0]) * buoyancy);
-    gu[index * WSIZE + 4] = -((et_y_J * u[index * WSIZE + 1]) * buoyancy);
-    gu[index * WSIZE + 5] = -((et_z_J * u[index * WSIZE + 2]) * buoyancy);
-    gu[index * WSIZE + 6] = -((et_y_J * u[index * WSIZE + 2]) * buoyancy + (et_z_J * u[index * WSIZE + 1]) * buoyancy);
-    gu[index * WSIZE + 7] = -((et_x_J * u[index * WSIZE + 2]) * buoyancy + (et_z_J * u[index * WSIZE + 0]) * buoyancy);
-    gu[index * WSIZE + 8] = -((et_x_J * u[index * WSIZE + 1]) * buoyancy + (et_y_J * u[index * WSIZE + 0]) * buoyancy);
-
-    // calculate flux hu
-    zt_x_J = CJM[index * CJMSIZE + 6];
-    zt_y_J = CJM[index * CJMSIZE + 7];
-    zt_z_J = CJM[index * CJMSIZE + 8];
-
-    hu[index * WSIZE + 0] = -(zt_x_J * (lambda * u[index * WSIZE + 4] + lambda * u[index * WSIZE + 5] + u[index * WSIZE + 3] * (lambda + 2 * mu)) + mu * zt_y_J * u[index * WSIZE + 8] + mu * zt_z_J * u[index * WSIZE + 7]);
-    hu[index * WSIZE + 1] = -(zt_y_J * (lambda * u[index * WSIZE + 3] + lambda * u[index * WSIZE + 5] + u[index * WSIZE + 4] * (lambda + 2 * mu)) + mu * zt_x_J * u[index * WSIZE + 8] + mu * zt_z_J * u[index * WSIZE + 6]);
-    hu[index * WSIZE + 2] = -(zt_z_J * (lambda * u[index * WSIZE + 3] + lambda * u[index * WSIZE + 4] + u[index * WSIZE + 5] * (lambda + 2 * mu)) + mu * zt_x_J * u[index * WSIZE + 7] + mu * zt_y_J * u[index * WSIZE + 6]);
-    hu[index * WSIZE + 3] = -((zt_x_J * u[index * WSIZE + 0]) * buoyancy);
-    hu[index * WSIZE + 4] = -((zt_y_J * u[index * WSIZE + 1]) * buoyancy);
-    hu[index * WSIZE + 5] = -((zt_z_J * u[index * WSIZE + 2]) * buoyancy);
-    hu[index * WSIZE + 6] = -((zt_y_J * u[index * WSIZE + 2]) * buoyancy + (zt_z_J * u[index * WSIZE + 1]) * buoyancy);
-    hu[index * WSIZE + 7] = -((zt_x_J * u[index * WSIZE + 2]) * buoyancy + (zt_z_J * u[index * WSIZE + 0]) * buoyancy);
-    hu[index * WSIZE + 8] = -((zt_x_J * u[index * WSIZE + 1]) * buoyancy + (zt_y_J * u[index * WSIZE + 0]) * buoyancy);
-    END_CALCULATE3D()
-}
-
-__GLOBAL__
-void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_ip12z,
-                                    FLOAT *Fu, FLOAT *Gu, FLOAT *Hu, FLOAT *h_W, FLOAT *W, FLOAT *CJM,
+void wave_deriv_alternative_flux_FD_x(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W, FLOAT *CJM,
 #ifdef PML
-                                    PML_BETA pml_beta,
+                                      PML_BETA pml_beta,
 #endif
-                                    int _nx_, int _ny_, int _nz_, float rDH, int FB1, int FB2, int FB3, float DT
+                                      int _nx_, int _ny_, int _nz_, float rDH, float DT
 #ifdef LF
-                                    ,
-                                    float alpha
+                                      ,
+                                      float alpha
 #endif
 )
 {
@@ -202,11 +122,11 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     float zt_x_J_h;
     float zt_y_J_h;
     float zt_z_J_h;
+    float jac;
 
-    long long idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
+    long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
 
     float u_ip12n[9], u_ip12p[9];
-    float Riemann_flux[9];
 
 #ifdef LF
     float fu_ip12n[9], fu_ip12p[9];
@@ -221,6 +141,7 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     pml_beta_z = pml_beta.z[k];
 #endif
 
+    idx_n3 = INDEX(i - 3, j, k);
     idx_n2 = INDEX(i - 2, j, k);
     idx_n1 = INDEX(i - 1, j, k);
     idx = INDEX(i, j, k);
@@ -231,6 +152,7 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     xi_x_J_h = CJM[idx * CJMSIZE + 0];
     xi_y_J_h = CJM[idx * CJMSIZE + 1];
     xi_z_J_h = CJM[idx * CJMSIZE + 2];
+    jac = 1.0 / CJM[idx * CJMSIZE + 9];
 
     mu = CJM[idx * CJMSIZE + 10];
     lambda = CJM[idx * CJMSIZE + 11];
@@ -265,22 +187,70 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     fu_ip12p[7] = -((xi_x_J_h * u_ip12p[2]) * buoyancy + (xi_z_J_h * u_ip12p[0]) * buoyancy);
     fu_ip12p[8] = -((xi_x_J_h * u_ip12p[1]) * buoyancy + (xi_y_J_h * u_ip12p[0]) * buoyancy);
 
-    Riemann_flux[0] = 0.5f * (fu_ip12p[0] + fu_ip12n[0] - alpha * (u_ip12p[0] - u_ip12n[0]));
-    Riemann_flux[1] = 0.5f * (fu_ip12p[1] + fu_ip12n[1] - alpha * (u_ip12p[1] - u_ip12n[1]));
-    Riemann_flux[2] = 0.5f * (fu_ip12p[2] + fu_ip12n[2] - alpha * (u_ip12p[2] - u_ip12n[2]));
-    Riemann_flux[3] = 0.5f * (fu_ip12p[3] + fu_ip12n[3] - alpha * (u_ip12p[3] - u_ip12n[3]));
-    Riemann_flux[4] = 0.5f * (fu_ip12p[4] + fu_ip12n[4] - alpha * (u_ip12p[4] - u_ip12n[4]));
-    Riemann_flux[5] = 0.5f * (fu_ip12p[5] + fu_ip12n[5] - alpha * (u_ip12p[5] - u_ip12n[5]));
-    Riemann_flux[6] = 0.5f * (fu_ip12p[6] + fu_ip12n[6] - alpha * (u_ip12p[6] - u_ip12n[6]));
-    Riemann_flux[7] = 0.5f * (fu_ip12p[7] + fu_ip12n[7] - alpha * (u_ip12p[7] - u_ip12n[7]));
-    Riemann_flux[8] = 0.5f * (fu_ip12p[8] + fu_ip12n[8] - alpha * (u_ip12p[8] - u_ip12n[8]));
-#endif
-
     for (int n = 0; n < 9; n++)
     {
-        Fu_ip12x[idx * WSIZE + n] = Riemann_flux[n] - 1.0f / 24 * order2_approximation(Fu[idx_n2 * WSIZE + n], Fu[idx_n1 * WSIZE + n], Fu[idx * WSIZE + n], Fu[idx_p1 * WSIZE + n], Fu[idx_p2 * WSIZE + n], Fu[idx_p3 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Fu[idx_n2 * WSIZE + n], Fu[idx_n1 * WSIZE + n], Fu[idx * WSIZE + n], Fu[idx_p1 * WSIZE + n], Fu[idx_p2 * WSIZE + n], Fu[idx_p3 * WSIZE + n]);
+        Riemann_flux[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n]));
     }
+#endif
+
     END_CALCULATE3D()
+}
+
+__GLOBAL__
+void wave_deriv_alternative_flux_FD_y(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W, FLOAT *CJM,
+#ifdef PML
+                                      PML_BETA pml_beta,
+#endif
+                                      int _nx_, int _ny_, int _nz_, float rDH, float DT
+#ifdef LF
+                                      ,
+                                      float alpha
+#endif
+)
+{
+
+    int _nx = _nx_ - HALO;
+    int _ny = _ny_ - HALO;
+    int _nz = _nz_ - HALO;
+
+#ifdef GPU_CUDA
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    int j = threadIdx.y + blockIdx.y * blockDim.y;
+    int k = threadIdx.z + blockIdx.z * blockDim.z;
+#else
+    int i = 0;
+    int j = 0;
+    int k = 0;
+#endif
+
+#ifdef PML
+    float pml_beta_x;
+    float pml_beta_y;
+    float pml_beta_z;
+#endif
+
+    float mu;
+    float lambda;
+    float buoyancy;
+
+    float xi_x_J_h;
+    float xi_y_J_h;
+    float xi_z_J_h;
+    float et_x_J_h;
+    float et_y_J_h;
+    float et_z_J_h;
+    float zt_x_J_h;
+    float zt_y_J_h;
+    float zt_z_J_h;
+    float jac;
+
+    long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
+
+    float u_ip12n[9], u_ip12p[9];
+
+#ifdef LF
+    float fu_ip12n[9], fu_ip12p[9];
+#endif
 
     // * Y direction
     CALCULATE3D(i, j, k, HALO, _nx, HALO - 1, _ny, HALO, _nz)
@@ -291,6 +261,7 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     pml_beta_z = pml_beta.z[k];
 #endif
 
+    idx_n3 = INDEX(i, j - 3, k);
     idx_n2 = INDEX(i, j - 2, k);
     idx_n1 = INDEX(i, j - 1, k);
     idx = INDEX(i, j, k);
@@ -301,6 +272,7 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     et_x_J_h = CJM[idx * CJMSIZE + 3];
     et_y_J_h = CJM[idx * CJMSIZE + 4];
     et_z_J_h = CJM[idx * CJMSIZE + 5];
+    jac = 1.0 / CJM[idx * CJMSIZE + 9];
 
     mu = CJM[idx * CJMSIZE + 10];
     lambda = CJM[idx * CJMSIZE + 11];
@@ -335,22 +307,69 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     fu_ip12p[7] = -((et_x_J_h * u_ip12p[2]) * buoyancy + (et_z_J_h * u_ip12p[0]) * buoyancy);
     fu_ip12p[8] = -((et_x_J_h * u_ip12p[1]) * buoyancy + (et_y_J_h * u_ip12p[0]) * buoyancy);
 
-    Riemann_flux[0] = 0.5f * (fu_ip12p[0] + fu_ip12n[0] - alpha * (u_ip12p[0] - u_ip12n[0]));
-    Riemann_flux[1] = 0.5f * (fu_ip12p[1] + fu_ip12n[1] - alpha * (u_ip12p[1] - u_ip12n[1]));
-    Riemann_flux[2] = 0.5f * (fu_ip12p[2] + fu_ip12n[2] - alpha * (u_ip12p[2] - u_ip12n[2]));
-    Riemann_flux[3] = 0.5f * (fu_ip12p[3] + fu_ip12n[3] - alpha * (u_ip12p[3] - u_ip12n[3]));
-    Riemann_flux[4] = 0.5f * (fu_ip12p[4] + fu_ip12n[4] - alpha * (u_ip12p[4] - u_ip12n[4]));
-    Riemann_flux[5] = 0.5f * (fu_ip12p[5] + fu_ip12n[5] - alpha * (u_ip12p[5] - u_ip12n[5]));
-    Riemann_flux[6] = 0.5f * (fu_ip12p[6] + fu_ip12n[6] - alpha * (u_ip12p[6] - u_ip12n[6]));
-    Riemann_flux[7] = 0.5f * (fu_ip12p[7] + fu_ip12n[7] - alpha * (u_ip12p[7] - u_ip12n[7]));
-    Riemann_flux[8] = 0.5f * (fu_ip12p[8] + fu_ip12n[8] - alpha * (u_ip12p[8] - u_ip12n[8]));
-#endif
-
     for (int n = 0; n < 9; n++)
     {
-        Fu_ip12y[idx * WSIZE + n] = Riemann_flux[n] - 1.0f / 24 * order2_approximation(Gu[idx_n2 * WSIZE + n], Gu[idx_n1 * WSIZE + n], Gu[idx * WSIZE + n], Gu[idx_p1 * WSIZE + n], Gu[idx_p2 * WSIZE + n], Gu[idx_p3 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Gu[idx_n2 * WSIZE + n], Gu[idx_n1 * WSIZE + n], Gu[idx * WSIZE + n], Gu[idx_p1 * WSIZE + n], Gu[idx_p2 * WSIZE + n], Gu[idx_p3 * WSIZE + n]);
+        Riemann_flux[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n]));
     }
+#endif
     END_CALCULATE3D()
+}
+
+__GLOBAL__
+void wave_deriv_alternative_flux_FD_z(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W, FLOAT *CJM,
+#ifdef PML
+                                      PML_BETA pml_beta,
+#endif
+                                      int _nx_, int _ny_, int _nz_, float rDH, float DT
+#ifdef LF
+                                      ,
+                                      float alpha
+#endif
+)
+{
+
+    int _nx = _nx_ - HALO;
+    int _ny = _ny_ - HALO;
+    int _nz = _nz_ - HALO;
+
+#ifdef GPU_CUDA
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    int j = threadIdx.y + blockIdx.y * blockDim.y;
+    int k = threadIdx.z + blockIdx.z * blockDim.z;
+#else
+    int i = 0;
+    int j = 0;
+    int k = 0;
+#endif
+
+#ifdef PML
+    float pml_beta_x;
+    float pml_beta_y;
+    float pml_beta_z;
+#endif
+
+    float mu;
+    float lambda;
+    float buoyancy;
+
+    float xi_x_J_h;
+    float xi_y_J_h;
+    float xi_z_J_h;
+    float et_x_J_h;
+    float et_y_J_h;
+    float et_z_J_h;
+    float zt_x_J_h;
+    float zt_y_J_h;
+    float zt_z_J_h;
+    float jac;
+
+    long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
+
+    float u_ip12n[9], u_ip12p[9];
+
+#ifdef LF
+    float fu_ip12n[9], fu_ip12p[9];
+#endif
 
     // * Z direction
     CALCULATE3D(i, j, k, HALO, _nx, HALO, _ny, HALO - 1, _nz)
@@ -361,6 +380,7 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     pml_beta_z = pml_beta.z[k];
 #endif
 
+    idx_n3 = INDEX(i, j, k - 3);
     idx_n2 = INDEX(i, j, k - 2);
     idx_n1 = INDEX(i, j, k - 1);
     idx = INDEX(i, j, k);
@@ -371,6 +391,7 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     zt_x_J_h = CJM[idx * CJMSIZE + 6];
     zt_y_J_h = CJM[idx * CJMSIZE + 7];
     zt_z_J_h = CJM[idx * CJMSIZE + 8];
+    jac = 1.0 / CJM[idx * CJMSIZE + 9];
 
     mu = CJM[idx * CJMSIZE + 10];
     lambda = CJM[idx * CJMSIZE + 11];
@@ -405,30 +426,20 @@ void wave_deriv_alternative_flux_FD(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_
     fu_ip12p[7] = -((zt_x_J_h * u_ip12p[2]) * buoyancy + (zt_z_J_h * u_ip12p[0]) * buoyancy);
     fu_ip12p[8] = -((zt_x_J_h * u_ip12p[1]) * buoyancy + (zt_y_J_h * u_ip12p[0]) * buoyancy);
 
-    Riemann_flux[0] = 0.5f * (fu_ip12p[0] + fu_ip12n[0] - alpha * (u_ip12p[0] - u_ip12n[0]));
-    Riemann_flux[1] = 0.5f * (fu_ip12p[1] + fu_ip12n[1] - alpha * (u_ip12p[1] - u_ip12n[1]));
-    Riemann_flux[2] = 0.5f * (fu_ip12p[2] + fu_ip12n[2] - alpha * (u_ip12p[2] - u_ip12n[2]));
-    Riemann_flux[3] = 0.5f * (fu_ip12p[3] + fu_ip12n[3] - alpha * (u_ip12p[3] - u_ip12n[3]));
-    Riemann_flux[4] = 0.5f * (fu_ip12p[4] + fu_ip12n[4] - alpha * (u_ip12p[4] - u_ip12n[4]));
-    Riemann_flux[5] = 0.5f * (fu_ip12p[5] + fu_ip12n[5] - alpha * (u_ip12p[5] - u_ip12n[5]));
-    Riemann_flux[6] = 0.5f * (fu_ip12p[6] + fu_ip12n[6] - alpha * (u_ip12p[6] - u_ip12n[6]));
-    Riemann_flux[7] = 0.5f * (fu_ip12p[7] + fu_ip12n[7] - alpha * (u_ip12p[7] - u_ip12n[7]));
-    Riemann_flux[8] = 0.5f * (fu_ip12p[8] + fu_ip12n[8] - alpha * (u_ip12p[8] - u_ip12n[8]));
-#endif
-
     for (int n = 0; n < 9; n++)
     {
-        Fu_ip12z[idx * WSIZE + n] = Riemann_flux[n] - 1.0f / 24 * order2_approximation(Hu[idx_n2 * WSIZE + n], Hu[idx_n1 * WSIZE + n], Hu[idx * WSIZE + n], Hu[idx_p1 * WSIZE + n], Hu[idx_p2 * WSIZE + n], Hu[idx_p3 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Hu[idx_n2 * WSIZE + n], Hu[idx_n1 * WSIZE + n], Hu[idx * WSIZE + n], Hu[idx_p1 * WSIZE + n], Hu[idx_p2 * WSIZE + n], Hu[idx_p3 * WSIZE + n]);
+        Riemann_flux[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n]));
     }
+#endif
     END_CALCULATE3D()
 }
 
 __GLOBAL__
-void cal_du(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_ip12z, FLOAT *h_W, FLOAT *CJM,
+void cal_du_x(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *CJM,
 #ifdef PML
-            PML_BETA pml_beta,
+              PML_BETA pml_beta,
 #endif
-            int _nx_, int _ny_, int _nz_, float rDH, int FB1, int FB2, int FB3, float DT)
+              int _nx_, int _ny_, int _nz_, float rDH, int FB1, int FB2, int FB3, float DT)
 {
     int _nx = _nx_ - HALO;
     int _ny = _ny_ - HALO;
@@ -450,21 +461,122 @@ void cal_du(FLOAT *Fu_ip12x, FLOAT *Fu_ip12y, FLOAT *Fu_ip12z, FLOAT *h_W, FLOAT
     float pml_beta_z;
 #endif
 
-    long long idx, idx_n1, idy_n1, idz_n1;
-    float jac_inv;
+    long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
+    float jac;
 
     CALCULATE3D(i, j, k, HALO, _nx, HALO, _ny, HALO, _nz)
 
-    idx = INDEX(i, j, k);
+    idx_n3 = INDEX(i - 3, j, k);
+    idx_n2 = INDEX(i - 2, j, k);
     idx_n1 = INDEX(i - 1, j, k);
-    idy_n1 = INDEX(i, j - 1, k);
-    idz_n1 = INDEX(i, j, k - 1);
+    idx = INDEX(i, j, k);
+    idx_p1 = INDEX(i + 1, j, k);
+    idx_p2 = INDEX(i + 2, j, k);
+    idx_p3 = INDEX(i + 3, j, k);
 
-    jac_inv = CJM[idx * CJMSIZE + 9];
+    jac = 1.0 / CJM[idx * CJMSIZE + 9];
 
     for (int n = 0; n < 9; n++)
     {
-        h_W[idx * WSIZE + n] = DT * (-(Fu_ip12x[idx * WSIZE + n] - Fu_ip12x[idx_n1 * WSIZE + n]) * rDH - (Fu_ip12y[idx * WSIZE + n] - Fu_ip12y[idy_n1 * WSIZE + n]) * rDH - (Fu_ip12z[idx * WSIZE + n] - Fu_ip12z[idz_n1 * WSIZE + n]) * rDH) / jac_inv;
+        h_W[idx * WSIZE + n] = DT * rDH * jac * (-((Riemann_flux[idx * WSIZE + n] - 1.0f / 24 * order2_approximation(Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n], Riemann_flux[idx_p2 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n], Riemann_flux[idx_p2 * WSIZE + n])) - (Riemann_flux[idx_n1 * WSIZE + n] - 1.0f / 24 * order2_approximation(Riemann_flux[idx_n3 * WSIZE + n], Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Riemann_flux[idx_n3 * WSIZE + n], Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n]))));
+    }
+    END_CALCULATE3D()
+}
+
+__GLOBAL__
+void cal_du_y(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *CJM,
+#ifdef PML
+              PML_BETA pml_beta,
+#endif
+              int _nx_, int _ny_, int _nz_, float rDH, int FB1, int FB2, int FB3, float DT)
+{
+    int _nx = _nx_ - HALO;
+    int _ny = _ny_ - HALO;
+    int _nz = _nz_ - HALO;
+
+#ifdef GPU_CUDA
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    int j = threadIdx.y + blockIdx.y * blockDim.y;
+    int k = threadIdx.z + blockIdx.z * blockDim.z;
+#else
+    int i = 0;
+    int j = 0;
+    int k = 0;
+#endif
+
+#ifdef PML
+    float pml_beta_x;
+    float pml_beta_y;
+    float pml_beta_z;
+#endif
+
+    long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
+    float jac;
+
+    CALCULATE3D(i, j, k, HALO, _nx, HALO, _ny, HALO, _nz)
+
+    idx_n3 = INDEX(i, j - 3, k);
+    idx_n2 = INDEX(i, j - 2, k);
+    idx_n1 = INDEX(i, j - 1, k);
+    idx = INDEX(i, j, k);
+    idx_p1 = INDEX(i, j + 1, k);
+    idx_p2 = INDEX(i, j + 2, k);
+    idx_p3 = INDEX(i, j + 3, k);
+
+    jac = 1.0 / CJM[idx * CJMSIZE + 9];
+
+    for (int n = 0; n < 9; n++)
+    {
+        h_W[idx * WSIZE + n] += DT * rDH * jac * (-((Riemann_flux[idx * WSIZE + n] - 1.0f / 24 * order2_approximation(Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n], Riemann_flux[idx_p2 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n], Riemann_flux[idx_p2 * WSIZE + n])) - (Riemann_flux[idx_n1 * WSIZE + n] - 1.0f / 24 * order2_approximation(Riemann_flux[idx_n3 * WSIZE + n], Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Riemann_flux[idx_n3 * WSIZE + n], Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n]))));
+    }
+    END_CALCULATE3D()
+}
+
+__GLOBAL__
+void cal_du_z(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *CJM,
+#ifdef PML
+              PML_BETA pml_beta,
+#endif
+              int _nx_, int _ny_, int _nz_, float rDH, int FB1, int FB2, int FB3, float DT)
+{
+    int _nx = _nx_ - HALO;
+    int _ny = _ny_ - HALO;
+    int _nz = _nz_ - HALO;
+
+#ifdef GPU_CUDA
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    int j = threadIdx.y + blockIdx.y * blockDim.y;
+    int k = threadIdx.z + blockIdx.z * blockDim.z;
+#else
+    int i = 0;
+    int j = 0;
+    int k = 0;
+#endif
+
+#ifdef PML
+    float pml_beta_x;
+    float pml_beta_y;
+    float pml_beta_z;
+#endif
+
+    long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
+    float jac;
+
+    CALCULATE3D(i, j, k, HALO, _nx, HALO, _ny, HALO, _nz)
+
+    idx_n3 = INDEX(i, j, k - 3);
+    idx_n2 = INDEX(i, j, k - 2);
+    idx_n1 = INDEX(i, j, k - 1);
+    idx = INDEX(i, j, k);
+    idx_p1 = INDEX(i, j, k + 1);
+    idx_p2 = INDEX(i, j, k + 2);
+    idx_p3 = INDEX(i, j, k + 3);
+
+    jac = 1.0 / CJM[idx * CJMSIZE + 9];
+
+    for (int n = 0; n < 9; n++)
+    {
+        h_W[idx * WSIZE + n] += DT * rDH * jac * (-((Riemann_flux[idx * WSIZE + n] - 1.0f / 24 * order2_approximation(Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n], Riemann_flux[idx_p2 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n], Riemann_flux[idx_p2 * WSIZE + n])) - (Riemann_flux[idx_n1 * WSIZE + n] - 1.0f / 24 * order2_approximation(Riemann_flux[idx_n3 * WSIZE + n], Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Riemann_flux[idx_n3 * WSIZE + n], Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n]))));
     }
     END_CALCULATE3D()
 }
@@ -498,26 +610,58 @@ void waveDeriv_alternative_flux_FD(GRID grid, WAVE wave, FLOAT *CJM,
     blocks.z = (_nz_ + threads.z - 1) / threads.z;
 
     // cout << "X = " << blocks.x << "Y = " << blocks.y << "Z = " << blocks.z << endl;
-    cal_flux<<<blocks, threads>>>(wave.Fu, wave.Gu, wave.Hu, wave.W, CJM, _nx_, _ny_, _nz_, thisMPICoord, params);
-    wave_deriv_alternative_flux_FD<<<blocks, threads>>>(wave.fu_ip12x, wave.fu_ip12y, wave.fu_ip12z,
-                                                        wave.Fu, wave.Gu, wave.Hu, wave.h_W, wave.W, CJM,
+    wave_deriv_alternative_flux_FD_x<<<blocks, threads>>>(wave.Riemann_flux, wave.h_W, wave.W, CJM,
 #ifdef PML
-                                                        pml_beta,
+                                                          pml_beta,
 #endif // PML
-                                                        _nx_, _ny_, _nz_, rDH, FB1, FB2, FB3, DT
+                                                          _nx_, _ny_, _nz_, rDH, DT
 #ifdef LF
-                                                        ,
-                                                        vp_max_for_SCFDM
+                                                          ,
+                                                          vp_max_for_SCFDM
 #endif // LF
     );
 
-    CHECK(cudaDeviceSynchronize());
-    cal_du<<<blocks, threads>>>(wave.fu_ip12x, wave.fu_ip12y, wave.fu_ip12z, wave.h_W, CJM,
+    cal_du_x<<<blocks, threads>>>(wave.Riemann_flux, wave.h_W, CJM,
 #ifdef PML
-                                pml_beta,
+                                  pml_beta,
 #endif // PML
-                                _nx_, _ny_, _nz_, rDH, FB1, FB2, FB3, DT);
-    CHECK(cudaDeviceSynchronize());
+                                  _nx_, _ny_, _nz_, rDH, FB1, FB2, FB3, DT);
+
+    wave_deriv_alternative_flux_FD_y<<<blocks, threads>>>(wave.Riemann_flux, wave.h_W, wave.W, CJM,
+#ifdef PML
+                                                          pml_beta,
+#endif // PML
+                                                          _nx_, _ny_, _nz_, rDH, DT
+#ifdef LF
+                                                          ,
+                                                          vp_max_for_SCFDM
+#endif // LF
+    );
+
+    cal_du_y<<<blocks, threads>>>(wave.Riemann_flux, wave.h_W, CJM,
+#ifdef PML
+                                  pml_beta,
+#endif // PML
+                                  _nx_, _ny_, _nz_, rDH, FB1, FB2, FB3, DT);
+
+    wave_deriv_alternative_flux_FD_z<<<blocks, threads>>>(wave.Riemann_flux, wave.h_W, wave.W, CJM,
+#ifdef PML
+                                                          pml_beta,
+#endif // PML
+                                                          _nx_, _ny_, _nz_, rDH, DT
+#ifdef LF
+                                                          ,
+                                                          vp_max_for_SCFDM
+#endif // LF
+    );
+
+    cal_du_z<<<blocks, threads>>>(wave.Riemann_flux, wave.h_W, CJM,
+#ifdef PML
+                                  pml_beta,
+#endif // PML
+                                  _nx_, _ny_, _nz_, rDH, FB1, FB2, FB3, DT);
+
+    // CHECK(cudaDeviceSynchronize());
 
 #else // GPU_CUDA
     cal_flux(wave.Fu, wave.Gu, wave.Hu, wave.W, CJM, _nx_, _ny_, _nz_);
