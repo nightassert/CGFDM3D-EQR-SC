@@ -87,9 +87,10 @@ float WENO5_Z(float u1, float u2, float u3, float u4, float u5)
     float WENO_beta2 = 13.0f / 12.0f * (u2 - 2 * u3 + u4) * (u2 - 2 * u3 + u4) + 1.0f / 4.0f * (u2 - u4) * (u2 - u4);
     float WENO_beta3 = 13.0f / 12.0f * (u1 - 2 * u2 + u3) * (u1 - 2 * u2 + u3) + 1.0f / 4.0f * (u1 - 4 * u2 + 3 * u3) * (u1 - 4 * u2 + 3 * u3);
 
-    WENO_beta1 = abs(WENO_beta1 - WENO_beta3) / (WENO_beta1 + 1.0e-12f);
-    WENO_beta2 = abs(WENO_beta1 - WENO_beta3) / (WENO_beta2 + 1.0e-12f);
-    WENO_beta3 = abs(WENO_beta1 - WENO_beta3) / (WENO_beta3 + 1.0e-12f);
+    float tao5 = abs(WENO_beta1 - WENO_beta3);
+    WENO_beta1 = tao5 / (WENO_beta1 + 1.0e-12f);
+    WENO_beta2 = tao5 / (WENO_beta2 + 1.0e-12f);
+    WENO_beta3 = tao5 / (WENO_beta3 + 1.0e-12f);
 
     WENO_beta1 = 0.3125f * (1 + WENO_beta1 * WENO_beta1);
     WENO_beta2 = 0.625f * (1 + WENO_beta2 * WENO_beta2);
