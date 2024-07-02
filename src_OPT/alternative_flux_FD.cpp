@@ -39,6 +39,9 @@
 #define order2_approximation(u1, u2, u3, u4, u5) (1.0f / 12 * (-u1 + 16 * u2 - 30 * u3 + 16 * u4 - u5))
 #define order4_approximation(u1, u2, u3, u4, u5) ((u1 - 4 * u2 + 6 * u3 - 4 * u4 + u5))
 
+#define order2_approximation_f(u1, u2, u3, u4, u5, u6) (1.0f / 48 * (-5 * u1 + 39 * u2 - 34 * u3 - 34 * u4 + 39 * u5 - 5 * u6))
+#define order4_approximation_f(u1, u2, u3, u4, u5, u6) (1.0f / 2 * (u1 - 3 * u2 + 2 * u3 + 2 * u4 - 3 * u5 + u6))
+
 #ifdef LF
 extern float vp_max_for_SCFDM;
 #endif
@@ -364,7 +367,7 @@ void wave_deriv_alternative_flux_FD_z(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W,
     float mu;
     float lambda;
     float buoyancy;
-    
+
     float zt_x_J_h;
     float zt_y_J_h;
     float zt_z_J_h;
@@ -540,7 +543,7 @@ void cal_du_y(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *CJM,
 }
 
 __GLOBAL__
-void cal_du_z(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *CJM,
+void cal_du_z(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *CJM, FLOAT *u,
 #ifdef PML
               PML_BETA pml_beta,
 #endif
@@ -568,6 +571,7 @@ void cal_du_z(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *CJM,
 
     long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
     float jac;
+    float hu[7][9];
 
     CALCULATE3D(i, j, k, HALO, _nx, HALO, _ny, HALO, _nz)
 
@@ -581,9 +585,33 @@ void cal_du_z(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *CJM,
 
     jac = 1.0 / CJM[idx * CJMSIZE + 9];
 
-    for (int n = 0; n < 9; n++)
+    if (k >= _nz - 3 && k < _nz)
     {
-        h_W[idx * WSIZE + n] += DT * rDH * jac * (-((Riemann_flux[idx * WSIZE + n] - 1.0f / 24 * order2_approximation(Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n], Riemann_flux[idx_p2 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n], Riemann_flux[idx_p2 * WSIZE + n])) - (Riemann_flux[idx_n1 * WSIZE + n] - 1.0f / 24 * order2_approximation(Riemann_flux[idx_n3 * WSIZE + n], Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Riemann_flux[idx_n3 * WSIZE + n], Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n]))));
+        // ! Unable to satisfy the stencil of high-order terms, 3 layers near the free surface need to be recalculated
+        for (int n = 0; n < 7; n++)
+        {
+            hu[n][0] = -(CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 6] * (CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 11] * u[INDEX(i, j, k - 3 + n) * WSIZE + 4] + CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 11] * u[INDEX(i, j, k - 3 + n) * WSIZE + 5] + u[INDEX(i, j, k - 3 + n) * WSIZE + 3] * (CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 11] + 2 * CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 10])) + CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 10] * CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 7] * u[INDEX(i, j, k - 3 + n) * WSIZE + 8] + CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 10] * CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 8] * u[INDEX(i, j, k - 3 + n) * WSIZE + 7]);
+            hu[n][1] = -(CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 7] * (CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 11] * u[INDEX(i, j, k - 3 + n) * WSIZE + 3] + CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 11] * u[INDEX(i, j, k - 3 + n) * WSIZE + 5] + u[INDEX(i, j, k - 3 + n) * WSIZE + 4] * (CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 11] + 2 * CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 10])) + CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 10] * CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 6] * u[INDEX(i, j, k - 3 + n) * WSIZE + 8] + CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 10] * CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 8] * u[INDEX(i, j, k - 3 + n) * WSIZE + 6]);
+            hu[n][2] = -(CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 8] * (CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 11] * u[INDEX(i, j, k - 3 + n) * WSIZE + 3] + CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 11] * u[INDEX(i, j, k - 3 + n) * WSIZE + 4] + u[INDEX(i, j, k - 3 + n) * WSIZE + 5] * (CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 11] + 2 * CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 10])) + CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 10] * CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 6] * u[INDEX(i, j, k - 3 + n) * WSIZE + 7] + CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 10] * CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 7] * u[INDEX(i, j, k - 3 + n) * WSIZE + 6]);
+            hu[n][3] = -((CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 6] * u[INDEX(i, j, k - 3 + n) * WSIZE + 0]) * CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 12]);
+            hu[n][4] = -((CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 7] * u[INDEX(i, j, k - 3 + n) * WSIZE + 1]) * CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 12]);
+            hu[n][5] = -((CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 8] * u[INDEX(i, j, k - 3 + n) * WSIZE + 2]) * CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 12]);
+            hu[n][6] = -((CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 7] * u[INDEX(i, j, k - 3 + n) * WSIZE + 2]) * CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 12] + (CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 8] * u[INDEX(i, j, k - 3 + n) * WSIZE + 1]) * CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 12]);
+            hu[n][7] = -((CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 6] * u[INDEX(i, j, k - 3 + n) * WSIZE + 2]) * CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 12] + (CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 8] * u[INDEX(i, j, k - 3 + n) * WSIZE + 0]) * CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 12]);
+            hu[n][8] = -((CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 6] * u[INDEX(i, j, k - 3 + n) * WSIZE + 1]) * CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 12] + (CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 7] * u[INDEX(i, j, k - 3 + n) * WSIZE + 0]) * CJM[INDEX(i, j, k - 3 + n) * CJMSIZE + 12]);
+        }
+
+        for (int n = 0; n < 9; n++)
+        {
+            h_W[idx * WSIZE + n] += DT * rDH * jac * (-((Riemann_flux[idx * WSIZE + n] - 1.0f / 24 * order2_approximation_f(hu[1][n], hu[2][n], hu[3][n], hu[4][n], hu[5][n], hu[6][n]) + 7.0f / 5760 * order4_approximation_f(hu[1][n], hu[2][n], hu[3][n], hu[4][n], hu[5][n], hu[6][n])) - (Riemann_flux[idx_n1 * WSIZE + n] - 1.0f / 24 * order2_approximation_f(hu[0][n], hu[1][n], hu[2][n], hu[3][n], hu[4][n], hu[5][n]) + 7.0f / 5760 * order4_approximation_f(hu[0][n], hu[1][n], hu[2][n], hu[3][n], hu[4][n], hu[5][n]))));
+        }
+    }
+    else
+    {
+        for (int n = 0; n < 9; n++)
+        {
+            h_W[idx * WSIZE + n] += DT * rDH * jac * (-((Riemann_flux[idx * WSIZE + n] - 1.0f / 24 * order2_approximation(Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n], Riemann_flux[idx_p2 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n], Riemann_flux[idx_p2 * WSIZE + n])) - (Riemann_flux[idx_n1 * WSIZE + n] - 1.0f / 24 * order2_approximation(Riemann_flux[idx_n3 * WSIZE + n], Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n]) + 7.0f / 5760 * order4_approximation(Riemann_flux[idx_n3 * WSIZE + n], Riemann_flux[idx_n2 * WSIZE + n], Riemann_flux[idx_n1 * WSIZE + n], Riemann_flux[idx * WSIZE + n], Riemann_flux[idx_p1 * WSIZE + n]))));
+        }
     }
     END_CALCULATE3D()
 }
@@ -662,7 +690,7 @@ void waveDeriv_alternative_flux_FD(GRID grid, WAVE wave, FLOAT *CJM,
 #endif // LF
     );
 
-    cal_du_z<<<blocks, threads>>>(wave.Riemann_flux, wave.h_W, CJM,
+    cal_du_z<<<blocks, threads>>>(wave.Riemann_flux, wave.h_W, CJM, wave.W,
 #ifdef PML
                                   pml_beta,
 #endif // PML
