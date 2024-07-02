@@ -63,9 +63,11 @@ void char_free_surface_deriv(
 
 	float mu = 0.0f;
 	float lambda = 0.0f;
+	float rho = 0.0f;
 	float buoyancy = 0.0f;
 	float vs = 0.0f;
 	float vp = 0.0f;
+	float tmp = 0.0f;
 
 #ifdef PML
 	float pml_beta_x = 0.0f;
@@ -89,6 +91,7 @@ void char_free_surface_deriv(
 	mu = CJM[index * CJMSIZE + 10];
 	lambda = CJM[index * CJMSIZE + 11];
 	buoyancy = CJM[index * CJMSIZE + 12];
+	rho = 1.0f / buoyancy;
 	buoyancy *= Crho;
 	vs = sqrt(mu * buoyancy);
 	vp = sqrt((lambda + 2 * mu) * buoyancy);
@@ -139,9 +142,9 @@ void char_free_surface_deriv(
 	// Apply characteristic free surface boundary conditions
 	u_phy_T[1] -= u_phy_T[0] * lambda / (lambda + 2 * mu);
 	u_phy_T[2] -= u_phy_T[0] * lambda / (lambda + 2 * mu);
-	u_phy_T[7] -= u_phy_T[3] / (vs / buoyancy);
-	u_phy_T[8] -= u_phy_T[4] / (vs / buoyancy);
-	u_phy_T[6] -= u_phy_T[0] / (vp / buoyancy);
+	u_phy_T[7] -= u_phy_T[3] / (vs * rho);
+	u_phy_T[8] -= u_phy_T[4] / (vs * rho);
+	u_phy_T[6] -= u_phy_T[0] / (vp * rho);
 	u_phy_T[0] = 0;
 	u_phy_T[3] = 0;
 	u_phy_T[4] = 0;
@@ -158,15 +161,17 @@ void char_free_surface_deriv(
 	u_phy[8] = nz * u_phy_T[6] + sz * u_phy_T[7] + tz * u_phy_T[8];
 
 	// Calculate conservative variables
-	u_conserv[0] = u_phy[6] / buoyancy;
-	u_conserv[1] = u_phy[7] / buoyancy;
-	u_conserv[2] = u_phy[8] / buoyancy;
-	u_conserv[3] = (2 * lambda * u_phy[0] - lambda * u_phy[1] - lambda * u_phy[2] + 2 * mu * u_phy[0]) / (2 * mu * (3 * lambda + 2 * mu));
-	u_conserv[4] = -(lambda * u_phy[0] - 2 * lambda * u_phy[1] + lambda * u_phy[2] - 2 * mu * u_phy[1]) / (2 * mu * (3 * lambda + 2 * mu));
-	u_conserv[5] = -(lambda * u_phy[0] + lambda * u_phy[1] - 2 * lambda * u_phy[2] - 2 * mu * u_phy[2]) / (2 * mu * (3 * lambda + 2 * mu));
-	u_conserv[6] = u_phy[5] / mu;
-	u_conserv[7] = u_phy[4] / mu;
-	u_conserv[8] = u_phy[3] / mu;
+	tmp = 1.0f / (2 * mu * (3 * lambda + 2 * mu));
+	u_conserv[0] = u_phy[6] * rho;
+	u_conserv[1] = u_phy[7] * rho;
+	u_conserv[2] = u_phy[8] * rho;
+	u_conserv[3] = (2 * lambda * u_phy[0] - lambda * u_phy[1] - lambda * u_phy[2] + 2 * mu * u_phy[0]) * tmp;
+	u_conserv[4] = -(lambda * u_phy[0] - 2 * lambda * u_phy[1] + lambda * u_phy[2] - 2 * mu * u_phy[1]) * tmp;
+	u_conserv[5] = -(lambda * u_phy[0] + lambda * u_phy[1] - 2 * lambda * u_phy[2] - 2 * mu * u_phy[2]) * tmp;
+	tmp = 1.0f / mu;
+	u_conserv[6] = u_phy[5] * tmp;
+	u_conserv[7] = u_phy[4] * tmp;
+	u_conserv[8] = u_phy[3] * tmp;
 
 	// Put conservative variables back to wave.u
 	for (int n = 0; n < 9; n++)

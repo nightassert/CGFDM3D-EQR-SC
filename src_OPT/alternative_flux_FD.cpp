@@ -43,9 +43,11 @@
 extern float vp_max_for_SCFDM;
 #endif
 
-// WENO5 interpolation scheme
+#define WENO5_interpolation WENO5_Z
+
+// WENO5-JS interpolation scheme
 __DEVICE__
-float WENO5_interpolation(float u1, float u2, float u3, float u4, float u5)
+float WENO5_JS(float u1, float u2, float u3, float u4, float u5)
 {
     // small stencils
     float v1 = 0.375f * u3 + 0.75f * u4 - 0.125f * u5;
@@ -67,13 +69,35 @@ float WENO5_interpolation(float u1, float u2, float u3, float u4, float u5)
     float WENO_alpha3 = d3 / ((WENO_beta3 + epsilon) * (WENO_beta3 + epsilon));
 
     // nonlinear weights
-    float w1 = WENO_alpha1 / (WENO_alpha1 + WENO_alpha2 + WENO_alpha3);
-    float w2 = WENO_alpha2 / (WENO_alpha1 + WENO_alpha2 + WENO_alpha3);
-    float w3 = WENO_alpha3 / (WENO_alpha1 + WENO_alpha2 + WENO_alpha3);
+    float total_weights = 1.0f / (WENO_alpha1 + WENO_alpha2 + WENO_alpha3);
+    float w1 = WENO_alpha1 * total_weights;
+    float w2 = WENO_alpha2 * total_weights;
+    float w3 = WENO_alpha3 * total_weights;
 
     // WENO interpolation
     return w1 * v1 + w2 * v2 + w3 * v3;
     // return d1 * v1 + d2 * v2 + d3 * v3;
+}
+
+// WENO5-Z interpolation scheme
+__DEVICE__
+float WENO5_Z(float u1, float u2, float u3, float u4, float u5)
+{
+    float WENO_beta1 = 13.0f / 12.0f * (u3 - 2 * u4 + u5) * (u3 - 2 * u4 + u5) + 1.0f / 4.0f * (3 * u3 - 4 * u4 + u5) * (3 * u3 - 4 * u4 + u5);
+    float WENO_beta2 = 13.0f / 12.0f * (u2 - 2 * u3 + u4) * (u2 - 2 * u3 + u4) + 1.0f / 4.0f * (u2 - u4) * (u2 - u4);
+    float WENO_beta3 = 13.0f / 12.0f * (u1 - 2 * u2 + u3) * (u1 - 2 * u2 + u3) + 1.0f / 4.0f * (u1 - 4 * u2 + 3 * u3) * (u1 - 4 * u2 + 3 * u3);
+
+    WENO_beta1 = abs(WENO_beta1 - WENO_beta3) / (WENO_beta1 + 1.0e-12f);
+    WENO_beta2 = abs(WENO_beta1 - WENO_beta3) / (WENO_beta2 + 1.0e-12f);
+    WENO_beta3 = abs(WENO_beta1 - WENO_beta3) / (WENO_beta3 + 1.0e-12f);
+
+    WENO_beta1 = 0.3125f * (1 + WENO_beta1 * WENO_beta1);
+    WENO_beta2 = 0.625f * (1 + WENO_beta2 * WENO_beta2);
+    WENO_beta3 = 0.0625f * (1 + WENO_beta3 * WENO_beta3);
+
+    float total_weights = 1.0f / (WENO_beta1 + WENO_beta2 + WENO_beta3);
+
+    return (WENO_beta1 * total_weights) * (0.375f * u3 + 0.75f * u4 - 0.125f * u5) + (WENO_beta2 * total_weights) * (-0.125f * u2 + 0.75f * u3 + 0.375f * u4) + (WENO_beta3 * total_weights) * (0.375f * u1 - 1.25f * u2 + 1.875f * u3);
 }
 
 __GLOBAL__
@@ -116,12 +140,6 @@ void wave_deriv_alternative_flux_FD_x(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W,
     float xi_x_J_h;
     float xi_y_J_h;
     float xi_z_J_h;
-    float et_x_J_h;
-    float et_y_J_h;
-    float et_z_J_h;
-    float zt_x_J_h;
-    float zt_y_J_h;
-    float zt_z_J_h;
     float jac;
 
     long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
@@ -233,15 +251,9 @@ void wave_deriv_alternative_flux_FD_y(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W,
     float lambda;
     float buoyancy;
 
-    float xi_x_J_h;
-    float xi_y_J_h;
-    float xi_z_J_h;
     float et_x_J_h;
     float et_y_J_h;
     float et_z_J_h;
-    float zt_x_J_h;
-    float zt_y_J_h;
-    float zt_z_J_h;
     float jac;
 
     long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
@@ -351,13 +363,7 @@ void wave_deriv_alternative_flux_FD_z(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W,
     float mu;
     float lambda;
     float buoyancy;
-
-    float xi_x_J_h;
-    float xi_y_J_h;
-    float xi_z_J_h;
-    float et_x_J_h;
-    float et_y_J_h;
-    float et_z_J_h;
+    
     float zt_x_J_h;
     float zt_y_J_h;
     float zt_z_J_h;
