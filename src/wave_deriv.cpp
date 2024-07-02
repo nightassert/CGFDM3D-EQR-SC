@@ -40,7 +40,7 @@ void allocWave(GRID grid, WAVE *wave)
 
 #ifdef SCFDM
 	// ! For alternative flux finite difference by Tianhong Xu
-	long long size = sizeof(FLOAT) * num * WSIZE * 11;
+	long long size = sizeof(FLOAT) * num * WSIZE * 5;
 #else
 	long long size = sizeof(FLOAT) * num * WSIZE * 4;
 #endif
@@ -60,12 +60,7 @@ void allocWave(GRID grid, WAVE *wave)
 	wave->m_W = pWave + 3 * WSIZE * num;
 #ifdef SCFDM
 	// ! For alternative flux finite difference by Tianhong Xu
-	wave->Fu = pWave + 4 * WSIZE * num;
-	wave->Gu = pWave + 5 * WSIZE * num;
-	wave->Hu = pWave + 6 * WSIZE * num;
-	wave->fu_ip12x = pWave + 7 * WSIZE * num;
-	wave->fu_ip12y = pWave + 8 * WSIZE * num;
-	wave->fu_ip12z = pWave + 9 * WSIZE * num;
+	wave->Riemann_flux = pWave + 4 * WSIZE * num;
 #endif
 }
 
