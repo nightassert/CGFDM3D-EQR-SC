@@ -46,7 +46,7 @@ StructureTerrain := ON
 SET_BASIN := 
 
 FLOAT16 := 
-SRCDIR := ./src
+SRCDIR := ./src_GJI_XU2024
 
 
 CCHOME := /usr

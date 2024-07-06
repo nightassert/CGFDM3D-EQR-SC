@@ -184,6 +184,8 @@ void structureInterp(PARAMS params, GRID grid,
 
 	VS = Vs[pos] * 1e-3;
 	VP = (0.9409 + 2.0947 * VS - 0.8206 * (pow(VS, 2)) + 0.2683 * (pow(VS, 3)) - 0.0251 * (pow(VS, 4)));
+	// VP = Vs[pos] * 1e-3;
+	// VS = (0.7858 - 1.2344 * VP + 0.7949 * pow(VP, 2) - 0.1238 * pow(VP, 3) + 0.0064 * pow(VP, 4));
 	RHO = (1.6612 * VP - 0.4721 * (pow(VP, 2)) + 0.0671 * (pow(VP, 3)) - 0.0043 * (pow(VP, 4)) + 0.000106 * (pow(VP, 5)));
 
 	structure[index + 0] = VS * 1e3;  // LAM;
@@ -239,6 +241,9 @@ void readWeisenShenModel(PARAMS params, GRID grid, MPI_COORD thisMPICoord, float
 
 	FOR_LOOP2D(i, j, 0, nLon, 0, nLat)
 	// cout << params.StructureDir << endl;
+
+	// sprintf(lonName, "%.3f", LonStart + i * LonStep);
+	// sprintf(latName, "%.3f", LatStart + j * LatStep);
 
 	sprintf(lonName, "%.1f", LonStart + i * LonStep);
 	sprintf(latName, "%.1f", LatStart + j * LatStep);

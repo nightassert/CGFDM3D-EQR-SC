@@ -38,33 +38,20 @@ extern float vp_max_for_SCFDM;
 __DEVICE__
 float WENO5_interpolation(float u1, float u2, float u3, float u4, float u5)
 {
-    // small stencils
-    float v1 = 0.375f * u3 + 0.75f * u4 - 0.125f * u5;
-    float v2 = -0.125f * u2 + 0.75f * u3 + 0.375f * u4;
-    float v3 = 0.375f * u1 - 1.25f * u2 + 1.875f * u3;
+    // smoothness indicators
+    float WENO_beta1 = 0.3333333333f * (10 * u3 * u3 - 31 * u3 * u4 + 25 * u4 * u4 + 11 * u3 * u5 - 19 * u4 * u5 + 4 * u5 * u5);
+    float WENO_beta2 = 0.3333333333f * (4 * u2 * u2 - 13 * u2 * u3 + 13 * u3 * u3 + 5 * u2 * u4 - 13 * u3 * u4 + 4 * u4 * u4);
+    float WENO_beta3 = 0.3333333333f * (4 * u1 * u1 - 19 * u1 * u2 + 25 * u2 * u2 + 11 * u1 * u3 - 31 * u2 * u3 + 10 * u3 * u3);
 
-    // linear weights
-    float d1 = 0.3125f, d2 = 0.625f, d3 = 0.0625f;
+    WENO_beta1 = 0.3125f / ((WENO_beta1 + 1e-6) * (WENO_beta1 + 1e-6));
+    WENO_beta2 = 0.625f / ((WENO_beta2 + 1e-6) * (WENO_beta2 + 1e-6));
+    WENO_beta3 = 0.0625f / ((WENO_beta3 + 1e-6) * (WENO_beta3 + 1e-6));
 
-    // // smoothness indicators
-    // float WENO_beta1 = 0.3333333333f * (10 * u3 * u3 - 31 * u3 * u4 + 25 * u4 * u4 + 11 * u3 * u5 - 19 * u4 * u5 + 4 * u5 * u5);
-    // float WENO_beta2 = 0.3333333333f * (4 * u2 * u2 - 13 * u2 * u3 + 13 * u3 * u3 + 5 * u2 * u4 - 13 * u3 * u4 + 4 * u4 * u4);
-    // float WENO_beta3 = 0.3333333333f * (4 * u1 * u1 - 19 * u1 * u2 + 25 * u2 * u2 + 11 * u1 * u3 - 31 * u2 * u3 + 10 * u3 * u3);
-
-    // float epsilon = 1e-6;
-
-    // float WENO_alpha1 = d1 / ((WENO_beta1 + epsilon) * (WENO_beta1 + epsilon));
-    // float WENO_alpha2 = d2 / ((WENO_beta2 + epsilon) * (WENO_beta2 + epsilon));
-    // float WENO_alpha3 = d3 / ((WENO_beta3 + epsilon) * (WENO_beta3 + epsilon));
-
-    // // nonlinear weights
-    // float w1 = WENO_alpha1 / (WENO_alpha1 + WENO_alpha2 + WENO_alpha3);
-    // float w2 = WENO_alpha2 / (WENO_alpha1 + WENO_alpha2 + WENO_alpha3);
-    // float w3 = WENO_alpha3 / (WENO_alpha1 + WENO_alpha2 + WENO_alpha3);
+    // nonlinear weights
+    float total_weights = 1.0f / (WENO_beta1 + WENO_beta2 + WENO_beta3);
 
     // WENO interpolation
-    // return w1 * v1 + w2 * v2 + w3 * v3;
-    return d1 * v1 + d2 * v2 + d3 * v3;
+    return (WENO_beta1 * total_weights) * (0.375f * u3 + 0.75f * u4 - 0.125f * u5) + (WENO_beta2 * total_weights) * (-0.125f * u2 + 0.75f * u3 + 0.375f * u4) + (WENO_beta3 * total_weights) * (0.375f * u1 - 1.25f * u2 + 1.875f * u3);
 }
 
 // Calculate flux
