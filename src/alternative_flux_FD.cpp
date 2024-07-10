@@ -459,7 +459,6 @@ void cal_du_x(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *CJM, FLOAT *u,
 
     long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
     float jac;
-    float hu[7][9];
 
     CALCULATE3D(i, j, k, HALO, _nx, HALO, _ny, HALO, _nz)
 
@@ -475,6 +474,7 @@ void cal_du_x(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *CJM, FLOAT *u,
 
     if (k >= _nz - 3 && k < _nz)
     {
+        float hu[7][9];
         // ! Unable to satisfy the stencil of high-order terms, 3 layers near the free surface need to be recalculated
         for (int n = 0; n < 7; n++)
         {
@@ -533,7 +533,6 @@ void cal_du_y(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *CJM, FLOAT *u,
 
     long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
     float jac;
-    float hu[7][9];
 
     CALCULATE3D(i, j, k, HALO, _nx, HALO, _ny, HALO, _nz)
 
@@ -549,6 +548,7 @@ void cal_du_y(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *CJM, FLOAT *u,
 
     if (k >= _nz - 3 && k < _nz)
     {
+        float hu[7][9];
         // ! Unable to satisfy the stencil of high-order terms, 3 layers near the free surface need to be recalculated
         for (int n = 0; n < 7; n++)
         {
@@ -607,7 +607,6 @@ void cal_du_z(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *CJM, FLOAT *u,
 
     long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
     float jac;
-    float hu[7][9];
 
     CALCULATE3D(i, j, k, HALO, _nx, HALO, _ny, HALO, _nz)
 
@@ -623,6 +622,7 @@ void cal_du_z(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *CJM, FLOAT *u,
 
     if (k >= _nz - 3 && k < _nz)
     {
+        float hu[7][9];
         // ! Unable to satisfy the stencil of high-order terms, 3 layers near the free surface need to be recalculated
         for (int n = 0; n < 7; n++)
         {
