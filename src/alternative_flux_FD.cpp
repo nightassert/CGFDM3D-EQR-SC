@@ -72,9 +72,13 @@ float WENO5_JS(float u1, float u2, float u3, float u4, float u5)
 __DEVICE__
 float WENO5_Z(float u1, float u2, float u3, float u4, float u5)
 {
-    float WENO_beta1 = 13.0f / 12.0f * (u3 - 2 * u4 + u5) * (u3 - 2 * u4 + u5) + 1.0f / 4.0f * (3 * u3 - 4 * u4 + u5) * (3 * u3 - 4 * u4 + u5);
-    float WENO_beta2 = 13.0f / 12.0f * (u2 - 2 * u3 + u4) * (u2 - 2 * u3 + u4) + 1.0f / 4.0f * (u2 - u4) * (u2 - u4);
-    float WENO_beta3 = 13.0f / 12.0f * (u1 - 2 * u2 + u3) * (u1 - 2 * u2 + u3) + 1.0f / 4.0f * (u1 - 4 * u2 + 3 * u3) * (u1 - 4 * u2 + 3 * u3);
+    // float WENO_beta1 = 13.0f / 12.0f * (u3 - 2 * u4 + u5) * (u3 - 2 * u4 + u5) + 1.0f / 4.0f * (3 * u3 - 4 * u4 + u5) * (3 * u3 - 4 * u4 + u5);
+    // float WENO_beta2 = 13.0f / 12.0f * (u2 - 2 * u3 + u4) * (u2 - 2 * u3 + u4) + 1.0f / 4.0f * (u2 - u4) * (u2 - u4);
+    // float WENO_beta3 = 13.0f / 12.0f * (u1 - 2 * u2 + u3) * (u1 - 2 * u2 + u3) + 1.0f / 4.0f * (u1 - 4 * u2 + 3 * u3) * (u1 - 4 * u2 + 3 * u3);
+
+    float WENO_beta1 = 0.3333333333f * (10 * u3 * u3 - 31 * u3 * u4 + 25 * u4 * u4 + 11 * u3 * u5 - 19 * u4 * u5 + 4 * u5 * u5);
+    float WENO_beta2 = 0.3333333333f * (4 * u2 * u2 - 13 * u2 * u3 + 13 * u3 * u3 + 5 * u2 * u4 - 13 * u3 * u4 + 4 * u4 * u4);
+    float WENO_beta3 = 0.3333333333f * (4 * u1 * u1 - 19 * u1 * u2 + 25 * u2 * u2 + 11 * u1 * u3 - 31 * u2 * u3 + 10 * u3 * u3);
 
     float tao5 = abs(WENO_beta1 - WENO_beta3);
     WENO_beta1 = tao5 / (WENO_beta1 + 1.0e-12f);
