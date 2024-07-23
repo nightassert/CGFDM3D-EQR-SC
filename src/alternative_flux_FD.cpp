@@ -131,9 +131,9 @@ void wave_deriv_alternative_flux_FD_x(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W,
     float lambda;
     float buoyancy;
 
-    float xi_x_J_h;
-    float xi_y_J_h;
-    float xi_z_J_h;
+    float nx;
+    float ny;
+    float nz;
     float jac;
 
     long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
@@ -161,9 +161,9 @@ void wave_deriv_alternative_flux_FD_x(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W,
     idx_p2 = INDEX(i + 2, j, k);
     idx_p3 = INDEX(i + 3, j, k);
 
-    xi_x_J_h = CJM[idx * CJMSIZE + 0];
-    xi_y_J_h = CJM[idx * CJMSIZE + 1];
-    xi_z_J_h = CJM[idx * CJMSIZE + 2];
+    nx = CJM[idx * CJMSIZE + 0];
+    ny = CJM[idx * CJMSIZE + 1];
+    nz = CJM[idx * CJMSIZE + 2];
     jac = 1.0 / CJM[idx * CJMSIZE + 9];
 
     mu = CJM[idx * CJMSIZE + 10];
@@ -179,25 +179,25 @@ void wave_deriv_alternative_flux_FD_x(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W,
 
 #ifdef LF
     // Riemann solver: Lax-Friedrichs
-    fu_ip12n[0] = -(xi_x_J_h * (lambda * u_ip12n[4] + lambda * u_ip12n[5] + u_ip12n[3] * (lambda + 2 * mu)) + mu * xi_y_J_h * u_ip12n[8] + mu * xi_z_J_h * u_ip12n[7]);
-    fu_ip12n[1] = -(xi_y_J_h * (lambda * u_ip12n[3] + lambda * u_ip12n[5] + u_ip12n[4] * (lambda + 2 * mu)) + mu * xi_x_J_h * u_ip12n[8] + mu * xi_z_J_h * u_ip12n[6]);
-    fu_ip12n[2] = -(xi_z_J_h * (lambda * u_ip12n[3] + lambda * u_ip12n[4] + u_ip12n[5] * (lambda + 2 * mu)) + mu * xi_x_J_h * u_ip12n[7] + mu * xi_y_J_h * u_ip12n[6]);
-    fu_ip12n[3] = -((xi_x_J_h * u_ip12n[0]) * buoyancy);
-    fu_ip12n[4] = -((xi_y_J_h * u_ip12n[1]) * buoyancy);
-    fu_ip12n[5] = -((xi_z_J_h * u_ip12n[2]) * buoyancy);
-    fu_ip12n[6] = -((xi_y_J_h * u_ip12n[2]) * buoyancy + (xi_z_J_h * u_ip12n[1]) * buoyancy);
-    fu_ip12n[7] = -((xi_x_J_h * u_ip12n[2]) * buoyancy + (xi_z_J_h * u_ip12n[0]) * buoyancy);
-    fu_ip12n[8] = -((xi_x_J_h * u_ip12n[1]) * buoyancy + (xi_y_J_h * u_ip12n[0]) * buoyancy);
+    fu_ip12n[0] = -(nx * (lambda * u_ip12n[4] + lambda * u_ip12n[5] + u_ip12n[3] * (lambda + 2 * mu)) + mu * ny * u_ip12n[8] + mu * nz * u_ip12n[7]);
+    fu_ip12n[1] = -(ny * (lambda * u_ip12n[3] + lambda * u_ip12n[5] + u_ip12n[4] * (lambda + 2 * mu)) + mu * nx * u_ip12n[8] + mu * nz * u_ip12n[6]);
+    fu_ip12n[2] = -(nz * (lambda * u_ip12n[3] + lambda * u_ip12n[4] + u_ip12n[5] * (lambda + 2 * mu)) + mu * nx * u_ip12n[7] + mu * ny * u_ip12n[6]);
+    fu_ip12n[3] = -((nx * u_ip12n[0]) * buoyancy);
+    fu_ip12n[4] = -((ny * u_ip12n[1]) * buoyancy);
+    fu_ip12n[5] = -((nz * u_ip12n[2]) * buoyancy);
+    fu_ip12n[6] = -((ny * u_ip12n[2]) * buoyancy + (nz * u_ip12n[1]) * buoyancy);
+    fu_ip12n[7] = -((nx * u_ip12n[2]) * buoyancy + (nz * u_ip12n[0]) * buoyancy);
+    fu_ip12n[8] = -((nx * u_ip12n[1]) * buoyancy + (ny * u_ip12n[0]) * buoyancy);
 
-    fu_ip12p[0] = -(xi_x_J_h * (lambda * u_ip12p[4] + lambda * u_ip12p[5] + u_ip12p[3] * (lambda + 2 * mu)) + mu * xi_y_J_h * u_ip12p[8] + mu * xi_z_J_h * u_ip12p[7]);
-    fu_ip12p[1] = -(xi_y_J_h * (lambda * u_ip12p[3] + lambda * u_ip12p[5] + u_ip12p[4] * (lambda + 2 * mu)) + mu * xi_x_J_h * u_ip12p[8] + mu * xi_z_J_h * u_ip12p[6]);
-    fu_ip12p[2] = -(xi_z_J_h * (lambda * u_ip12p[3] + lambda * u_ip12p[4] + u_ip12p[5] * (lambda + 2 * mu)) + mu * xi_x_J_h * u_ip12p[7] + mu * xi_y_J_h * u_ip12p[6]);
-    fu_ip12p[3] = -((xi_x_J_h * u_ip12p[0]) * buoyancy);
-    fu_ip12p[4] = -((xi_y_J_h * u_ip12p[1]) * buoyancy);
-    fu_ip12p[5] = -((xi_z_J_h * u_ip12p[2]) * buoyancy);
-    fu_ip12p[6] = -((xi_y_J_h * u_ip12p[2]) * buoyancy + (xi_z_J_h * u_ip12p[1]) * buoyancy);
-    fu_ip12p[7] = -((xi_x_J_h * u_ip12p[2]) * buoyancy + (xi_z_J_h * u_ip12p[0]) * buoyancy);
-    fu_ip12p[8] = -((xi_x_J_h * u_ip12p[1]) * buoyancy + (xi_y_J_h * u_ip12p[0]) * buoyancy);
+    fu_ip12p[0] = -(nx * (lambda * u_ip12p[4] + lambda * u_ip12p[5] + u_ip12p[3] * (lambda + 2 * mu)) + mu * ny * u_ip12p[8] + mu * nz * u_ip12p[7]);
+    fu_ip12p[1] = -(ny * (lambda * u_ip12p[3] + lambda * u_ip12p[5] + u_ip12p[4] * (lambda + 2 * mu)) + mu * nx * u_ip12p[8] + mu * nz * u_ip12p[6]);
+    fu_ip12p[2] = -(nz * (lambda * u_ip12p[3] + lambda * u_ip12p[4] + u_ip12p[5] * (lambda + 2 * mu)) + mu * nx * u_ip12p[7] + mu * ny * u_ip12p[6]);
+    fu_ip12p[3] = -((nx * u_ip12p[0]) * buoyancy);
+    fu_ip12p[4] = -((ny * u_ip12p[1]) * buoyancy);
+    fu_ip12p[5] = -((nz * u_ip12p[2]) * buoyancy);
+    fu_ip12p[6] = -((ny * u_ip12p[2]) * buoyancy + (nz * u_ip12p[1]) * buoyancy);
+    fu_ip12p[7] = -((nx * u_ip12p[2]) * buoyancy + (nz * u_ip12p[0]) * buoyancy);
+    fu_ip12p[8] = -((nx * u_ip12p[1]) * buoyancy + (ny * u_ip12p[0]) * buoyancy);
 
     for (int n = 0; n < 9; n++)
     {
@@ -245,9 +245,9 @@ void wave_deriv_alternative_flux_FD_y(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W,
     float lambda;
     float buoyancy;
 
-    float et_x_J_h;
-    float et_y_J_h;
-    float et_z_J_h;
+    float nx;
+    float ny;
+    float nz;
     float jac;
 
     long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
@@ -275,9 +275,9 @@ void wave_deriv_alternative_flux_FD_y(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W,
     idx_p2 = INDEX(i, j + 2, k);
     idx_p3 = INDEX(i, j + 3, k);
 
-    et_x_J_h = CJM[idx * CJMSIZE + 3];
-    et_y_J_h = CJM[idx * CJMSIZE + 4];
-    et_z_J_h = CJM[idx * CJMSIZE + 5];
+    nx = CJM[idx * CJMSIZE + 3];
+    ny = CJM[idx * CJMSIZE + 4];
+    nz = CJM[idx * CJMSIZE + 5];
     jac = 1.0 / CJM[idx * CJMSIZE + 9];
 
     mu = CJM[idx * CJMSIZE + 10];
@@ -293,25 +293,25 @@ void wave_deriv_alternative_flux_FD_y(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W,
 
 #ifdef LF
     // Riemann solver: Lax-Friedrichs
-    fu_ip12n[0] = -(et_x_J_h * (lambda * u_ip12n[4] + lambda * u_ip12n[5] + u_ip12n[3] * (lambda + 2 * mu)) + mu * et_y_J_h * u_ip12n[8] + mu * et_z_J_h * u_ip12n[7]);
-    fu_ip12n[1] = -(et_y_J_h * (lambda * u_ip12n[3] + lambda * u_ip12n[5] + u_ip12n[4] * (lambda + 2 * mu)) + mu * et_x_J_h * u_ip12n[8] + mu * et_z_J_h * u_ip12n[6]);
-    fu_ip12n[2] = -(et_z_J_h * (lambda * u_ip12n[3] + lambda * u_ip12n[4] + u_ip12n[5] * (lambda + 2 * mu)) + mu * et_x_J_h * u_ip12n[7] + mu * et_y_J_h * u_ip12n[6]);
-    fu_ip12n[3] = -((et_x_J_h * u_ip12n[0]) * buoyancy);
-    fu_ip12n[4] = -((et_y_J_h * u_ip12n[1]) * buoyancy);
-    fu_ip12n[5] = -((et_z_J_h * u_ip12n[2]) * buoyancy);
-    fu_ip12n[6] = -((et_y_J_h * u_ip12n[2]) * buoyancy + (et_z_J_h * u_ip12n[1]) * buoyancy);
-    fu_ip12n[7] = -((et_x_J_h * u_ip12n[2]) * buoyancy + (et_z_J_h * u_ip12n[0]) * buoyancy);
-    fu_ip12n[8] = -((et_x_J_h * u_ip12n[1]) * buoyancy + (et_y_J_h * u_ip12n[0]) * buoyancy);
+    fu_ip12n[0] = -(nx * (lambda * u_ip12n[4] + lambda * u_ip12n[5] + u_ip12n[3] * (lambda + 2 * mu)) + mu * ny * u_ip12n[8] + mu * nz * u_ip12n[7]);
+    fu_ip12n[1] = -(ny * (lambda * u_ip12n[3] + lambda * u_ip12n[5] + u_ip12n[4] * (lambda + 2 * mu)) + mu * nx * u_ip12n[8] + mu * nz * u_ip12n[6]);
+    fu_ip12n[2] = -(nz * (lambda * u_ip12n[3] + lambda * u_ip12n[4] + u_ip12n[5] * (lambda + 2 * mu)) + mu * nx * u_ip12n[7] + mu * ny * u_ip12n[6]);
+    fu_ip12n[3] = -((nx * u_ip12n[0]) * buoyancy);
+    fu_ip12n[4] = -((ny * u_ip12n[1]) * buoyancy);
+    fu_ip12n[5] = -((nz * u_ip12n[2]) * buoyancy);
+    fu_ip12n[6] = -((ny * u_ip12n[2]) * buoyancy + (nz * u_ip12n[1]) * buoyancy);
+    fu_ip12n[7] = -((nx * u_ip12n[2]) * buoyancy + (nz * u_ip12n[0]) * buoyancy);
+    fu_ip12n[8] = -((nx * u_ip12n[1]) * buoyancy + (ny * u_ip12n[0]) * buoyancy);
 
-    fu_ip12p[0] = -(et_x_J_h * (lambda * u_ip12p[4] + lambda * u_ip12p[5] + u_ip12p[3] * (lambda + 2 * mu)) + mu * et_y_J_h * u_ip12p[8] + mu * et_z_J_h * u_ip12p[7]);
-    fu_ip12p[1] = -(et_y_J_h * (lambda * u_ip12p[3] + lambda * u_ip12p[5] + u_ip12p[4] * (lambda + 2 * mu)) + mu * et_x_J_h * u_ip12p[8] + mu * et_z_J_h * u_ip12p[6]);
-    fu_ip12p[2] = -(et_z_J_h * (lambda * u_ip12p[3] + lambda * u_ip12p[4] + u_ip12p[5] * (lambda + 2 * mu)) + mu * et_x_J_h * u_ip12p[7] + mu * et_y_J_h * u_ip12p[6]);
-    fu_ip12p[3] = -((et_x_J_h * u_ip12p[0]) * buoyancy);
-    fu_ip12p[4] = -((et_y_J_h * u_ip12p[1]) * buoyancy);
-    fu_ip12p[5] = -((et_z_J_h * u_ip12p[2]) * buoyancy);
-    fu_ip12p[6] = -((et_y_J_h * u_ip12p[2]) * buoyancy + (et_z_J_h * u_ip12p[1]) * buoyancy);
-    fu_ip12p[7] = -((et_x_J_h * u_ip12p[2]) * buoyancy + (et_z_J_h * u_ip12p[0]) * buoyancy);
-    fu_ip12p[8] = -((et_x_J_h * u_ip12p[1]) * buoyancy + (et_y_J_h * u_ip12p[0]) * buoyancy);
+    fu_ip12p[0] = -(nx * (lambda * u_ip12p[4] + lambda * u_ip12p[5] + u_ip12p[3] * (lambda + 2 * mu)) + mu * ny * u_ip12p[8] + mu * nz * u_ip12p[7]);
+    fu_ip12p[1] = -(ny * (lambda * u_ip12p[3] + lambda * u_ip12p[5] + u_ip12p[4] * (lambda + 2 * mu)) + mu * nx * u_ip12p[8] + mu * nz * u_ip12p[6]);
+    fu_ip12p[2] = -(nz * (lambda * u_ip12p[3] + lambda * u_ip12p[4] + u_ip12p[5] * (lambda + 2 * mu)) + mu * nx * u_ip12p[7] + mu * ny * u_ip12p[6]);
+    fu_ip12p[3] = -((nx * u_ip12p[0]) * buoyancy);
+    fu_ip12p[4] = -((ny * u_ip12p[1]) * buoyancy);
+    fu_ip12p[5] = -((nz * u_ip12p[2]) * buoyancy);
+    fu_ip12p[6] = -((ny * u_ip12p[2]) * buoyancy + (nz * u_ip12p[1]) * buoyancy);
+    fu_ip12p[7] = -((nx * u_ip12p[2]) * buoyancy + (nz * u_ip12p[0]) * buoyancy);
+    fu_ip12p[8] = -((nx * u_ip12p[1]) * buoyancy + (ny * u_ip12p[0]) * buoyancy);
 
     for (int n = 0; n < 9; n++)
     {
@@ -358,9 +358,9 @@ void wave_deriv_alternative_flux_FD_z(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W,
     float lambda;
     float buoyancy;
 
-    float zt_x_J_h;
-    float zt_y_J_h;
-    float zt_z_J_h;
+    float nx;
+    float ny;
+    float nz;
     float jac;
 
     long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
@@ -388,9 +388,9 @@ void wave_deriv_alternative_flux_FD_z(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W,
     idx_p2 = INDEX(i, j, k + 2);
     idx_p3 = INDEX(i, j, k + 3);
 
-    zt_x_J_h = CJM[idx * CJMSIZE + 6];
-    zt_y_J_h = CJM[idx * CJMSIZE + 7];
-    zt_z_J_h = CJM[idx * CJMSIZE + 8];
+    nx = CJM[idx * CJMSIZE + 6];
+    ny = CJM[idx * CJMSIZE + 7];
+    nz = CJM[idx * CJMSIZE + 8];
     jac = 1.0 / CJM[idx * CJMSIZE + 9];
 
     mu = CJM[idx * CJMSIZE + 10];
@@ -406,25 +406,25 @@ void wave_deriv_alternative_flux_FD_z(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W,
 
 #ifdef LF
     // Riemann solver: Lax-Friedrichs
-    fu_ip12n[0] = -(zt_x_J_h * (lambda * u_ip12n[4] + lambda * u_ip12n[5] + u_ip12n[3] * (lambda + 2 * mu)) + mu * zt_y_J_h * u_ip12n[8] + mu * zt_z_J_h * u_ip12n[7]);
-    fu_ip12n[1] = -(zt_y_J_h * (lambda * u_ip12n[3] + lambda * u_ip12n[5] + u_ip12n[4] * (lambda + 2 * mu)) + mu * zt_x_J_h * u_ip12n[8] + mu * zt_z_J_h * u_ip12n[6]);
-    fu_ip12n[2] = -(zt_z_J_h * (lambda * u_ip12n[3] + lambda * u_ip12n[4] + u_ip12n[5] * (lambda + 2 * mu)) + mu * zt_x_J_h * u_ip12n[7] + mu * zt_y_J_h * u_ip12n[6]);
-    fu_ip12n[3] = -((zt_x_J_h * u_ip12n[0]) * buoyancy);
-    fu_ip12n[4] = -((zt_y_J_h * u_ip12n[1]) * buoyancy);
-    fu_ip12n[5] = -((zt_z_J_h * u_ip12n[2]) * buoyancy);
-    fu_ip12n[6] = -((zt_y_J_h * u_ip12n[2]) * buoyancy + (zt_z_J_h * u_ip12n[1]) * buoyancy);
-    fu_ip12n[7] = -((zt_x_J_h * u_ip12n[2]) * buoyancy + (zt_z_J_h * u_ip12n[0]) * buoyancy);
-    fu_ip12n[8] = -((zt_x_J_h * u_ip12n[1]) * buoyancy + (zt_y_J_h * u_ip12n[0]) * buoyancy);
+    fu_ip12n[0] = -(nx * (lambda * u_ip12n[4] + lambda * u_ip12n[5] + u_ip12n[3] * (lambda + 2 * mu)) + mu * ny * u_ip12n[8] + mu * nz * u_ip12n[7]);
+    fu_ip12n[1] = -(ny * (lambda * u_ip12n[3] + lambda * u_ip12n[5] + u_ip12n[4] * (lambda + 2 * mu)) + mu * nx * u_ip12n[8] + mu * nz * u_ip12n[6]);
+    fu_ip12n[2] = -(nz * (lambda * u_ip12n[3] + lambda * u_ip12n[4] + u_ip12n[5] * (lambda + 2 * mu)) + mu * nx * u_ip12n[7] + mu * ny * u_ip12n[6]);
+    fu_ip12n[3] = -((nx * u_ip12n[0]) * buoyancy);
+    fu_ip12n[4] = -((ny * u_ip12n[1]) * buoyancy);
+    fu_ip12n[5] = -((nz * u_ip12n[2]) * buoyancy);
+    fu_ip12n[6] = -((ny * u_ip12n[2]) * buoyancy + (nz * u_ip12n[1]) * buoyancy);
+    fu_ip12n[7] = -((nx * u_ip12n[2]) * buoyancy + (nz * u_ip12n[0]) * buoyancy);
+    fu_ip12n[8] = -((nx * u_ip12n[1]) * buoyancy + (ny * u_ip12n[0]) * buoyancy);
 
-    fu_ip12p[0] = -(zt_x_J_h * (lambda * u_ip12p[4] + lambda * u_ip12p[5] + u_ip12p[3] * (lambda + 2 * mu)) + mu * zt_y_J_h * u_ip12p[8] + mu * zt_z_J_h * u_ip12p[7]);
-    fu_ip12p[1] = -(zt_y_J_h * (lambda * u_ip12p[3] + lambda * u_ip12p[5] + u_ip12p[4] * (lambda + 2 * mu)) + mu * zt_x_J_h * u_ip12p[8] + mu * zt_z_J_h * u_ip12p[6]);
-    fu_ip12p[2] = -(zt_z_J_h * (lambda * u_ip12p[3] + lambda * u_ip12p[4] + u_ip12p[5] * (lambda + 2 * mu)) + mu * zt_x_J_h * u_ip12p[7] + mu * zt_y_J_h * u_ip12p[6]);
-    fu_ip12p[3] = -((zt_x_J_h * u_ip12p[0]) * buoyancy);
-    fu_ip12p[4] = -((zt_y_J_h * u_ip12p[1]) * buoyancy);
-    fu_ip12p[5] = -((zt_z_J_h * u_ip12p[2]) * buoyancy);
-    fu_ip12p[6] = -((zt_y_J_h * u_ip12p[2]) * buoyancy + (zt_z_J_h * u_ip12p[1]) * buoyancy);
-    fu_ip12p[7] = -((zt_x_J_h * u_ip12p[2]) * buoyancy + (zt_z_J_h * u_ip12p[0]) * buoyancy);
-    fu_ip12p[8] = -((zt_x_J_h * u_ip12p[1]) * buoyancy + (zt_y_J_h * u_ip12p[0]) * buoyancy);
+    fu_ip12p[0] = -(nx * (lambda * u_ip12p[4] + lambda * u_ip12p[5] + u_ip12p[3] * (lambda + 2 * mu)) + mu * ny * u_ip12p[8] + mu * nz * u_ip12p[7]);
+    fu_ip12p[1] = -(ny * (lambda * u_ip12p[3] + lambda * u_ip12p[5] + u_ip12p[4] * (lambda + 2 * mu)) + mu * nx * u_ip12p[8] + mu * nz * u_ip12p[6]);
+    fu_ip12p[2] = -(nz * (lambda * u_ip12p[3] + lambda * u_ip12p[4] + u_ip12p[5] * (lambda + 2 * mu)) + mu * nx * u_ip12p[7] + mu * ny * u_ip12p[6]);
+    fu_ip12p[3] = -((nx * u_ip12p[0]) * buoyancy);
+    fu_ip12p[4] = -((ny * u_ip12p[1]) * buoyancy);
+    fu_ip12p[5] = -((nz * u_ip12p[2]) * buoyancy);
+    fu_ip12p[6] = -((ny * u_ip12p[2]) * buoyancy + (nz * u_ip12p[1]) * buoyancy);
+    fu_ip12p[7] = -((nx * u_ip12p[2]) * buoyancy + (nz * u_ip12p[0]) * buoyancy);
+    fu_ip12p[8] = -((nx * u_ip12p[1]) * buoyancy + (ny * u_ip12p[0]) * buoyancy);
 
     for (int n = 0; n < 9; n++)
     {
