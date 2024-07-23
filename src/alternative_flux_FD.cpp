@@ -425,6 +425,497 @@ void wave_deriv_alternative_flux_FD_z(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W,
 }
 
 __GLOBAL__
+void wave_deriv_alternative_flux_FD_char_x(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W, FLOAT *CJM,
+#ifdef PML
+                                           PML_BETA pml_beta,
+#endif
+                                           int _nx_, int _ny_, int _nz_, float rDH, float DT
+#ifdef LF
+                                           ,
+                                           float alpha
+#endif
+)
+{
+
+    int _nx = _nx_ - HALO;
+    int _ny = _ny_ - HALO;
+    int _nz = _nz_ - HALO;
+
+#ifdef GPU_CUDA
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    int j = threadIdx.y + blockIdx.y * blockDim.y;
+    int k = threadIdx.z + blockIdx.z * blockDim.z;
+#else
+    int i = 0;
+    int j = 0;
+    int k = 0;
+#endif
+
+#ifdef PML
+    float pml_beta_x;
+    float pml_beta_y;
+    float pml_beta_z;
+#endif
+
+    float mu;
+    float lambda;
+    float buoyancy;
+    float rho;
+
+    float nx;
+    float ny;
+    float nz;
+    float jac;
+    float sum_square;
+
+    long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
+
+    float u_ip12n[9], u_ip12p[9];
+
+    float u[6][9], v[6][9], v_ip12n[9], v_ip12p[9];
+
+#ifdef LF
+    float fu_ip12n[9], fu_ip12p[9];
+#endif
+
+    // * X direction
+    CALCULATE3D(i, j, k, HALO - 1, HALO + 3, HALO, _ny, HALO, _nz)
+
+#ifdef PML
+    pml_beta_x = pml_beta.x[i];
+    pml_beta_y = pml_beta.y[j];
+    pml_beta_z = pml_beta.z[k];
+#endif
+
+    idx_n3 = INDEX(i - 3, j, k);
+    idx_n2 = INDEX(i - 2, j, k);
+    idx_n1 = INDEX(i - 1, j, k);
+    idx = INDEX(i, j, k);
+    idx_p1 = INDEX(i + 1, j, k);
+    idx_p2 = INDEX(i + 2, j, k);
+    idx_p3 = INDEX(i + 3, j, k);
+
+    nx = CJM[idx * CJMSIZE + 0] + 1e-6;
+    ny = CJM[idx * CJMSIZE + 1] + 1e-6;
+    nz = CJM[idx * CJMSIZE + 2] + 1e-6;
+    sum_square = nx * nx + ny * ny + nz * nz;
+    jac = 1.0 / CJM[idx * CJMSIZE + 9];
+
+    mu = CJM[idx * CJMSIZE + 10];
+    lambda = CJM[idx * CJMSIZE + 11];
+    buoyancy = CJM[idx * CJMSIZE + 12];
+    rho = 1.0 / buoyancy;
+
+    // Store original variables
+    for (int n = 0; n < 6; n++)
+    {
+        u[n][0] = W[INDEX(i - 2 + n, j, k) * WSIZE + 0];
+        u[n][1] = W[INDEX(i - 2 + n, j, k) * WSIZE + 1];
+        u[n][2] = W[INDEX(i - 2 + n, j, k) * WSIZE + 2];
+        u[n][3] = W[INDEX(i - 2 + n, j, k) * WSIZE + 3];
+        u[n][4] = W[INDEX(i - 2 + n, j, k) * WSIZE + 4];
+        u[n][5] = W[INDEX(i - 2 + n, j, k) * WSIZE + 5];
+        u[n][6] = W[INDEX(i - 2 + n, j, k) * WSIZE + 6];
+        u[n][7] = W[INDEX(i - 2 + n, j, k) * WSIZE + 7];
+        u[n][8] = W[INDEX(i - 2 + n, j, k) * WSIZE + 8];
+    }
+
+    // Transform to characteristic domain
+    for (int n = 0; n < 6; n++)
+    {
+        v[n][0] = -(lambda * nx * (ny * ny * ny) * u[n][7] - 2 * mu * (nx * nx * nx * nx) * u[n][6] - lambda * (nx * nx * nx * nx) * u[n][6] + lambda * (nx * nx * nx) * ny * u[n][7] + lambda * nx * (nz * nz * nz) * u[n][8] + lambda * (nx * nx * nx) * nz * u[n][8] + 2 * lambda * ny * (nz * nz * nz) * u[n][3] + 2 * lambda * (ny * ny * ny) * nz * u[n][3] + 4 * lambda * ny * (nz * nz * nz) * u[n][4] + 4 * lambda * (ny * ny * ny) * nz * u[n][5] + 2 * mu * nx * (ny * ny * ny) * u[n][7] + 2 * mu * (nx * nx * nx) * ny * u[n][7] + 2 * mu * nx * (nz * nz * nz) * u[n][8] + 2 * mu * (nx * nx * nx) * nz * u[n][8] + 4 * mu * ny * (nz * nz * nz) * u[n][4] + 4 * mu * (ny * ny * ny) * nz * u[n][5] - lambda * (nx * nx) * (ny * ny) * u[n][6] - lambda * (nx * nx) * (nz * nz) * u[n][6] - 4 * lambda * (ny * ny) * (nz * nz) * u[n][6] - 2 * mu * (nx * nx) * (ny * ny) * u[n][6] - 2 * mu * (nx * nx) * (nz * nz) * u[n][6] - 4 * mu * (ny * ny) * (nz * nz) * u[n][6] - 2 * lambda * (nx * nx) * ny * nz * u[n][3] + 4 * lambda * (nx * nx) * ny * nz * u[n][4] + 4 * lambda * (nx * nx) * ny * nz * u[n][5] - 3 * lambda * nx * ny * (nz * nz) * u[n][7] - 3 * lambda * nx * (ny * ny) * nz * u[n][8] - 4 * mu * (nx * nx) * ny * nz * u[n][3] + 4 * mu * (nx * nx) * ny * nz * u[n][4] + 4 * mu * (nx * nx) * ny * nz * u[n][5] - 2 * mu * nx * ny * (nz * nz) * u[n][7] - 2 * mu * nx * (ny * ny) * nz * u[n][8]) / ((lambda + 2 * mu) * (sum_square * sum_square));
+        v[n][1] = -(lambda * nx * (ny * ny * ny) * u[n][6] - 2 * mu * (ny * ny * ny * ny) * u[n][7] - lambda * (ny * ny * ny * ny) * u[n][7] + lambda * (nx * nx * nx) * ny * u[n][6] + 4 * lambda * nx * (nz * nz * nz) * u[n][3] + 2 * lambda * nx * (nz * nz * nz) * u[n][4] + 2 * lambda * (nx * nx * nx) * nz * u[n][4] + 4 * lambda * (nx * nx * nx) * nz * u[n][5] + lambda * ny * (nz * nz * nz) * u[n][8] + lambda * (ny * ny * ny) * nz * u[n][8] + 2 * mu * nx * (ny * ny * ny) * u[n][6] + 2 * mu * (nx * nx * nx) * ny * u[n][6] + 4 * mu * nx * (nz * nz * nz) * u[n][3] + 4 * mu * (nx * nx * nx) * nz * u[n][5] + 2 * mu * ny * (nz * nz * nz) * u[n][8] + 2 * mu * (ny * ny * ny) * nz * u[n][8] - lambda * (nx * nx) * (ny * ny) * u[n][7] - 4 * lambda * (nx * nx) * (nz * nz) * u[n][7] - lambda * (ny * ny) * (nz * nz) * u[n][7] - 2 * mu * (nx * nx) * (ny * ny) * u[n][7] - 4 * mu * (nx * nx) * (nz * nz) * u[n][7] - 2 * mu * (ny * ny) * (nz * nz) * u[n][7] + 4 * lambda * nx * (ny * ny) * nz * u[n][3] - 2 * lambda * nx * (ny * ny) * nz * u[n][4] + 4 * lambda * nx * (ny * ny) * nz * u[n][5] - 3 * lambda * nx * ny * (nz * nz) * u[n][6] - 3 * lambda * (nx * nx) * ny * nz * u[n][8] + 4 * mu * nx * (ny * ny) * nz * u[n][3] - 4 * mu * nx * (ny * ny) * nz * u[n][4] + 4 * mu * nx * (ny * ny) * nz * u[n][5] - 2 * mu * nx * ny * (nz * nz) * u[n][6] - 2 * mu * (nx * nx) * ny * nz * u[n][8]) / ((lambda + 2 * mu) * (sum_square * sum_square));
+        v[n][2] = -(4 * lambda * nx * (ny * ny * ny) * u[n][3] - 2 * mu * (nz * nz * nz * nz) * u[n][8] - lambda * (nz * nz * nz * nz) * u[n][8] + 4 * lambda * (nx * nx * nx) * ny * u[n][4] + 2 * lambda * nx * (ny * ny * ny) * u[n][5] + 2 * lambda * (nx * nx * nx) * ny * u[n][5] + lambda * nx * (nz * nz * nz) * u[n][6] + lambda * (nx * nx * nx) * nz * u[n][6] + lambda * ny * (nz * nz * nz) * u[n][7] + lambda * (ny * ny * ny) * nz * u[n][7] + 4 * mu * nx * (ny * ny * ny) * u[n][3] + 4 * mu * (nx * nx * nx) * ny * u[n][4] + 2 * mu * nx * (nz * nz * nz) * u[n][6] + 2 * mu * (nx * nx * nx) * nz * u[n][6] + 2 * mu * ny * (nz * nz * nz) * u[n][7] + 2 * mu * (ny * ny * ny) * nz * u[n][7] - 4 * lambda * (nx * nx) * (ny * ny) * u[n][8] - lambda * (nx * nx) * (nz * nz) * u[n][8] - lambda * (ny * ny) * (nz * nz) * u[n][8] - 4 * mu * (nx * nx) * (ny * ny) * u[n][8] - 2 * mu * (nx * nx) * (nz * nz) * u[n][8] - 2 * mu * (ny * ny) * (nz * nz) * u[n][8] + 4 * lambda * nx * ny * (nz * nz) * u[n][3] + 4 * lambda * nx * ny * (nz * nz) * u[n][4] - 2 * lambda * nx * ny * (nz * nz) * u[n][5] - 3 * lambda * nx * (ny * ny) * nz * u[n][6] - 3 * lambda * (nx * nx) * ny * nz * u[n][7] + 4 * mu * nx * ny * (nz * nz) * u[n][3] + 4 * mu * nx * ny * (nz * nz) * u[n][4] - 4 * mu * nx * ny * (nz * nz) * u[n][5] - 2 * mu * nx * (ny * ny) * nz * u[n][6] - 2 * mu * (nx * nx) * ny * nz * u[n][7]) / ((lambda + 2 * mu) * (sum_square * sum_square));
+        v[n][3] = ((nx * nx * nx) * u[n][2] * sqrt(mu * rho * sum_square) + (nz * nz * nz) * u[n][0] * sqrt(mu * rho * sum_square) + nx * (ny * ny) * u[n][2] * sqrt(mu * rho * sum_square) - (nx * nx) * nz * u[n][0] * sqrt(mu * rho * sum_square) - nx * (nz * nz) * u[n][2] * sqrt(mu * rho * sum_square) + (ny * ny) * nz * u[n][0] * sqrt(mu * rho * sum_square) + mu * (nx * nx * nx * nx) * rho * u[n][7] + mu * (nz * nz * nz * nz) * rho * u[n][7] + mu * (nx * nx) * (ny * ny) * rho * u[n][7] - 2 * mu * (nx * nx) * (nz * nz) * rho * u[n][7] + mu * (ny * ny) * (nz * nz) * rho * u[n][7] - 2 * nx * ny * nz * u[n][1] * sqrt(mu * rho * sum_square) + mu * nx * (ny * ny * ny) * rho * u[n][6] + mu * (nx * nx * nx) * ny * rho * u[n][6] + 2 * mu * nx * (nz * nz * nz) * rho * u[n][3] - 2 * mu * (nx * nx * nx) * nz * rho * u[n][3] - 2 * mu * nx * (nz * nz * nz) * rho * u[n][5] + 2 * mu * (nx * nx * nx) * nz * rho * u[n][5] + mu * ny * (nz * nz * nz) * rho * u[n][8] + mu * (ny * ny * ny) * nz * rho * u[n][8] + 2 * mu * nx * (ny * ny) * nz * rho * u[n][3] - 4 * mu * nx * (ny * ny) * nz * rho * u[n][4] + 2 * mu * nx * (ny * ny) * nz * rho * u[n][5] - 3 * mu * nx * ny * (nz * nz) * rho * u[n][6] - 3 * mu * (nx * nx) * ny * nz * rho * u[n][8]) / (2 * mu * rho * (sum_square * sum_square));
+        v[n][4] = ((nx * nx * nx) * u[n][1] * sqrt(mu * rho * sum_square) + (ny * ny * ny) * u[n][0] * sqrt(mu * rho * sum_square) - (nx * nx) * ny * u[n][0] * sqrt(mu * rho * sum_square) - nx * (ny * ny) * u[n][1] * sqrt(mu * rho * sum_square) + nx * (nz * nz) * u[n][1] * sqrt(mu * rho * sum_square) + ny * (nz * nz) * u[n][0] * sqrt(mu * rho * sum_square) + mu * (nx * nx * nx * nx) * rho * u[n][8] + mu * (ny * ny * ny * ny) * rho * u[n][8] - 2 * mu * (nx * nx) * (ny * ny) * rho * u[n][8] + mu * (nx * nx) * (nz * nz) * rho * u[n][8] + mu * (ny * ny) * (nz * nz) * rho * u[n][8] - 2 * nx * ny * nz * u[n][2] * sqrt(mu * rho * sum_square) + 2 * mu * nx * (ny * ny * ny) * rho * u[n][3] - 2 * mu * (nx * nx * nx) * ny * rho * u[n][3] - 2 * mu * nx * (ny * ny * ny) * rho * u[n][4] + 2 * mu * (nx * nx * nx) * ny * rho * u[n][4] + mu * nx * (nz * nz * nz) * rho * u[n][6] + mu * (nx * nx * nx) * nz * rho * u[n][6] + mu * ny * (nz * nz * nz) * rho * u[n][7] + mu * (ny * ny * ny) * nz * rho * u[n][7] + 2 * mu * nx * ny * (nz * nz) * rho * u[n][3] + 2 * mu * nx * ny * (nz * nz) * rho * u[n][4] - 4 * mu * nx * ny * (nz * nz) * rho * u[n][5] - 3 * mu * nx * (ny * ny) * nz * rho * u[n][6] - 3 * mu * (nx * nx) * ny * nz * rho * u[n][7]) / (2 * mu * rho * (sum_square * sum_square));
+        v[n][5] = (rho * rho * (lambda + 2 * mu) * (lambda * (nx * nx * nx * nx) * ny * u[n][0] + lambda * nx * (ny * ny * ny * ny) * u[n][1] + 2 * mu * (nx * nx * nx * nx) * ny * u[n][0] + 2 * mu * nx * (ny * ny * ny * ny) * u[n][1] + lambda * (nx * nx) * (ny * ny * ny) * u[n][0] + lambda * (nx * nx * nx) * (ny * ny) * u[n][1] + 2 * mu * (nx * nx) * (ny * ny * ny) * u[n][0] + 2 * mu * (nx * nx * nx) * (ny * ny) * u[n][1] + lambda * nx * (ny * ny * ny) * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * (nx * nx * nx) * ny * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * nx * (ny * ny * ny) * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * (nx * nx * nx) * ny * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * nx * (ny * ny * ny) * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * (nx * nx * nx) * ny * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) + 2 * mu * (nx * nx * nx) * ny * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) + 2 * mu * nx * (ny * ny * ny) * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * (nx * nx) * ny * (nz * nz) * u[n][0] + lambda * nx * (ny * ny) * (nz * nz) * u[n][1] + 2 * mu * (nx * nx) * ny * (nz * nz) * u[n][0] + 2 * mu * nx * (ny * ny) * (nz * nz) * u[n][1] + 2 * mu * (nx * nx) * (ny * ny) * u[n][8] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * nx * ny * (nz * nz * nz) * u[n][2] + lambda * nx * (ny * ny * ny) * nz * u[n][2] + lambda * (nx * nx * nx) * ny * nz * u[n][2] + 2 * mu * nx * ny * (nz * nz * nz) * u[n][2] + 2 * mu * nx * (ny * ny * ny) * nz * u[n][2] + 2 * mu * (nx * nx * nx) * ny * nz * u[n][2] + lambda * nx * ny * (nz * nz) * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * nx * ny * (nz * nz) * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * nx * ny * (nz * nz) * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) + 2 * mu * nx * ny * (nz * nz) * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) + 2 * mu * nx * (ny * ny) * nz * u[n][6] * sqrt(rho * (lambda + 2 * mu) * sum_square) + 2 * mu * (nx * nx) * ny * nz * u[n][7] * sqrt(rho * (lambda + 2 * mu) * sum_square))) / ((rho * (lambda + 2 * mu) * sum_square) * (rho * (lambda + 2 * mu) * sum_square) * sqrt(rho * (lambda + 2 * mu) * sum_square));
+        v[n][6] = ((nx * nx) * nz * u[n][0] * sqrt(mu * rho * sum_square) - (nz * nz * nz) * u[n][0] * sqrt(mu * rho * sum_square) - nx * (ny * ny) * u[n][2] * sqrt(mu * rho * sum_square) - (nx * nx * nx) * u[n][2] * sqrt(mu * rho * sum_square) + nx * (nz * nz) * u[n][2] * sqrt(mu * rho * sum_square) - (ny * ny) * nz * u[n][0] * sqrt(mu * rho * sum_square) + mu * (nx * nx * nx * nx) * rho * u[n][7] + mu * (nz * nz * nz * nz) * rho * u[n][7] + mu * (nx * nx) * (ny * ny) * rho * u[n][7] - 2 * mu * (nx * nx) * (nz * nz) * rho * u[n][7] + mu * (ny * ny) * (nz * nz) * rho * u[n][7] + 2 * nx * ny * nz * u[n][1] * sqrt(mu * rho * sum_square) + mu * nx * (ny * ny * ny) * rho * u[n][6] + mu * (nx * nx * nx) * ny * rho * u[n][6] + 2 * mu * nx * (nz * nz * nz) * rho * u[n][3] - 2 * mu * (nx * nx * nx) * nz * rho * u[n][3] - 2 * mu * nx * (nz * nz * nz) * rho * u[n][5] + 2 * mu * (nx * nx * nx) * nz * rho * u[n][5] + mu * ny * (nz * nz * nz) * rho * u[n][8] + mu * (ny * ny * ny) * nz * rho * u[n][8] + 2 * mu * nx * (ny * ny) * nz * rho * u[n][3] - 4 * mu * nx * (ny * ny) * nz * rho * u[n][4] + 2 * mu * nx * (ny * ny) * nz * rho * u[n][5] - 3 * mu * nx * ny * (nz * nz) * rho * u[n][6] - 3 * mu * (nx * nx) * ny * nz * rho * u[n][8]) / (2 * mu * rho * (sum_square * sum_square));
+        v[n][7] = ((nx * nx) * ny * u[n][0] * sqrt(mu * rho * sum_square) - (ny * ny * ny) * u[n][0] * sqrt(mu * rho * sum_square) - (nx * nx * nx) * u[n][1] * sqrt(mu * rho * sum_square) + nx * (ny * ny) * u[n][1] * sqrt(mu * rho * sum_square) - nx * (nz * nz) * u[n][1] * sqrt(mu * rho * sum_square) - ny * (nz * nz) * u[n][0] * sqrt(mu * rho * sum_square) + mu * (nx * nx * nx * nx) * rho * u[n][8] + mu * (ny * ny * ny * ny) * rho * u[n][8] - 2 * mu * (nx * nx) * (ny * ny) * rho * u[n][8] + mu * (nx * nx) * (nz * nz) * rho * u[n][8] + mu * (ny * ny) * (nz * nz) * rho * u[n][8] + 2 * nx * ny * nz * u[n][2] * sqrt(mu * rho * sum_square) + 2 * mu * nx * (ny * ny * ny) * rho * u[n][3] - 2 * mu * (nx * nx * nx) * ny * rho * u[n][3] - 2 * mu * nx * (ny * ny * ny) * rho * u[n][4] + 2 * mu * (nx * nx * nx) * ny * rho * u[n][4] + mu * nx * (nz * nz * nz) * rho * u[n][6] + mu * (nx * nx * nx) * nz * rho * u[n][6] + mu * ny * (nz * nz * nz) * rho * u[n][7] + mu * (ny * ny * ny) * nz * rho * u[n][7] + 2 * mu * nx * ny * (nz * nz) * rho * u[n][3] + 2 * mu * nx * ny * (nz * nz) * rho * u[n][4] - 4 * mu * nx * ny * (nz * nz) * rho * u[n][5] - 3 * mu * nx * (ny * ny) * nz * rho * u[n][6] - 3 * mu * (nx * nx) * ny * nz * rho * u[n][7]) / (2 * mu * rho * (sum_square * sum_square));
+        v[n][8] = -(rho * rho * (lambda + 2 * mu) * (lambda * (nx * nx * nx * nx) * ny * u[n][0] + lambda * nx * (ny * ny * ny * ny) * u[n][1] + 2 * mu * (nx * nx * nx * nx) * ny * u[n][0] + 2 * mu * nx * (ny * ny * ny * ny) * u[n][1] + lambda * (nx * nx) * (ny * ny * ny) * u[n][0] + lambda * (nx * nx * nx) * (ny * ny) * u[n][1] + 2 * mu * (nx * nx) * (ny * ny * ny) * u[n][0] + 2 * mu * (nx * nx * nx) * (ny * ny) * u[n][1] - lambda * nx * (ny * ny * ny) * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * (nx * nx * nx) * ny * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * nx * (ny * ny * ny) * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * (nx * nx * nx) * ny * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * nx * (ny * ny * ny) * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * (nx * nx * nx) * ny * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) - 2 * mu * (nx * nx * nx) * ny * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) - 2 * mu * nx * (ny * ny * ny) * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * (nx * nx) * ny * (nz * nz) * u[n][0] + lambda * nx * (ny * ny) * (nz * nz) * u[n][1] + 2 * mu * (nx * nx) * ny * (nz * nz) * u[n][0] + 2 * mu * nx * (ny * ny) * (nz * nz) * u[n][1] - 2 * mu * (nx * nx) * (ny * ny) * u[n][8] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * nx * ny * (nz * nz * nz) * u[n][2] + lambda * nx * (ny * ny * ny) * nz * u[n][2] + lambda * (nx * nx * nx) * ny * nz * u[n][2] + 2 * mu * nx * ny * (nz * nz * nz) * u[n][2] + 2 * mu * nx * (ny * ny * ny) * nz * u[n][2] + 2 * mu * (nx * nx * nx) * ny * nz * u[n][2] - lambda * nx * ny * (nz * nz) * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * nx * ny * (nz * nz) * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * nx * ny * (nz * nz) * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) - 2 * mu * nx * ny * (nz * nz) * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) - 2 * mu * nx * (ny * ny) * nz * u[n][6] * sqrt(rho * (lambda + 2 * mu) * sum_square) - 2 * mu * (nx * nx) * ny * nz * u[n][7] * sqrt(rho * (lambda + 2 * mu) * sum_square))) / ((rho * (lambda + 2 * mu) * sum_square) * (rho * (lambda + 2 * mu) * sum_square) * sqrt(rho * (lambda + 2 * mu) * sum_square));
+    }
+
+    // Shock capture interpolation
+    for (int n = 0; n < 9; n++)
+    {
+        v_ip12n[n] = WENO5_interpolation(v[0][n], v[1][n], v[2][n], v[3][n], v[4][n]);
+        v_ip12p[n] = WENO5_interpolation(v[5][n], v[4][n], v[3][n], v[2][n], v[1][n]);
+    }
+
+    // Transform back to physical domain
+    u_ip12n[0] = (v_ip12n[5] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * ny) - (v_ip12n[8] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * ny) + (ny * v_ip12n[4] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz)) - (ny * v_ip12n[7] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nz * v_ip12n[3] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz)) - (nz * v_ip12n[6] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz));
+    u_ip12n[1] = (v_ip12n[5] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx) - (v_ip12n[8] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx) - (v_ip12n[4] * ((nx * nx) - (nz * nz)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (v_ip12n[7] * ((nx * nx) - (nz * nz)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * nz * v_ip12n[3] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (ny * nz * v_ip12n[6] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz)));
+    u_ip12n[2] = (nz * v_ip12n[5] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx * ny) - (nz * v_ip12n[8] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx * ny) - (v_ip12n[3] * ((nx * nx) - (ny * ny)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (v_ip12n[6] * ((nx * nx) - (ny * ny)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * nz * v_ip12n[4] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (ny * nz * v_ip12n[7] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz)));
+    u_ip12n[3] = (nx * v_ip12n[5]) / (2 * ny) + (nx * v_ip12n[8]) / (2 * ny) + (nx * ny * v_ip12n[4]) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nx * ny * v_ip12n[7]) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nx * nz * v_ip12n[3]) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nx * nz * v_ip12n[6]) / (-(nx * nx) + (ny * ny) + (nz * nz)) - (v_ip12n[2] * (2 * lambda * (ny * ny) - lambda * (nx * nx) + 2 * mu * (ny * ny))) / (2 * nx * ny * (3 * lambda + 2 * mu)) - (v_ip12n[1] * (2 * lambda * (nz * nz) - lambda * (nx * nx) + 2 * mu * (nz * nz))) / (2 * nx * nz * (3 * lambda + 2 * mu)) + (lambda * v_ip12n[0] * ((ny * ny) + (nz * nz))) / (2 * ny * nz * (3 * lambda + 2 * mu));
+    u_ip12n[4] = (ny * v_ip12n[5]) / (2 * nx) + (ny * v_ip12n[8]) / (2 * nx) - ((ny * ny) * nz * v_ip12n[3]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - ((ny * ny) * nz * v_ip12n[6]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * v_ip12n[4] * ((nx * nx) - (nz * nz))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * v_ip12n[7] * ((nx * nx) - (nz * nz))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (v_ip12n[2] * (2 * lambda * (nx * nx) - lambda * (ny * ny) + 2 * mu * (nx * nx))) / (2 * nx * ny * (3 * lambda + 2 * mu)) - (v_ip12n[0] * (2 * lambda * (nz * nz) - lambda * (ny * ny) + 2 * mu * (nz * nz))) / (2 * ny * nz * (3 * lambda + 2 * mu)) + (lambda * v_ip12n[1] * ((nx * nx) + (nz * nz))) / (2 * nx * nz * (3 * lambda + 2 * mu));
+    u_ip12n[5] = ((nz * nz) * v_ip12n[5]) / (2 * nx * ny) + ((nz * nz) * v_ip12n[8]) / (2 * nx * ny) - (ny * (nz * nz) * v_ip12n[4]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * (nz * nz) * v_ip12n[7]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (nz * v_ip12n[3] * ((nx * nx) - (ny * ny))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (nz * v_ip12n[6] * ((nx * nx) - (ny * ny))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (v_ip12n[1] * (2 * lambda * (nx * nx) - lambda * (nz * nz) + 2 * mu * (nx * nx))) / (2 * nx * nz * (3 * lambda + 2 * mu)) - (v_ip12n[0] * (2 * lambda * (ny * ny) - lambda * (nz * nz) + 2 * mu * (ny * ny))) / (2 * ny * nz * (3 * lambda + 2 * mu)) + (lambda * v_ip12n[2] * ((nx * nx) + (ny * ny))) / (2 * nx * ny * (3 * lambda + 2 * mu));
+    u_ip12n[6] = -((nx * nx * nx) * v_ip12n[0] - (ny * ny * ny) * v_ip12n[3] - (ny * ny * ny) * v_ip12n[6] - (nz * nz * nz) * v_ip12n[4] - (nz * nz * nz) * v_ip12n[5] - (nz * nz * nz) * v_ip12n[7] - (nz * nz * nz) * v_ip12n[8] - nx * (ny * ny) * v_ip12n[0] + (nx * nx) * ny * v_ip12n[3] + (nx * nx) * ny * v_ip12n[6] - nx * (nz * nz) * v_ip12n[0] + (nx * nx) * nz * v_ip12n[4] + (nx * nx) * nz * v_ip12n[5] + (nx * nx) * nz * v_ip12n[7] + (nx * nx) * nz * v_ip12n[8] + ny * (nz * nz) * v_ip12n[3] + (ny * ny) * nz * v_ip12n[4] - (ny * ny) * nz * v_ip12n[5] + ny * (nz * nz) * v_ip12n[6] + (ny * ny) * nz * v_ip12n[7] - (ny * ny) * nz * v_ip12n[8]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz)));
+    u_ip12n[7] = v_ip12n[1] + v_ip12n[3] + v_ip12n[6] + (nz * v_ip12n[5]) / ny + (nz * v_ip12n[8]) / ny;
+    u_ip12n[8] = v_ip12n[2] + v_ip12n[4] + v_ip12n[5] + v_ip12n[7] + v_ip12n[8];
+
+    u_ip12p[0] = (v_ip12p[5] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * ny) - (v_ip12p[8] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * ny) + (ny * v_ip12p[4] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz)) - (ny * v_ip12p[7] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nz * v_ip12p[3] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz)) - (nz * v_ip12p[6] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz));
+    u_ip12p[1] = (v_ip12p[5] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx) - (v_ip12p[8] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx) - (v_ip12p[4] * ((nx * nx) - (nz * nz)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (v_ip12p[7] * ((nx * nx) - (nz * nz)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * nz * v_ip12p[3] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (ny * nz * v_ip12p[6] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz)));
+    u_ip12p[2] = (nz * v_ip12p[5] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx * ny) - (nz * v_ip12p[8] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx * ny) - (v_ip12p[3] * ((nx * nx) - (ny * ny)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (v_ip12p[6] * ((nx * nx) - (ny * ny)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * nz * v_ip12p[4] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (ny * nz * v_ip12p[7] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz)));
+    u_ip12p[3] = (nx * v_ip12p[5]) / (2 * ny) + (nx * v_ip12p[8]) / (2 * ny) + (nx * ny * v_ip12p[4]) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nx * ny * v_ip12p[7]) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nx * nz * v_ip12p[3]) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nx * nz * v_ip12p[6]) / (-(nx * nx) + (ny * ny) + (nz * nz)) - (v_ip12p[2] * (2 * lambda * (ny * ny) - lambda * (nx * nx) + 2 * mu * (ny * ny))) / (2 * nx * ny * (3 * lambda + 2 * mu)) - (v_ip12p[1] * (2 * lambda * (nz * nz) - lambda * (nx * nx) + 2 * mu * (nz * nz))) / (2 * nx * nz * (3 * lambda + 2 * mu)) + (lambda * v_ip12p[0] * ((ny * ny) + (nz * nz))) / (2 * ny * nz * (3 * lambda + 2 * mu));
+    u_ip12p[4] = (ny * v_ip12p[5]) / (2 * nx) + (ny * v_ip12p[8]) / (2 * nx) - ((ny * ny) * nz * v_ip12p[3]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - ((ny * ny) * nz * v_ip12p[6]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * v_ip12p[4] * ((nx * nx) - (nz * nz))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * v_ip12p[7] * ((nx * nx) - (nz * nz))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (v_ip12p[2] * (2 * lambda * (nx * nx) - lambda * (ny * ny) + 2 * mu * (nx * nx))) / (2 * nx * ny * (3 * lambda + 2 * mu)) - (v_ip12p[0] * (2 * lambda * (nz * nz) - lambda * (ny * ny) + 2 * mu * (nz * nz))) / (2 * ny * nz * (3 * lambda + 2 * mu)) + (lambda * v_ip12p[1] * ((nx * nx) + (nz * nz))) / (2 * nx * nz * (3 * lambda + 2 * mu));
+    u_ip12p[5] = ((nz * nz) * v_ip12p[5]) / (2 * nx * ny) + ((nz * nz) * v_ip12p[8]) / (2 * nx * ny) - (ny * (nz * nz) * v_ip12p[4]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * (nz * nz) * v_ip12p[7]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (nz * v_ip12p[3] * ((nx * nx) - (ny * ny))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (nz * v_ip12p[6] * ((nx * nx) - (ny * ny))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (v_ip12p[1] * (2 * lambda * (nx * nx) - lambda * (nz * nz) + 2 * mu * (nx * nx))) / (2 * nx * nz * (3 * lambda + 2 * mu)) - (v_ip12p[0] * (2 * lambda * (ny * ny) - lambda * (nz * nz) + 2 * mu * (ny * ny))) / (2 * ny * nz * (3 * lambda + 2 * mu)) + (lambda * v_ip12p[2] * ((nx * nx) + (ny * ny))) / (2 * nx * ny * (3 * lambda + 2 * mu));
+    u_ip12p[6] = -((nx * nx * nx) * v_ip12p[0] - (ny * ny * ny) * v_ip12p[3] - (ny * ny * ny) * v_ip12p[6] - (nz * nz * nz) * v_ip12p[4] - (nz * nz * nz) * v_ip12p[5] - (nz * nz * nz) * v_ip12p[7] - (nz * nz * nz) * v_ip12p[8] - nx * (ny * ny) * v_ip12p[0] + (nx * nx) * ny * v_ip12p[3] + (nx * nx) * ny * v_ip12p[6] - nx * (nz * nz) * v_ip12p[0] + (nx * nx) * nz * v_ip12p[4] + (nx * nx) * nz * v_ip12p[5] + (nx * nx) * nz * v_ip12p[7] + (nx * nx) * nz * v_ip12p[8] + ny * (nz * nz) * v_ip12p[3] + (ny * ny) * nz * v_ip12p[4] - (ny * ny) * nz * v_ip12p[5] + ny * (nz * nz) * v_ip12p[6] + (ny * ny) * nz * v_ip12p[7] - (ny * ny) * nz * v_ip12p[8]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz)));
+    u_ip12p[7] = v_ip12p[1] + v_ip12p[3] + v_ip12p[6] + (nz * v_ip12p[5]) / ny + (nz * v_ip12p[8]) / ny;
+    u_ip12p[8] = v_ip12p[2] + v_ip12p[4] + v_ip12p[5] + v_ip12p[7] + v_ip12p[8];
+
+#ifdef LF
+    // Riemann solver: Lax-Friedrichs
+    fu_ip12n[0] = -(nx * (lambda * u_ip12n[4] + lambda * u_ip12n[5] + u_ip12n[3] * (lambda + 2 * mu)) + mu * ny * u_ip12n[8] + mu * nz * u_ip12n[7]);
+    fu_ip12n[1] = -(ny * (lambda * u_ip12n[3] + lambda * u_ip12n[5] + u_ip12n[4] * (lambda + 2 * mu)) + mu * nx * u_ip12n[8] + mu * nz * u_ip12n[6]);
+    fu_ip12n[2] = -(nz * (lambda * u_ip12n[3] + lambda * u_ip12n[4] + u_ip12n[5] * (lambda + 2 * mu)) + mu * nx * u_ip12n[7] + mu * ny * u_ip12n[6]);
+    fu_ip12n[3] = -((nx * u_ip12n[0]) * buoyancy);
+    fu_ip12n[4] = -((ny * u_ip12n[1]) * buoyancy);
+    fu_ip12n[5] = -((nz * u_ip12n[2]) * buoyancy);
+    fu_ip12n[6] = -((ny * u_ip12n[2]) * buoyancy + (nz * u_ip12n[1]) * buoyancy);
+    fu_ip12n[7] = -((nx * u_ip12n[2]) * buoyancy + (nz * u_ip12n[0]) * buoyancy);
+    fu_ip12n[8] = -((nx * u_ip12n[1]) * buoyancy + (ny * u_ip12n[0]) * buoyancy);
+
+    fu_ip12p[0] = -(nx * (lambda * u_ip12p[4] + lambda * u_ip12p[5] + u_ip12p[3] * (lambda + 2 * mu)) + mu * ny * u_ip12p[8] + mu * nz * u_ip12p[7]);
+    fu_ip12p[1] = -(ny * (lambda * u_ip12p[3] + lambda * u_ip12p[5] + u_ip12p[4] * (lambda + 2 * mu)) + mu * nx * u_ip12p[8] + mu * nz * u_ip12p[6]);
+    fu_ip12p[2] = -(nz * (lambda * u_ip12p[3] + lambda * u_ip12p[4] + u_ip12p[5] * (lambda + 2 * mu)) + mu * nx * u_ip12p[7] + mu * ny * u_ip12p[6]);
+    fu_ip12p[3] = -((nx * u_ip12p[0]) * buoyancy);
+    fu_ip12p[4] = -((ny * u_ip12p[1]) * buoyancy);
+    fu_ip12p[5] = -((nz * u_ip12p[2]) * buoyancy);
+    fu_ip12p[6] = -((ny * u_ip12p[2]) * buoyancy + (nz * u_ip12p[1]) * buoyancy);
+    fu_ip12p[7] = -((nx * u_ip12p[2]) * buoyancy + (nz * u_ip12p[0]) * buoyancy);
+    fu_ip12p[8] = -((nx * u_ip12p[1]) * buoyancy + (ny * u_ip12p[0]) * buoyancy);
+
+    for (int n = 0; n < 9; n++)
+    {
+        Riemann_flux[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n]));
+    }
+#endif
+
+    END_CALCULATE3D()
+}
+
+__GLOBAL__
+void wave_deriv_alternative_flux_FD_char_y(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W, FLOAT *CJM,
+#ifdef PML
+                                           PML_BETA pml_beta,
+#endif
+                                           int _nx_, int _ny_, int _nz_, float rDH, float DT
+#ifdef LF
+                                           ,
+                                           float alpha
+#endif
+)
+{
+
+    int _nx = _nx_ - HALO;
+    int _ny = _ny_ - HALO;
+    int _nz = _nz_ - HALO;
+
+#ifdef GPU_CUDA
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    int j = threadIdx.y + blockIdx.y * blockDim.y;
+    int k = threadIdx.z + blockIdx.z * blockDim.z;
+#else
+    int i = 0;
+    int j = 0;
+    int k = 0;
+#endif
+
+#ifdef PML
+    float pml_beta_x;
+    float pml_beta_y;
+    float pml_beta_z;
+#endif
+
+    float mu;
+    float lambda;
+    float buoyancy;
+    float rho;
+
+    float nx;
+    float ny;
+    float nz;
+    float jac;
+    float sum_square;
+
+    long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
+
+    float u_ip12n[9], u_ip12p[9];
+
+    float u[6][9], v[6][9], v_ip12n[9], v_ip12p[9];
+
+#ifdef LF
+    float fu_ip12n[9], fu_ip12p[9];
+#endif
+
+    // * Y direction
+    CALCULATE3D(i, j, k, HALO, _nx, HALO - 1, HALO + 3, HALO, _nz)
+
+#ifdef PML
+    pml_beta_x = pml_beta.x[i];
+    pml_beta_y = pml_beta.y[j];
+    pml_beta_z = pml_beta.z[k];
+#endif
+
+    nx = CJM[idx * CJMSIZE + 3] + 1e-6;
+    ny = CJM[idx * CJMSIZE + 4] + 1e-6;
+    nz = CJM[idx * CJMSIZE + 5] + 1e-6;
+    sum_square = nx * nx + ny * ny + nz * nz;
+    jac = 1.0 / CJM[idx * CJMSIZE + 9];
+
+    mu = CJM[idx * CJMSIZE + 10];
+    lambda = CJM[idx * CJMSIZE + 11];
+    buoyancy = CJM[idx * CJMSIZE + 12];
+    rho = 1.0 / buoyancy;
+
+    // Store original variables
+    for (int n = 0; n < 6; n++)
+    {
+        u[n][0] = W[INDEX(i, j - 2 + n, k) * WSIZE + 0];
+        u[n][1] = W[INDEX(i, j - 2 + n, k) * WSIZE + 1];
+        u[n][2] = W[INDEX(i, j - 2 + n, k) * WSIZE + 2];
+        u[n][3] = W[INDEX(i, j - 2 + n, k) * WSIZE + 3];
+        u[n][4] = W[INDEX(i, j - 2 + n, k) * WSIZE + 4];
+        u[n][5] = W[INDEX(i, j - 2 + n, k) * WSIZE + 5];
+        u[n][6] = W[INDEX(i, j - 2 + n, k) * WSIZE + 6];
+        u[n][7] = W[INDEX(i, j - 2 + n, k) * WSIZE + 7];
+        u[n][8] = W[INDEX(i, j - 2 + n, k) * WSIZE + 8];
+    }
+
+    // Transform to characteristic domain
+    for (int n = 0; n < 6; n++)
+    {
+        v[n][0] = -(lambda * nx * (ny * ny * ny) * u[n][7] - 2 * mu * (nx * nx * nx * nx) * u[n][6] - lambda * (nx * nx * nx * nx) * u[n][6] + lambda * (nx * nx * nx) * ny * u[n][7] + lambda * nx * (nz * nz * nz) * u[n][8] + lambda * (nx * nx * nx) * nz * u[n][8] + 2 * lambda * ny * (nz * nz * nz) * u[n][3] + 2 * lambda * (ny * ny * ny) * nz * u[n][3] + 4 * lambda * ny * (nz * nz * nz) * u[n][4] + 4 * lambda * (ny * ny * ny) * nz * u[n][5] + 2 * mu * nx * (ny * ny * ny) * u[n][7] + 2 * mu * (nx * nx * nx) * ny * u[n][7] + 2 * mu * nx * (nz * nz * nz) * u[n][8] + 2 * mu * (nx * nx * nx) * nz * u[n][8] + 4 * mu * ny * (nz * nz * nz) * u[n][4] + 4 * mu * (ny * ny * ny) * nz * u[n][5] - lambda * (nx * nx) * (ny * ny) * u[n][6] - lambda * (nx * nx) * (nz * nz) * u[n][6] - 4 * lambda * (ny * ny) * (nz * nz) * u[n][6] - 2 * mu * (nx * nx) * (ny * ny) * u[n][6] - 2 * mu * (nx * nx) * (nz * nz) * u[n][6] - 4 * mu * (ny * ny) * (nz * nz) * u[n][6] - 2 * lambda * (nx * nx) * ny * nz * u[n][3] + 4 * lambda * (nx * nx) * ny * nz * u[n][4] + 4 * lambda * (nx * nx) * ny * nz * u[n][5] - 3 * lambda * nx * ny * (nz * nz) * u[n][7] - 3 * lambda * nx * (ny * ny) * nz * u[n][8] - 4 * mu * (nx * nx) * ny * nz * u[n][3] + 4 * mu * (nx * nx) * ny * nz * u[n][4] + 4 * mu * (nx * nx) * ny * nz * u[n][5] - 2 * mu * nx * ny * (nz * nz) * u[n][7] - 2 * mu * nx * (ny * ny) * nz * u[n][8]) / ((lambda + 2 * mu) * (sum_square * sum_square));
+        v[n][1] = -(lambda * nx * (ny * ny * ny) * u[n][6] - 2 * mu * (ny * ny * ny * ny) * u[n][7] - lambda * (ny * ny * ny * ny) * u[n][7] + lambda * (nx * nx * nx) * ny * u[n][6] + 4 * lambda * nx * (nz * nz * nz) * u[n][3] + 2 * lambda * nx * (nz * nz * nz) * u[n][4] + 2 * lambda * (nx * nx * nx) * nz * u[n][4] + 4 * lambda * (nx * nx * nx) * nz * u[n][5] + lambda * ny * (nz * nz * nz) * u[n][8] + lambda * (ny * ny * ny) * nz * u[n][8] + 2 * mu * nx * (ny * ny * ny) * u[n][6] + 2 * mu * (nx * nx * nx) * ny * u[n][6] + 4 * mu * nx * (nz * nz * nz) * u[n][3] + 4 * mu * (nx * nx * nx) * nz * u[n][5] + 2 * mu * ny * (nz * nz * nz) * u[n][8] + 2 * mu * (ny * ny * ny) * nz * u[n][8] - lambda * (nx * nx) * (ny * ny) * u[n][7] - 4 * lambda * (nx * nx) * (nz * nz) * u[n][7] - lambda * (ny * ny) * (nz * nz) * u[n][7] - 2 * mu * (nx * nx) * (ny * ny) * u[n][7] - 4 * mu * (nx * nx) * (nz * nz) * u[n][7] - 2 * mu * (ny * ny) * (nz * nz) * u[n][7] + 4 * lambda * nx * (ny * ny) * nz * u[n][3] - 2 * lambda * nx * (ny * ny) * nz * u[n][4] + 4 * lambda * nx * (ny * ny) * nz * u[n][5] - 3 * lambda * nx * ny * (nz * nz) * u[n][6] - 3 * lambda * (nx * nx) * ny * nz * u[n][8] + 4 * mu * nx * (ny * ny) * nz * u[n][3] - 4 * mu * nx * (ny * ny) * nz * u[n][4] + 4 * mu * nx * (ny * ny) * nz * u[n][5] - 2 * mu * nx * ny * (nz * nz) * u[n][6] - 2 * mu * (nx * nx) * ny * nz * u[n][8]) / ((lambda + 2 * mu) * (sum_square * sum_square));
+        v[n][2] = -(4 * lambda * nx * (ny * ny * ny) * u[n][3] - 2 * mu * (nz * nz * nz * nz) * u[n][8] - lambda * (nz * nz * nz * nz) * u[n][8] + 4 * lambda * (nx * nx * nx) * ny * u[n][4] + 2 * lambda * nx * (ny * ny * ny) * u[n][5] + 2 * lambda * (nx * nx * nx) * ny * u[n][5] + lambda * nx * (nz * nz * nz) * u[n][6] + lambda * (nx * nx * nx) * nz * u[n][6] + lambda * ny * (nz * nz * nz) * u[n][7] + lambda * (ny * ny * ny) * nz * u[n][7] + 4 * mu * nx * (ny * ny * ny) * u[n][3] + 4 * mu * (nx * nx * nx) * ny * u[n][4] + 2 * mu * nx * (nz * nz * nz) * u[n][6] + 2 * mu * (nx * nx * nx) * nz * u[n][6] + 2 * mu * ny * (nz * nz * nz) * u[n][7] + 2 * mu * (ny * ny * ny) * nz * u[n][7] - 4 * lambda * (nx * nx) * (ny * ny) * u[n][8] - lambda * (nx * nx) * (nz * nz) * u[n][8] - lambda * (ny * ny) * (nz * nz) * u[n][8] - 4 * mu * (nx * nx) * (ny * ny) * u[n][8] - 2 * mu * (nx * nx) * (nz * nz) * u[n][8] - 2 * mu * (ny * ny) * (nz * nz) * u[n][8] + 4 * lambda * nx * ny * (nz * nz) * u[n][3] + 4 * lambda * nx * ny * (nz * nz) * u[n][4] - 2 * lambda * nx * ny * (nz * nz) * u[n][5] - 3 * lambda * nx * (ny * ny) * nz * u[n][6] - 3 * lambda * (nx * nx) * ny * nz * u[n][7] + 4 * mu * nx * ny * (nz * nz) * u[n][3] + 4 * mu * nx * ny * (nz * nz) * u[n][4] - 4 * mu * nx * ny * (nz * nz) * u[n][5] - 2 * mu * nx * (ny * ny) * nz * u[n][6] - 2 * mu * (nx * nx) * ny * nz * u[n][7]) / ((lambda + 2 * mu) * (sum_square * sum_square));
+        v[n][3] = ((nx * nx * nx) * u[n][2] * sqrt(mu * rho * sum_square) + (nz * nz * nz) * u[n][0] * sqrt(mu * rho * sum_square) + nx * (ny * ny) * u[n][2] * sqrt(mu * rho * sum_square) - (nx * nx) * nz * u[n][0] * sqrt(mu * rho * sum_square) - nx * (nz * nz) * u[n][2] * sqrt(mu * rho * sum_square) + (ny * ny) * nz * u[n][0] * sqrt(mu * rho * sum_square) + mu * (nx * nx * nx * nx) * rho * u[n][7] + mu * (nz * nz * nz * nz) * rho * u[n][7] + mu * (nx * nx) * (ny * ny) * rho * u[n][7] - 2 * mu * (nx * nx) * (nz * nz) * rho * u[n][7] + mu * (ny * ny) * (nz * nz) * rho * u[n][7] - 2 * nx * ny * nz * u[n][1] * sqrt(mu * rho * sum_square) + mu * nx * (ny * ny * ny) * rho * u[n][6] + mu * (nx * nx * nx) * ny * rho * u[n][6] + 2 * mu * nx * (nz * nz * nz) * rho * u[n][3] - 2 * mu * (nx * nx * nx) * nz * rho * u[n][3] - 2 * mu * nx * (nz * nz * nz) * rho * u[n][5] + 2 * mu * (nx * nx * nx) * nz * rho * u[n][5] + mu * ny * (nz * nz * nz) * rho * u[n][8] + mu * (ny * ny * ny) * nz * rho * u[n][8] + 2 * mu * nx * (ny * ny) * nz * rho * u[n][3] - 4 * mu * nx * (ny * ny) * nz * rho * u[n][4] + 2 * mu * nx * (ny * ny) * nz * rho * u[n][5] - 3 * mu * nx * ny * (nz * nz) * rho * u[n][6] - 3 * mu * (nx * nx) * ny * nz * rho * u[n][8]) / (2 * mu * rho * (sum_square * sum_square));
+        v[n][4] = ((nx * nx * nx) * u[n][1] * sqrt(mu * rho * sum_square) + (ny * ny * ny) * u[n][0] * sqrt(mu * rho * sum_square) - (nx * nx) * ny * u[n][0] * sqrt(mu * rho * sum_square) - nx * (ny * ny) * u[n][1] * sqrt(mu * rho * sum_square) + nx * (nz * nz) * u[n][1] * sqrt(mu * rho * sum_square) + ny * (nz * nz) * u[n][0] * sqrt(mu * rho * sum_square) + mu * (nx * nx * nx * nx) * rho * u[n][8] + mu * (ny * ny * ny * ny) * rho * u[n][8] - 2 * mu * (nx * nx) * (ny * ny) * rho * u[n][8] + mu * (nx * nx) * (nz * nz) * rho * u[n][8] + mu * (ny * ny) * (nz * nz) * rho * u[n][8] - 2 * nx * ny * nz * u[n][2] * sqrt(mu * rho * sum_square) + 2 * mu * nx * (ny * ny * ny) * rho * u[n][3] - 2 * mu * (nx * nx * nx) * ny * rho * u[n][3] - 2 * mu * nx * (ny * ny * ny) * rho * u[n][4] + 2 * mu * (nx * nx * nx) * ny * rho * u[n][4] + mu * nx * (nz * nz * nz) * rho * u[n][6] + mu * (nx * nx * nx) * nz * rho * u[n][6] + mu * ny * (nz * nz * nz) * rho * u[n][7] + mu * (ny * ny * ny) * nz * rho * u[n][7] + 2 * mu * nx * ny * (nz * nz) * rho * u[n][3] + 2 * mu * nx * ny * (nz * nz) * rho * u[n][4] - 4 * mu * nx * ny * (nz * nz) * rho * u[n][5] - 3 * mu * nx * (ny * ny) * nz * rho * u[n][6] - 3 * mu * (nx * nx) * ny * nz * rho * u[n][7]) / (2 * mu * rho * (sum_square * sum_square));
+        v[n][5] = (rho * rho * (lambda + 2 * mu) * (lambda * (nx * nx * nx * nx) * ny * u[n][0] + lambda * nx * (ny * ny * ny * ny) * u[n][1] + 2 * mu * (nx * nx * nx * nx) * ny * u[n][0] + 2 * mu * nx * (ny * ny * ny * ny) * u[n][1] + lambda * (nx * nx) * (ny * ny * ny) * u[n][0] + lambda * (nx * nx * nx) * (ny * ny) * u[n][1] + 2 * mu * (nx * nx) * (ny * ny * ny) * u[n][0] + 2 * mu * (nx * nx * nx) * (ny * ny) * u[n][1] + lambda * nx * (ny * ny * ny) * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * (nx * nx * nx) * ny * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * nx * (ny * ny * ny) * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * (nx * nx * nx) * ny * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * nx * (ny * ny * ny) * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * (nx * nx * nx) * ny * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) + 2 * mu * (nx * nx * nx) * ny * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) + 2 * mu * nx * (ny * ny * ny) * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * (nx * nx) * ny * (nz * nz) * u[n][0] + lambda * nx * (ny * ny) * (nz * nz) * u[n][1] + 2 * mu * (nx * nx) * ny * (nz * nz) * u[n][0] + 2 * mu * nx * (ny * ny) * (nz * nz) * u[n][1] + 2 * mu * (nx * nx) * (ny * ny) * u[n][8] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * nx * ny * (nz * nz * nz) * u[n][2] + lambda * nx * (ny * ny * ny) * nz * u[n][2] + lambda * (nx * nx * nx) * ny * nz * u[n][2] + 2 * mu * nx * ny * (nz * nz * nz) * u[n][2] + 2 * mu * nx * (ny * ny * ny) * nz * u[n][2] + 2 * mu * (nx * nx * nx) * ny * nz * u[n][2] + lambda * nx * ny * (nz * nz) * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * nx * ny * (nz * nz) * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * nx * ny * (nz * nz) * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) + 2 * mu * nx * ny * (nz * nz) * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) + 2 * mu * nx * (ny * ny) * nz * u[n][6] * sqrt(rho * (lambda + 2 * mu) * sum_square) + 2 * mu * (nx * nx) * ny * nz * u[n][7] * sqrt(rho * (lambda + 2 * mu) * sum_square))) / ((rho * (lambda + 2 * mu) * sum_square) * (rho * (lambda + 2 * mu) * sum_square) * sqrt(rho * (lambda + 2 * mu) * sum_square));
+        v[n][6] = ((nx * nx) * nz * u[n][0] * sqrt(mu * rho * sum_square) - (nz * nz * nz) * u[n][0] * sqrt(mu * rho * sum_square) - nx * (ny * ny) * u[n][2] * sqrt(mu * rho * sum_square) - (nx * nx * nx) * u[n][2] * sqrt(mu * rho * sum_square) + nx * (nz * nz) * u[n][2] * sqrt(mu * rho * sum_square) - (ny * ny) * nz * u[n][0] * sqrt(mu * rho * sum_square) + mu * (nx * nx * nx * nx) * rho * u[n][7] + mu * (nz * nz * nz * nz) * rho * u[n][7] + mu * (nx * nx) * (ny * ny) * rho * u[n][7] - 2 * mu * (nx * nx) * (nz * nz) * rho * u[n][7] + mu * (ny * ny) * (nz * nz) * rho * u[n][7] + 2 * nx * ny * nz * u[n][1] * sqrt(mu * rho * sum_square) + mu * nx * (ny * ny * ny) * rho * u[n][6] + mu * (nx * nx * nx) * ny * rho * u[n][6] + 2 * mu * nx * (nz * nz * nz) * rho * u[n][3] - 2 * mu * (nx * nx * nx) * nz * rho * u[n][3] - 2 * mu * nx * (nz * nz * nz) * rho * u[n][5] + 2 * mu * (nx * nx * nx) * nz * rho * u[n][5] + mu * ny * (nz * nz * nz) * rho * u[n][8] + mu * (ny * ny * ny) * nz * rho * u[n][8] + 2 * mu * nx * (ny * ny) * nz * rho * u[n][3] - 4 * mu * nx * (ny * ny) * nz * rho * u[n][4] + 2 * mu * nx * (ny * ny) * nz * rho * u[n][5] - 3 * mu * nx * ny * (nz * nz) * rho * u[n][6] - 3 * mu * (nx * nx) * ny * nz * rho * u[n][8]) / (2 * mu * rho * (sum_square * sum_square));
+        v[n][7] = ((nx * nx) * ny * u[n][0] * sqrt(mu * rho * sum_square) - (ny * ny * ny) * u[n][0] * sqrt(mu * rho * sum_square) - (nx * nx * nx) * u[n][1] * sqrt(mu * rho * sum_square) + nx * (ny * ny) * u[n][1] * sqrt(mu * rho * sum_square) - nx * (nz * nz) * u[n][1] * sqrt(mu * rho * sum_square) - ny * (nz * nz) * u[n][0] * sqrt(mu * rho * sum_square) + mu * (nx * nx * nx * nx) * rho * u[n][8] + mu * (ny * ny * ny * ny) * rho * u[n][8] - 2 * mu * (nx * nx) * (ny * ny) * rho * u[n][8] + mu * (nx * nx) * (nz * nz) * rho * u[n][8] + mu * (ny * ny) * (nz * nz) * rho * u[n][8] + 2 * nx * ny * nz * u[n][2] * sqrt(mu * rho * sum_square) + 2 * mu * nx * (ny * ny * ny) * rho * u[n][3] - 2 * mu * (nx * nx * nx) * ny * rho * u[n][3] - 2 * mu * nx * (ny * ny * ny) * rho * u[n][4] + 2 * mu * (nx * nx * nx) * ny * rho * u[n][4] + mu * nx * (nz * nz * nz) * rho * u[n][6] + mu * (nx * nx * nx) * nz * rho * u[n][6] + mu * ny * (nz * nz * nz) * rho * u[n][7] + mu * (ny * ny * ny) * nz * rho * u[n][7] + 2 * mu * nx * ny * (nz * nz) * rho * u[n][3] + 2 * mu * nx * ny * (nz * nz) * rho * u[n][4] - 4 * mu * nx * ny * (nz * nz) * rho * u[n][5] - 3 * mu * nx * (ny * ny) * nz * rho * u[n][6] - 3 * mu * (nx * nx) * ny * nz * rho * u[n][7]) / (2 * mu * rho * (sum_square * sum_square));
+        v[n][8] = -(rho * rho * (lambda + 2 * mu) * (lambda * (nx * nx * nx * nx) * ny * u[n][0] + lambda * nx * (ny * ny * ny * ny) * u[n][1] + 2 * mu * (nx * nx * nx * nx) * ny * u[n][0] + 2 * mu * nx * (ny * ny * ny * ny) * u[n][1] + lambda * (nx * nx) * (ny * ny * ny) * u[n][0] + lambda * (nx * nx * nx) * (ny * ny) * u[n][1] + 2 * mu * (nx * nx) * (ny * ny * ny) * u[n][0] + 2 * mu * (nx * nx * nx) * (ny * ny) * u[n][1] - lambda * nx * (ny * ny * ny) * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * (nx * nx * nx) * ny * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * nx * (ny * ny * ny) * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * (nx * nx * nx) * ny * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * nx * (ny * ny * ny) * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * (nx * nx * nx) * ny * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) - 2 * mu * (nx * nx * nx) * ny * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) - 2 * mu * nx * (ny * ny * ny) * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * (nx * nx) * ny * (nz * nz) * u[n][0] + lambda * nx * (ny * ny) * (nz * nz) * u[n][1] + 2 * mu * (nx * nx) * ny * (nz * nz) * u[n][0] + 2 * mu * nx * (ny * ny) * (nz * nz) * u[n][1] - 2 * mu * (nx * nx) * (ny * ny) * u[n][8] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * nx * ny * (nz * nz * nz) * u[n][2] + lambda * nx * (ny * ny * ny) * nz * u[n][2] + lambda * (nx * nx * nx) * ny * nz * u[n][2] + 2 * mu * nx * ny * (nz * nz * nz) * u[n][2] + 2 * mu * nx * (ny * ny * ny) * nz * u[n][2] + 2 * mu * (nx * nx * nx) * ny * nz * u[n][2] - lambda * nx * ny * (nz * nz) * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * nx * ny * (nz * nz) * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * nx * ny * (nz * nz) * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) - 2 * mu * nx * ny * (nz * nz) * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) - 2 * mu * nx * (ny * ny) * nz * u[n][6] * sqrt(rho * (lambda + 2 * mu) * sum_square) - 2 * mu * (nx * nx) * ny * nz * u[n][7] * sqrt(rho * (lambda + 2 * mu) * sum_square))) / ((rho * (lambda + 2 * mu) * sum_square) * (rho * (lambda + 2 * mu) * sum_square) * sqrt(rho * (lambda + 2 * mu) * sum_square));
+    }
+
+    // Shock capture interpolation
+    for (int n = 0; n < 9; n++)
+    {
+        v_ip12n[n] = WENO5_interpolation(v[0][n], v[1][n], v[2][n], v[3][n], v[4][n]);
+        v_ip12p[n] = WENO5_interpolation(v[5][n], v[4][n], v[3][n], v[2][n], v[1][n]);
+    }
+
+    // Transform back to physical domain
+    u_ip12n[0] = (v_ip12n[5] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * ny) - (v_ip12n[8] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * ny) + (ny * v_ip12n[4] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz)) - (ny * v_ip12n[7] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nz * v_ip12n[3] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz)) - (nz * v_ip12n[6] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz));
+    u_ip12n[1] = (v_ip12n[5] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx) - (v_ip12n[8] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx) - (v_ip12n[4] * ((nx * nx) - (nz * nz)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (v_ip12n[7] * ((nx * nx) - (nz * nz)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * nz * v_ip12n[3] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (ny * nz * v_ip12n[6] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz)));
+    u_ip12n[2] = (nz * v_ip12n[5] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx * ny) - (nz * v_ip12n[8] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx * ny) - (v_ip12n[3] * ((nx * nx) - (ny * ny)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (v_ip12n[6] * ((nx * nx) - (ny * ny)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * nz * v_ip12n[4] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (ny * nz * v_ip12n[7] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz)));
+    u_ip12n[3] = (nx * v_ip12n[5]) / (2 * ny) + (nx * v_ip12n[8]) / (2 * ny) + (nx * ny * v_ip12n[4]) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nx * ny * v_ip12n[7]) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nx * nz * v_ip12n[3]) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nx * nz * v_ip12n[6]) / (-(nx * nx) + (ny * ny) + (nz * nz)) - (v_ip12n[2] * (2 * lambda * (ny * ny) - lambda * (nx * nx) + 2 * mu * (ny * ny))) / (2 * nx * ny * (3 * lambda + 2 * mu)) - (v_ip12n[1] * (2 * lambda * (nz * nz) - lambda * (nx * nx) + 2 * mu * (nz * nz))) / (2 * nx * nz * (3 * lambda + 2 * mu)) + (lambda * v_ip12n[0] * ((ny * ny) + (nz * nz))) / (2 * ny * nz * (3 * lambda + 2 * mu));
+    u_ip12n[4] = (ny * v_ip12n[5]) / (2 * nx) + (ny * v_ip12n[8]) / (2 * nx) - ((ny * ny) * nz * v_ip12n[3]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - ((ny * ny) * nz * v_ip12n[6]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * v_ip12n[4] * ((nx * nx) - (nz * nz))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * v_ip12n[7] * ((nx * nx) - (nz * nz))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (v_ip12n[2] * (2 * lambda * (nx * nx) - lambda * (ny * ny) + 2 * mu * (nx * nx))) / (2 * nx * ny * (3 * lambda + 2 * mu)) - (v_ip12n[0] * (2 * lambda * (nz * nz) - lambda * (ny * ny) + 2 * mu * (nz * nz))) / (2 * ny * nz * (3 * lambda + 2 * mu)) + (lambda * v_ip12n[1] * ((nx * nx) + (nz * nz))) / (2 * nx * nz * (3 * lambda + 2 * mu));
+    u_ip12n[5] = ((nz * nz) * v_ip12n[5]) / (2 * nx * ny) + ((nz * nz) * v_ip12n[8]) / (2 * nx * ny) - (ny * (nz * nz) * v_ip12n[4]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * (nz * nz) * v_ip12n[7]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (nz * v_ip12n[3] * ((nx * nx) - (ny * ny))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (nz * v_ip12n[6] * ((nx * nx) - (ny * ny))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (v_ip12n[1] * (2 * lambda * (nx * nx) - lambda * (nz * nz) + 2 * mu * (nx * nx))) / (2 * nx * nz * (3 * lambda + 2 * mu)) - (v_ip12n[0] * (2 * lambda * (ny * ny) - lambda * (nz * nz) + 2 * mu * (ny * ny))) / (2 * ny * nz * (3 * lambda + 2 * mu)) + (lambda * v_ip12n[2] * ((nx * nx) + (ny * ny))) / (2 * nx * ny * (3 * lambda + 2 * mu));
+    u_ip12n[6] = -((nx * nx * nx) * v_ip12n[0] - (ny * ny * ny) * v_ip12n[3] - (ny * ny * ny) * v_ip12n[6] - (nz * nz * nz) * v_ip12n[4] - (nz * nz * nz) * v_ip12n[5] - (nz * nz * nz) * v_ip12n[7] - (nz * nz * nz) * v_ip12n[8] - nx * (ny * ny) * v_ip12n[0] + (nx * nx) * ny * v_ip12n[3] + (nx * nx) * ny * v_ip12n[6] - nx * (nz * nz) * v_ip12n[0] + (nx * nx) * nz * v_ip12n[4] + (nx * nx) * nz * v_ip12n[5] + (nx * nx) * nz * v_ip12n[7] + (nx * nx) * nz * v_ip12n[8] + ny * (nz * nz) * v_ip12n[3] + (ny * ny) * nz * v_ip12n[4] - (ny * ny) * nz * v_ip12n[5] + ny * (nz * nz) * v_ip12n[6] + (ny * ny) * nz * v_ip12n[7] - (ny * ny) * nz * v_ip12n[8]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz)));
+    u_ip12n[7] = v_ip12n[1] + v_ip12n[3] + v_ip12n[6] + (nz * v_ip12n[5]) / ny + (nz * v_ip12n[8]) / ny;
+    u_ip12n[8] = v_ip12n[2] + v_ip12n[4] + v_ip12n[5] + v_ip12n[7] + v_ip12n[8];
+
+    u_ip12p[0] = (v_ip12p[5] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * ny) - (v_ip12p[8] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * ny) + (ny * v_ip12p[4] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz)) - (ny * v_ip12p[7] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nz * v_ip12p[3] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz)) - (nz * v_ip12p[6] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz));
+    u_ip12p[1] = (v_ip12p[5] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx) - (v_ip12p[8] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx) - (v_ip12p[4] * ((nx * nx) - (nz * nz)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (v_ip12p[7] * ((nx * nx) - (nz * nz)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * nz * v_ip12p[3] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (ny * nz * v_ip12p[6] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz)));
+    u_ip12p[2] = (nz * v_ip12p[5] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx * ny) - (nz * v_ip12p[8] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx * ny) - (v_ip12p[3] * ((nx * nx) - (ny * ny)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (v_ip12p[6] * ((nx * nx) - (ny * ny)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * nz * v_ip12p[4] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (ny * nz * v_ip12p[7] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz)));
+    u_ip12p[3] = (nx * v_ip12p[5]) / (2 * ny) + (nx * v_ip12p[8]) / (2 * ny) + (nx * ny * v_ip12p[4]) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nx * ny * v_ip12p[7]) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nx * nz * v_ip12p[3]) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nx * nz * v_ip12p[6]) / (-(nx * nx) + (ny * ny) + (nz * nz)) - (v_ip12p[2] * (2 * lambda * (ny * ny) - lambda * (nx * nx) + 2 * mu * (ny * ny))) / (2 * nx * ny * (3 * lambda + 2 * mu)) - (v_ip12p[1] * (2 * lambda * (nz * nz) - lambda * (nx * nx) + 2 * mu * (nz * nz))) / (2 * nx * nz * (3 * lambda + 2 * mu)) + (lambda * v_ip12p[0] * ((ny * ny) + (nz * nz))) / (2 * ny * nz * (3 * lambda + 2 * mu));
+    u_ip12p[4] = (ny * v_ip12p[5]) / (2 * nx) + (ny * v_ip12p[8]) / (2 * nx) - ((ny * ny) * nz * v_ip12p[3]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - ((ny * ny) * nz * v_ip12p[6]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * v_ip12p[4] * ((nx * nx) - (nz * nz))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * v_ip12p[7] * ((nx * nx) - (nz * nz))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (v_ip12p[2] * (2 * lambda * (nx * nx) - lambda * (ny * ny) + 2 * mu * (nx * nx))) / (2 * nx * ny * (3 * lambda + 2 * mu)) - (v_ip12p[0] * (2 * lambda * (nz * nz) - lambda * (ny * ny) + 2 * mu * (nz * nz))) / (2 * ny * nz * (3 * lambda + 2 * mu)) + (lambda * v_ip12p[1] * ((nx * nx) + (nz * nz))) / (2 * nx * nz * (3 * lambda + 2 * mu));
+    u_ip12p[5] = ((nz * nz) * v_ip12p[5]) / (2 * nx * ny) + ((nz * nz) * v_ip12p[8]) / (2 * nx * ny) - (ny * (nz * nz) * v_ip12p[4]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * (nz * nz) * v_ip12p[7]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (nz * v_ip12p[3] * ((nx * nx) - (ny * ny))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (nz * v_ip12p[6] * ((nx * nx) - (ny * ny))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (v_ip12p[1] * (2 * lambda * (nx * nx) - lambda * (nz * nz) + 2 * mu * (nx * nx))) / (2 * nx * nz * (3 * lambda + 2 * mu)) - (v_ip12p[0] * (2 * lambda * (ny * ny) - lambda * (nz * nz) + 2 * mu * (ny * ny))) / (2 * ny * nz * (3 * lambda + 2 * mu)) + (lambda * v_ip12p[2] * ((nx * nx) + (ny * ny))) / (2 * nx * ny * (3 * lambda + 2 * mu));
+    u_ip12p[6] = -((nx * nx * nx) * v_ip12p[0] - (ny * ny * ny) * v_ip12p[3] - (ny * ny * ny) * v_ip12p[6] - (nz * nz * nz) * v_ip12p[4] - (nz * nz * nz) * v_ip12p[5] - (nz * nz * nz) * v_ip12p[7] - (nz * nz * nz) * v_ip12p[8] - nx * (ny * ny) * v_ip12p[0] + (nx * nx) * ny * v_ip12p[3] + (nx * nx) * ny * v_ip12p[6] - nx * (nz * nz) * v_ip12p[0] + (nx * nx) * nz * v_ip12p[4] + (nx * nx) * nz * v_ip12p[5] + (nx * nx) * nz * v_ip12p[7] + (nx * nx) * nz * v_ip12p[8] + ny * (nz * nz) * v_ip12p[3] + (ny * ny) * nz * v_ip12p[4] - (ny * ny) * nz * v_ip12p[5] + ny * (nz * nz) * v_ip12p[6] + (ny * ny) * nz * v_ip12p[7] - (ny * ny) * nz * v_ip12p[8]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz)));
+    u_ip12p[7] = v_ip12p[1] + v_ip12p[3] + v_ip12p[6] + (nz * v_ip12p[5]) / ny + (nz * v_ip12p[8]) / ny;
+    u_ip12p[8] = v_ip12p[2] + v_ip12p[4] + v_ip12p[5] + v_ip12p[7] + v_ip12p[8];
+
+#ifdef LF
+    // Riemann solver: Lax-Friedrichs
+    fu_ip12n[0] = -(nx * (lambda * u_ip12n[4] + lambda * u_ip12n[5] + u_ip12n[3] * (lambda + 2 * mu)) + mu * ny * u_ip12n[8] + mu * nz * u_ip12n[7]);
+    fu_ip12n[1] = -(ny * (lambda * u_ip12n[3] + lambda * u_ip12n[5] + u_ip12n[4] * (lambda + 2 * mu)) + mu * nx * u_ip12n[8] + mu * nz * u_ip12n[6]);
+    fu_ip12n[2] = -(nz * (lambda * u_ip12n[3] + lambda * u_ip12n[4] + u_ip12n[5] * (lambda + 2 * mu)) + mu * nx * u_ip12n[7] + mu * ny * u_ip12n[6]);
+    fu_ip12n[3] = -((nx * u_ip12n[0]) * buoyancy);
+    fu_ip12n[4] = -((ny * u_ip12n[1]) * buoyancy);
+    fu_ip12n[5] = -((nz * u_ip12n[2]) * buoyancy);
+    fu_ip12n[6] = -((ny * u_ip12n[2]) * buoyancy + (nz * u_ip12n[1]) * buoyancy);
+    fu_ip12n[7] = -((nx * u_ip12n[2]) * buoyancy + (nz * u_ip12n[0]) * buoyancy);
+    fu_ip12n[8] = -((nx * u_ip12n[1]) * buoyancy + (ny * u_ip12n[0]) * buoyancy);
+
+    fu_ip12p[0] = -(nx * (lambda * u_ip12p[4] + lambda * u_ip12p[5] + u_ip12p[3] * (lambda + 2 * mu)) + mu * ny * u_ip12p[8] + mu * nz * u_ip12p[7]);
+    fu_ip12p[1] = -(ny * (lambda * u_ip12p[3] + lambda * u_ip12p[5] + u_ip12p[4] * (lambda + 2 * mu)) + mu * nx * u_ip12p[8] + mu * nz * u_ip12p[6]);
+    fu_ip12p[2] = -(nz * (lambda * u_ip12p[3] + lambda * u_ip12p[4] + u_ip12p[5] * (lambda + 2 * mu)) + mu * nx * u_ip12p[7] + mu * ny * u_ip12p[6]);
+    fu_ip12p[3] = -((nx * u_ip12p[0]) * buoyancy);
+    fu_ip12p[4] = -((ny * u_ip12p[1]) * buoyancy);
+    fu_ip12p[5] = -((nz * u_ip12p[2]) * buoyancy);
+    fu_ip12p[6] = -((ny * u_ip12p[2]) * buoyancy + (nz * u_ip12p[1]) * buoyancy);
+    fu_ip12p[7] = -((nx * u_ip12p[2]) * buoyancy + (nz * u_ip12p[0]) * buoyancy);
+    fu_ip12p[8] = -((nx * u_ip12p[1]) * buoyancy + (ny * u_ip12p[0]) * buoyancy);
+
+    for (int n = 0; n < 9; n++)
+    {
+        Riemann_flux[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n]));
+    }
+#endif
+
+    END_CALCULATE3D()
+}
+
+__GLOBAL__
+void wave_deriv_alternative_flux_FD_char_z(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W, FLOAT *CJM,
+#ifdef PML
+                                           PML_BETA pml_beta,
+#endif
+                                           int _nx_, int _ny_, int _nz_, float rDH, float DT
+#ifdef LF
+                                           ,
+                                           float alpha
+#endif
+)
+{
+
+    int _nx = _nx_ - HALO;
+    int _ny = _ny_ - HALO;
+    int _nz = _nz_ - HALO;
+
+#ifdef GPU_CUDA
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    int j = threadIdx.y + blockIdx.y * blockDim.y;
+    int k = threadIdx.z + blockIdx.z * blockDim.z;
+#else
+    int i = 0;
+    int j = 0;
+    int k = 0;
+#endif
+
+#ifdef PML
+    float pml_beta_x;
+    float pml_beta_y;
+    float pml_beta_z;
+#endif
+
+    float mu;
+    float lambda;
+    float buoyancy;
+    float rho;
+
+    float nx;
+    float ny;
+    float nz;
+    float jac;
+    float sum_square;
+
+    long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
+
+    float u_ip12n[9], u_ip12p[9];
+
+    float u[6][9], v[6][9], v_ip12n[9], v_ip12p[9];
+
+#ifdef LF
+    float fu_ip12n[9], fu_ip12p[9];
+#endif
+
+    // * Z direction
+    CALCULATE3D(i, j, k, HALO, _nx, HALO, _ny, HALO - 1, HALO + 3)
+
+#ifdef PML
+    pml_beta_x = pml_beta.x[i];
+    pml_beta_y = pml_beta.y[j];
+    pml_beta_z = pml_beta.z[k];
+#endif
+
+    nx = CJM[idx * CJMSIZE + 6] + 1e-6;
+    ny = CJM[idx * CJMSIZE + 7] + 1e-6;
+    nz = CJM[idx * CJMSIZE + 8] + 1e-6;
+    sum_square = nx * nx + ny * ny + nz * nz;
+    jac = 1.0 / CJM[idx * CJMSIZE + 9];
+
+    mu = CJM[idx * CJMSIZE + 10];
+    lambda = CJM[idx * CJMSIZE + 11];
+    buoyancy = CJM[idx * CJMSIZE + 12];
+    rho = 1.0 / buoyancy;
+
+    // Store original variables
+    for (int n = 0; n < 6; n++)
+    {
+        u[n][0] = W[INDEX(i, j, k - 2 + n) * WSIZE + 0];
+        u[n][1] = W[INDEX(i, j, k - 2 + n) * WSIZE + 1];
+        u[n][2] = W[INDEX(i, j, k - 2 + n) * WSIZE + 2];
+        u[n][3] = W[INDEX(i, j, k - 2 + n) * WSIZE + 3];
+        u[n][4] = W[INDEX(i, j, k - 2 + n) * WSIZE + 4];
+        u[n][5] = W[INDEX(i, j, k - 2 + n) * WSIZE + 5];
+        u[n][6] = W[INDEX(i, j, k - 2 + n) * WSIZE + 6];
+        u[n][7] = W[INDEX(i, j, k - 2 + n) * WSIZE + 7];
+        u[n][8] = W[INDEX(i, j, k - 2 + n) * WSIZE + 8];
+    }
+
+    // Transform to characteristic domain
+    for (int n = 0; n < 6; n++)
+    {
+        v[n][0] = -(lambda * nx * (ny * ny * ny) * u[n][7] - 2 * mu * (nx * nx * nx * nx) * u[n][6] - lambda * (nx * nx * nx * nx) * u[n][6] + lambda * (nx * nx * nx) * ny * u[n][7] + lambda * nx * (nz * nz * nz) * u[n][8] + lambda * (nx * nx * nx) * nz * u[n][8] + 2 * lambda * ny * (nz * nz * nz) * u[n][3] + 2 * lambda * (ny * ny * ny) * nz * u[n][3] + 4 * lambda * ny * (nz * nz * nz) * u[n][4] + 4 * lambda * (ny * ny * ny) * nz * u[n][5] + 2 * mu * nx * (ny * ny * ny) * u[n][7] + 2 * mu * (nx * nx * nx) * ny * u[n][7] + 2 * mu * nx * (nz * nz * nz) * u[n][8] + 2 * mu * (nx * nx * nx) * nz * u[n][8] + 4 * mu * ny * (nz * nz * nz) * u[n][4] + 4 * mu * (ny * ny * ny) * nz * u[n][5] - lambda * (nx * nx) * (ny * ny) * u[n][6] - lambda * (nx * nx) * (nz * nz) * u[n][6] - 4 * lambda * (ny * ny) * (nz * nz) * u[n][6] - 2 * mu * (nx * nx) * (ny * ny) * u[n][6] - 2 * mu * (nx * nx) * (nz * nz) * u[n][6] - 4 * mu * (ny * ny) * (nz * nz) * u[n][6] - 2 * lambda * (nx * nx) * ny * nz * u[n][3] + 4 * lambda * (nx * nx) * ny * nz * u[n][4] + 4 * lambda * (nx * nx) * ny * nz * u[n][5] - 3 * lambda * nx * ny * (nz * nz) * u[n][7] - 3 * lambda * nx * (ny * ny) * nz * u[n][8] - 4 * mu * (nx * nx) * ny * nz * u[n][3] + 4 * mu * (nx * nx) * ny * nz * u[n][4] + 4 * mu * (nx * nx) * ny * nz * u[n][5] - 2 * mu * nx * ny * (nz * nz) * u[n][7] - 2 * mu * nx * (ny * ny) * nz * u[n][8]) / ((lambda + 2 * mu) * (sum_square * sum_square));
+        v[n][1] = -(lambda * nx * (ny * ny * ny) * u[n][6] - 2 * mu * (ny * ny * ny * ny) * u[n][7] - lambda * (ny * ny * ny * ny) * u[n][7] + lambda * (nx * nx * nx) * ny * u[n][6] + 4 * lambda * nx * (nz * nz * nz) * u[n][3] + 2 * lambda * nx * (nz * nz * nz) * u[n][4] + 2 * lambda * (nx * nx * nx) * nz * u[n][4] + 4 * lambda * (nx * nx * nx) * nz * u[n][5] + lambda * ny * (nz * nz * nz) * u[n][8] + lambda * (ny * ny * ny) * nz * u[n][8] + 2 * mu * nx * (ny * ny * ny) * u[n][6] + 2 * mu * (nx * nx * nx) * ny * u[n][6] + 4 * mu * nx * (nz * nz * nz) * u[n][3] + 4 * mu * (nx * nx * nx) * nz * u[n][5] + 2 * mu * ny * (nz * nz * nz) * u[n][8] + 2 * mu * (ny * ny * ny) * nz * u[n][8] - lambda * (nx * nx) * (ny * ny) * u[n][7] - 4 * lambda * (nx * nx) * (nz * nz) * u[n][7] - lambda * (ny * ny) * (nz * nz) * u[n][7] - 2 * mu * (nx * nx) * (ny * ny) * u[n][7] - 4 * mu * (nx * nx) * (nz * nz) * u[n][7] - 2 * mu * (ny * ny) * (nz * nz) * u[n][7] + 4 * lambda * nx * (ny * ny) * nz * u[n][3] - 2 * lambda * nx * (ny * ny) * nz * u[n][4] + 4 * lambda * nx * (ny * ny) * nz * u[n][5] - 3 * lambda * nx * ny * (nz * nz) * u[n][6] - 3 * lambda * (nx * nx) * ny * nz * u[n][8] + 4 * mu * nx * (ny * ny) * nz * u[n][3] - 4 * mu * nx * (ny * ny) * nz * u[n][4] + 4 * mu * nx * (ny * ny) * nz * u[n][5] - 2 * mu * nx * ny * (nz * nz) * u[n][6] - 2 * mu * (nx * nx) * ny * nz * u[n][8]) / ((lambda + 2 * mu) * (sum_square * sum_square));
+        v[n][2] = -(4 * lambda * nx * (ny * ny * ny) * u[n][3] - 2 * mu * (nz * nz * nz * nz) * u[n][8] - lambda * (nz * nz * nz * nz) * u[n][8] + 4 * lambda * (nx * nx * nx) * ny * u[n][4] + 2 * lambda * nx * (ny * ny * ny) * u[n][5] + 2 * lambda * (nx * nx * nx) * ny * u[n][5] + lambda * nx * (nz * nz * nz) * u[n][6] + lambda * (nx * nx * nx) * nz * u[n][6] + lambda * ny * (nz * nz * nz) * u[n][7] + lambda * (ny * ny * ny) * nz * u[n][7] + 4 * mu * nx * (ny * ny * ny) * u[n][3] + 4 * mu * (nx * nx * nx) * ny * u[n][4] + 2 * mu * nx * (nz * nz * nz) * u[n][6] + 2 * mu * (nx * nx * nx) * nz * u[n][6] + 2 * mu * ny * (nz * nz * nz) * u[n][7] + 2 * mu * (ny * ny * ny) * nz * u[n][7] - 4 * lambda * (nx * nx) * (ny * ny) * u[n][8] - lambda * (nx * nx) * (nz * nz) * u[n][8] - lambda * (ny * ny) * (nz * nz) * u[n][8] - 4 * mu * (nx * nx) * (ny * ny) * u[n][8] - 2 * mu * (nx * nx) * (nz * nz) * u[n][8] - 2 * mu * (ny * ny) * (nz * nz) * u[n][8] + 4 * lambda * nx * ny * (nz * nz) * u[n][3] + 4 * lambda * nx * ny * (nz * nz) * u[n][4] - 2 * lambda * nx * ny * (nz * nz) * u[n][5] - 3 * lambda * nx * (ny * ny) * nz * u[n][6] - 3 * lambda * (nx * nx) * ny * nz * u[n][7] + 4 * mu * nx * ny * (nz * nz) * u[n][3] + 4 * mu * nx * ny * (nz * nz) * u[n][4] - 4 * mu * nx * ny * (nz * nz) * u[n][5] - 2 * mu * nx * (ny * ny) * nz * u[n][6] - 2 * mu * (nx * nx) * ny * nz * u[n][7]) / ((lambda + 2 * mu) * (sum_square * sum_square));
+        v[n][3] = ((nx * nx * nx) * u[n][2] * sqrt(mu * rho * sum_square) + (nz * nz * nz) * u[n][0] * sqrt(mu * rho * sum_square) + nx * (ny * ny) * u[n][2] * sqrt(mu * rho * sum_square) - (nx * nx) * nz * u[n][0] * sqrt(mu * rho * sum_square) - nx * (nz * nz) * u[n][2] * sqrt(mu * rho * sum_square) + (ny * ny) * nz * u[n][0] * sqrt(mu * rho * sum_square) + mu * (nx * nx * nx * nx) * rho * u[n][7] + mu * (nz * nz * nz * nz) * rho * u[n][7] + mu * (nx * nx) * (ny * ny) * rho * u[n][7] - 2 * mu * (nx * nx) * (nz * nz) * rho * u[n][7] + mu * (ny * ny) * (nz * nz) * rho * u[n][7] - 2 * nx * ny * nz * u[n][1] * sqrt(mu * rho * sum_square) + mu * nx * (ny * ny * ny) * rho * u[n][6] + mu * (nx * nx * nx) * ny * rho * u[n][6] + 2 * mu * nx * (nz * nz * nz) * rho * u[n][3] - 2 * mu * (nx * nx * nx) * nz * rho * u[n][3] - 2 * mu * nx * (nz * nz * nz) * rho * u[n][5] + 2 * mu * (nx * nx * nx) * nz * rho * u[n][5] + mu * ny * (nz * nz * nz) * rho * u[n][8] + mu * (ny * ny * ny) * nz * rho * u[n][8] + 2 * mu * nx * (ny * ny) * nz * rho * u[n][3] - 4 * mu * nx * (ny * ny) * nz * rho * u[n][4] + 2 * mu * nx * (ny * ny) * nz * rho * u[n][5] - 3 * mu * nx * ny * (nz * nz) * rho * u[n][6] - 3 * mu * (nx * nx) * ny * nz * rho * u[n][8]) / (2 * mu * rho * (sum_square * sum_square));
+        v[n][4] = ((nx * nx * nx) * u[n][1] * sqrt(mu * rho * sum_square) + (ny * ny * ny) * u[n][0] * sqrt(mu * rho * sum_square) - (nx * nx) * ny * u[n][0] * sqrt(mu * rho * sum_square) - nx * (ny * ny) * u[n][1] * sqrt(mu * rho * sum_square) + nx * (nz * nz) * u[n][1] * sqrt(mu * rho * sum_square) + ny * (nz * nz) * u[n][0] * sqrt(mu * rho * sum_square) + mu * (nx * nx * nx * nx) * rho * u[n][8] + mu * (ny * ny * ny * ny) * rho * u[n][8] - 2 * mu * (nx * nx) * (ny * ny) * rho * u[n][8] + mu * (nx * nx) * (nz * nz) * rho * u[n][8] + mu * (ny * ny) * (nz * nz) * rho * u[n][8] - 2 * nx * ny * nz * u[n][2] * sqrt(mu * rho * sum_square) + 2 * mu * nx * (ny * ny * ny) * rho * u[n][3] - 2 * mu * (nx * nx * nx) * ny * rho * u[n][3] - 2 * mu * nx * (ny * ny * ny) * rho * u[n][4] + 2 * mu * (nx * nx * nx) * ny * rho * u[n][4] + mu * nx * (nz * nz * nz) * rho * u[n][6] + mu * (nx * nx * nx) * nz * rho * u[n][6] + mu * ny * (nz * nz * nz) * rho * u[n][7] + mu * (ny * ny * ny) * nz * rho * u[n][7] + 2 * mu * nx * ny * (nz * nz) * rho * u[n][3] + 2 * mu * nx * ny * (nz * nz) * rho * u[n][4] - 4 * mu * nx * ny * (nz * nz) * rho * u[n][5] - 3 * mu * nx * (ny * ny) * nz * rho * u[n][6] - 3 * mu * (nx * nx) * ny * nz * rho * u[n][7]) / (2 * mu * rho * (sum_square * sum_square));
+        v[n][5] = (rho * rho * (lambda + 2 * mu) * (lambda * (nx * nx * nx * nx) * ny * u[n][0] + lambda * nx * (ny * ny * ny * ny) * u[n][1] + 2 * mu * (nx * nx * nx * nx) * ny * u[n][0] + 2 * mu * nx * (ny * ny * ny * ny) * u[n][1] + lambda * (nx * nx) * (ny * ny * ny) * u[n][0] + lambda * (nx * nx * nx) * (ny * ny) * u[n][1] + 2 * mu * (nx * nx) * (ny * ny * ny) * u[n][0] + 2 * mu * (nx * nx * nx) * (ny * ny) * u[n][1] + lambda * nx * (ny * ny * ny) * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * (nx * nx * nx) * ny * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * nx * (ny * ny * ny) * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * (nx * nx * nx) * ny * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * nx * (ny * ny * ny) * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * (nx * nx * nx) * ny * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) + 2 * mu * (nx * nx * nx) * ny * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) + 2 * mu * nx * (ny * ny * ny) * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * (nx * nx) * ny * (nz * nz) * u[n][0] + lambda * nx * (ny * ny) * (nz * nz) * u[n][1] + 2 * mu * (nx * nx) * ny * (nz * nz) * u[n][0] + 2 * mu * nx * (ny * ny) * (nz * nz) * u[n][1] + 2 * mu * (nx * nx) * (ny * ny) * u[n][8] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * nx * ny * (nz * nz * nz) * u[n][2] + lambda * nx * (ny * ny * ny) * nz * u[n][2] + lambda * (nx * nx * nx) * ny * nz * u[n][2] + 2 * mu * nx * ny * (nz * nz * nz) * u[n][2] + 2 * mu * nx * (ny * ny * ny) * nz * u[n][2] + 2 * mu * (nx * nx * nx) * ny * nz * u[n][2] + lambda * nx * ny * (nz * nz) * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * nx * ny * (nz * nz) * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * nx * ny * (nz * nz) * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) + 2 * mu * nx * ny * (nz * nz) * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) + 2 * mu * nx * (ny * ny) * nz * u[n][6] * sqrt(rho * (lambda + 2 * mu) * sum_square) + 2 * mu * (nx * nx) * ny * nz * u[n][7] * sqrt(rho * (lambda + 2 * mu) * sum_square))) / ((rho * (lambda + 2 * mu) * sum_square) * (rho * (lambda + 2 * mu) * sum_square) * sqrt(rho * (lambda + 2 * mu) * sum_square));
+        v[n][6] = ((nx * nx) * nz * u[n][0] * sqrt(mu * rho * sum_square) - (nz * nz * nz) * u[n][0] * sqrt(mu * rho * sum_square) - nx * (ny * ny) * u[n][2] * sqrt(mu * rho * sum_square) - (nx * nx * nx) * u[n][2] * sqrt(mu * rho * sum_square) + nx * (nz * nz) * u[n][2] * sqrt(mu * rho * sum_square) - (ny * ny) * nz * u[n][0] * sqrt(mu * rho * sum_square) + mu * (nx * nx * nx * nx) * rho * u[n][7] + mu * (nz * nz * nz * nz) * rho * u[n][7] + mu * (nx * nx) * (ny * ny) * rho * u[n][7] - 2 * mu * (nx * nx) * (nz * nz) * rho * u[n][7] + mu * (ny * ny) * (nz * nz) * rho * u[n][7] + 2 * nx * ny * nz * u[n][1] * sqrt(mu * rho * sum_square) + mu * nx * (ny * ny * ny) * rho * u[n][6] + mu * (nx * nx * nx) * ny * rho * u[n][6] + 2 * mu * nx * (nz * nz * nz) * rho * u[n][3] - 2 * mu * (nx * nx * nx) * nz * rho * u[n][3] - 2 * mu * nx * (nz * nz * nz) * rho * u[n][5] + 2 * mu * (nx * nx * nx) * nz * rho * u[n][5] + mu * ny * (nz * nz * nz) * rho * u[n][8] + mu * (ny * ny * ny) * nz * rho * u[n][8] + 2 * mu * nx * (ny * ny) * nz * rho * u[n][3] - 4 * mu * nx * (ny * ny) * nz * rho * u[n][4] + 2 * mu * nx * (ny * ny) * nz * rho * u[n][5] - 3 * mu * nx * ny * (nz * nz) * rho * u[n][6] - 3 * mu * (nx * nx) * ny * nz * rho * u[n][8]) / (2 * mu * rho * (sum_square * sum_square));
+        v[n][7] = ((nx * nx) * ny * u[n][0] * sqrt(mu * rho * sum_square) - (ny * ny * ny) * u[n][0] * sqrt(mu * rho * sum_square) - (nx * nx * nx) * u[n][1] * sqrt(mu * rho * sum_square) + nx * (ny * ny) * u[n][1] * sqrt(mu * rho * sum_square) - nx * (nz * nz) * u[n][1] * sqrt(mu * rho * sum_square) - ny * (nz * nz) * u[n][0] * sqrt(mu * rho * sum_square) + mu * (nx * nx * nx * nx) * rho * u[n][8] + mu * (ny * ny * ny * ny) * rho * u[n][8] - 2 * mu * (nx * nx) * (ny * ny) * rho * u[n][8] + mu * (nx * nx) * (nz * nz) * rho * u[n][8] + mu * (ny * ny) * (nz * nz) * rho * u[n][8] + 2 * nx * ny * nz * u[n][2] * sqrt(mu * rho * sum_square) + 2 * mu * nx * (ny * ny * ny) * rho * u[n][3] - 2 * mu * (nx * nx * nx) * ny * rho * u[n][3] - 2 * mu * nx * (ny * ny * ny) * rho * u[n][4] + 2 * mu * (nx * nx * nx) * ny * rho * u[n][4] + mu * nx * (nz * nz * nz) * rho * u[n][6] + mu * (nx * nx * nx) * nz * rho * u[n][6] + mu * ny * (nz * nz * nz) * rho * u[n][7] + mu * (ny * ny * ny) * nz * rho * u[n][7] + 2 * mu * nx * ny * (nz * nz) * rho * u[n][3] + 2 * mu * nx * ny * (nz * nz) * rho * u[n][4] - 4 * mu * nx * ny * (nz * nz) * rho * u[n][5] - 3 * mu * nx * (ny * ny) * nz * rho * u[n][6] - 3 * mu * (nx * nx) * ny * nz * rho * u[n][7]) / (2 * mu * rho * (sum_square * sum_square));
+        v[n][8] = -(rho * rho * (lambda + 2 * mu) * (lambda * (nx * nx * nx * nx) * ny * u[n][0] + lambda * nx * (ny * ny * ny * ny) * u[n][1] + 2 * mu * (nx * nx * nx * nx) * ny * u[n][0] + 2 * mu * nx * (ny * ny * ny * ny) * u[n][1] + lambda * (nx * nx) * (ny * ny * ny) * u[n][0] + lambda * (nx * nx * nx) * (ny * ny) * u[n][1] + 2 * mu * (nx * nx) * (ny * ny * ny) * u[n][0] + 2 * mu * (nx * nx * nx) * (ny * ny) * u[n][1] - lambda * nx * (ny * ny * ny) * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * (nx * nx * nx) * ny * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * nx * (ny * ny * ny) * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * (nx * nx * nx) * ny * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * nx * (ny * ny * ny) * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * (nx * nx * nx) * ny * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) - 2 * mu * (nx * nx * nx) * ny * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) - 2 * mu * nx * (ny * ny * ny) * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * (nx * nx) * ny * (nz * nz) * u[n][0] + lambda * nx * (ny * ny) * (nz * nz) * u[n][1] + 2 * mu * (nx * nx) * ny * (nz * nz) * u[n][0] + 2 * mu * nx * (ny * ny) * (nz * nz) * u[n][1] - 2 * mu * (nx * nx) * (ny * ny) * u[n][8] * sqrt(rho * (lambda + 2 * mu) * sum_square) + lambda * nx * ny * (nz * nz * nz) * u[n][2] + lambda * nx * (ny * ny * ny) * nz * u[n][2] + lambda * (nx * nx * nx) * ny * nz * u[n][2] + 2 * mu * nx * ny * (nz * nz * nz) * u[n][2] + 2 * mu * nx * (ny * ny * ny) * nz * u[n][2] + 2 * mu * (nx * nx * nx) * ny * nz * u[n][2] - lambda * nx * ny * (nz * nz) * u[n][3] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * nx * ny * (nz * nz) * u[n][4] * sqrt(rho * (lambda + 2 * mu) * sum_square) - lambda * nx * ny * (nz * nz) * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) - 2 * mu * nx * ny * (nz * nz) * u[n][5] * sqrt(rho * (lambda + 2 * mu) * sum_square) - 2 * mu * nx * (ny * ny) * nz * u[n][6] * sqrt(rho * (lambda + 2 * mu) * sum_square) - 2 * mu * (nx * nx) * ny * nz * u[n][7] * sqrt(rho * (lambda + 2 * mu) * sum_square))) / ((rho * (lambda + 2 * mu) * sum_square) * (rho * (lambda + 2 * mu) * sum_square) * sqrt(rho * (lambda + 2 * mu) * sum_square));
+    }
+
+    // Shock capture interpolation
+    for (int n = 0; n < 9; n++)
+    {
+        v_ip12n[n] = WENO5_interpolation(v[0][n], v[1][n], v[2][n], v[3][n], v[4][n]);
+        v_ip12p[n] = WENO5_interpolation(v[5][n], v[4][n], v[3][n], v[2][n], v[1][n]);
+    }
+
+    // Transform back to physical domain
+    u_ip12n[0] = (v_ip12n[5] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * ny) - (v_ip12n[8] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * ny) + (ny * v_ip12n[4] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz)) - (ny * v_ip12n[7] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nz * v_ip12n[3] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz)) - (nz * v_ip12n[6] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz));
+    u_ip12n[1] = (v_ip12n[5] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx) - (v_ip12n[8] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx) - (v_ip12n[4] * ((nx * nx) - (nz * nz)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (v_ip12n[7] * ((nx * nx) - (nz * nz)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * nz * v_ip12n[3] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (ny * nz * v_ip12n[6] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz)));
+    u_ip12n[2] = (nz * v_ip12n[5] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx * ny) - (nz * v_ip12n[8] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx * ny) - (v_ip12n[3] * ((nx * nx) - (ny * ny)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (v_ip12n[6] * ((nx * nx) - (ny * ny)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * nz * v_ip12n[4] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (ny * nz * v_ip12n[7] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz)));
+    u_ip12n[3] = (nx * v_ip12n[5]) / (2 * ny) + (nx * v_ip12n[8]) / (2 * ny) + (nx * ny * v_ip12n[4]) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nx * ny * v_ip12n[7]) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nx * nz * v_ip12n[3]) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nx * nz * v_ip12n[6]) / (-(nx * nx) + (ny * ny) + (nz * nz)) - (v_ip12n[2] * (2 * lambda * (ny * ny) - lambda * (nx * nx) + 2 * mu * (ny * ny))) / (2 * nx * ny * (3 * lambda + 2 * mu)) - (v_ip12n[1] * (2 * lambda * (nz * nz) - lambda * (nx * nx) + 2 * mu * (nz * nz))) / (2 * nx * nz * (3 * lambda + 2 * mu)) + (lambda * v_ip12n[0] * ((ny * ny) + (nz * nz))) / (2 * ny * nz * (3 * lambda + 2 * mu));
+    u_ip12n[4] = (ny * v_ip12n[5]) / (2 * nx) + (ny * v_ip12n[8]) / (2 * nx) - ((ny * ny) * nz * v_ip12n[3]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - ((ny * ny) * nz * v_ip12n[6]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * v_ip12n[4] * ((nx * nx) - (nz * nz))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * v_ip12n[7] * ((nx * nx) - (nz * nz))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (v_ip12n[2] * (2 * lambda * (nx * nx) - lambda * (ny * ny) + 2 * mu * (nx * nx))) / (2 * nx * ny * (3 * lambda + 2 * mu)) - (v_ip12n[0] * (2 * lambda * (nz * nz) - lambda * (ny * ny) + 2 * mu * (nz * nz))) / (2 * ny * nz * (3 * lambda + 2 * mu)) + (lambda * v_ip12n[1] * ((nx * nx) + (nz * nz))) / (2 * nx * nz * (3 * lambda + 2 * mu));
+    u_ip12n[5] = ((nz * nz) * v_ip12n[5]) / (2 * nx * ny) + ((nz * nz) * v_ip12n[8]) / (2 * nx * ny) - (ny * (nz * nz) * v_ip12n[4]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * (nz * nz) * v_ip12n[7]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (nz * v_ip12n[3] * ((nx * nx) - (ny * ny))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (nz * v_ip12n[6] * ((nx * nx) - (ny * ny))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (v_ip12n[1] * (2 * lambda * (nx * nx) - lambda * (nz * nz) + 2 * mu * (nx * nx))) / (2 * nx * nz * (3 * lambda + 2 * mu)) - (v_ip12n[0] * (2 * lambda * (ny * ny) - lambda * (nz * nz) + 2 * mu * (ny * ny))) / (2 * ny * nz * (3 * lambda + 2 * mu)) + (lambda * v_ip12n[2] * ((nx * nx) + (ny * ny))) / (2 * nx * ny * (3 * lambda + 2 * mu));
+    u_ip12n[6] = -((nx * nx * nx) * v_ip12n[0] - (ny * ny * ny) * v_ip12n[3] - (ny * ny * ny) * v_ip12n[6] - (nz * nz * nz) * v_ip12n[4] - (nz * nz * nz) * v_ip12n[5] - (nz * nz * nz) * v_ip12n[7] - (nz * nz * nz) * v_ip12n[8] - nx * (ny * ny) * v_ip12n[0] + (nx * nx) * ny * v_ip12n[3] + (nx * nx) * ny * v_ip12n[6] - nx * (nz * nz) * v_ip12n[0] + (nx * nx) * nz * v_ip12n[4] + (nx * nx) * nz * v_ip12n[5] + (nx * nx) * nz * v_ip12n[7] + (nx * nx) * nz * v_ip12n[8] + ny * (nz * nz) * v_ip12n[3] + (ny * ny) * nz * v_ip12n[4] - (ny * ny) * nz * v_ip12n[5] + ny * (nz * nz) * v_ip12n[6] + (ny * ny) * nz * v_ip12n[7] - (ny * ny) * nz * v_ip12n[8]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz)));
+    u_ip12n[7] = v_ip12n[1] + v_ip12n[3] + v_ip12n[6] + (nz * v_ip12n[5]) / ny + (nz * v_ip12n[8]) / ny;
+    u_ip12n[8] = v_ip12n[2] + v_ip12n[4] + v_ip12n[5] + v_ip12n[7] + v_ip12n[8];
+
+    u_ip12p[0] = (v_ip12p[5] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * ny) - (v_ip12p[8] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * ny) + (ny * v_ip12p[4] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz)) - (ny * v_ip12p[7] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nz * v_ip12p[3] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz)) - (nz * v_ip12p[6] * sqrt(mu * rho * sum_square)) / (-(nx * nx) + (ny * ny) + (nz * nz));
+    u_ip12p[1] = (v_ip12p[5] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx) - (v_ip12p[8] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx) - (v_ip12p[4] * ((nx * nx) - (nz * nz)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (v_ip12p[7] * ((nx * nx) - (nz * nz)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * nz * v_ip12p[3] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (ny * nz * v_ip12p[6] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz)));
+    u_ip12p[2] = (nz * v_ip12p[5] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx * ny) - (nz * v_ip12p[8] * sqrt(rho * (lambda + 2 * mu) * sum_square)) / (2 * nx * ny) - (v_ip12p[3] * ((nx * nx) - (ny * ny)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (v_ip12p[6] * ((nx * nx) - (ny * ny)) * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * nz * v_ip12p[4] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) + (ny * nz * v_ip12p[7] * sqrt(mu * rho * sum_square)) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz)));
+    u_ip12p[3] = (nx * v_ip12p[5]) / (2 * ny) + (nx * v_ip12p[8]) / (2 * ny) + (nx * ny * v_ip12p[4]) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nx * ny * v_ip12p[7]) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nx * nz * v_ip12p[3]) / (-(nx * nx) + (ny * ny) + (nz * nz)) + (nx * nz * v_ip12p[6]) / (-(nx * nx) + (ny * ny) + (nz * nz)) - (v_ip12p[2] * (2 * lambda * (ny * ny) - lambda * (nx * nx) + 2 * mu * (ny * ny))) / (2 * nx * ny * (3 * lambda + 2 * mu)) - (v_ip12p[1] * (2 * lambda * (nz * nz) - lambda * (nx * nx) + 2 * mu * (nz * nz))) / (2 * nx * nz * (3 * lambda + 2 * mu)) + (lambda * v_ip12p[0] * ((ny * ny) + (nz * nz))) / (2 * ny * nz * (3 * lambda + 2 * mu));
+    u_ip12p[4] = (ny * v_ip12p[5]) / (2 * nx) + (ny * v_ip12p[8]) / (2 * nx) - ((ny * ny) * nz * v_ip12p[3]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - ((ny * ny) * nz * v_ip12p[6]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * v_ip12p[4] * ((nx * nx) - (nz * nz))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * v_ip12p[7] * ((nx * nx) - (nz * nz))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (v_ip12p[2] * (2 * lambda * (nx * nx) - lambda * (ny * ny) + 2 * mu * (nx * nx))) / (2 * nx * ny * (3 * lambda + 2 * mu)) - (v_ip12p[0] * (2 * lambda * (nz * nz) - lambda * (ny * ny) + 2 * mu * (nz * nz))) / (2 * ny * nz * (3 * lambda + 2 * mu)) + (lambda * v_ip12p[1] * ((nx * nx) + (nz * nz))) / (2 * nx * nz * (3 * lambda + 2 * mu));
+    u_ip12p[5] = ((nz * nz) * v_ip12p[5]) / (2 * nx * ny) + ((nz * nz) * v_ip12p[8]) / (2 * nx * ny) - (ny * (nz * nz) * v_ip12p[4]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (ny * (nz * nz) * v_ip12p[7]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (nz * v_ip12p[3] * ((nx * nx) - (ny * ny))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (nz * v_ip12p[6] * ((nx * nx) - (ny * ny))) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz))) - (v_ip12p[1] * (2 * lambda * (nx * nx) - lambda * (nz * nz) + 2 * mu * (nx * nx))) / (2 * nx * nz * (3 * lambda + 2 * mu)) - (v_ip12p[0] * (2 * lambda * (ny * ny) - lambda * (nz * nz) + 2 * mu * (ny * ny))) / (2 * ny * nz * (3 * lambda + 2 * mu)) + (lambda * v_ip12p[2] * ((nx * nx) + (ny * ny))) / (2 * nx * ny * (3 * lambda + 2 * mu));
+    u_ip12p[6] = -((nx * nx * nx) * v_ip12p[0] - (ny * ny * ny) * v_ip12p[3] - (ny * ny * ny) * v_ip12p[6] - (nz * nz * nz) * v_ip12p[4] - (nz * nz * nz) * v_ip12p[5] - (nz * nz * nz) * v_ip12p[7] - (nz * nz * nz) * v_ip12p[8] - nx * (ny * ny) * v_ip12p[0] + (nx * nx) * ny * v_ip12p[3] + (nx * nx) * ny * v_ip12p[6] - nx * (nz * nz) * v_ip12p[0] + (nx * nx) * nz * v_ip12p[4] + (nx * nx) * nz * v_ip12p[5] + (nx * nx) * nz * v_ip12p[7] + (nx * nx) * nz * v_ip12p[8] + ny * (nz * nz) * v_ip12p[3] + (ny * ny) * nz * v_ip12p[4] - (ny * ny) * nz * v_ip12p[5] + ny * (nz * nz) * v_ip12p[6] + (ny * ny) * nz * v_ip12p[7] - (ny * ny) * nz * v_ip12p[8]) / (nx * (-(nx * nx) + (ny * ny) + (nz * nz)));
+    u_ip12p[7] = v_ip12p[1] + v_ip12p[3] + v_ip12p[6] + (nz * v_ip12p[5]) / ny + (nz * v_ip12p[8]) / ny;
+    u_ip12p[8] = v_ip12p[2] + v_ip12p[4] + v_ip12p[5] + v_ip12p[7] + v_ip12p[8];
+
+#ifdef LF
+    // Riemann solver: Lax-Friedrichs
+    fu_ip12n[0] = -(nx * (lambda * u_ip12n[4] + lambda * u_ip12n[5] + u_ip12n[3] * (lambda + 2 * mu)) + mu * ny * u_ip12n[8] + mu * nz * u_ip12n[7]);
+    fu_ip12n[1] = -(ny * (lambda * u_ip12n[3] + lambda * u_ip12n[5] + u_ip12n[4] * (lambda + 2 * mu)) + mu * nx * u_ip12n[8] + mu * nz * u_ip12n[6]);
+    fu_ip12n[2] = -(nz * (lambda * u_ip12n[3] + lambda * u_ip12n[4] + u_ip12n[5] * (lambda + 2 * mu)) + mu * nx * u_ip12n[7] + mu * ny * u_ip12n[6]);
+    fu_ip12n[3] = -((nx * u_ip12n[0]) * buoyancy);
+    fu_ip12n[4] = -((ny * u_ip12n[1]) * buoyancy);
+    fu_ip12n[5] = -((nz * u_ip12n[2]) * buoyancy);
+    fu_ip12n[6] = -((ny * u_ip12n[2]) * buoyancy + (nz * u_ip12n[1]) * buoyancy);
+    fu_ip12n[7] = -((nx * u_ip12n[2]) * buoyancy + (nz * u_ip12n[0]) * buoyancy);
+    fu_ip12n[8] = -((nx * u_ip12n[1]) * buoyancy + (ny * u_ip12n[0]) * buoyancy);
+
+    fu_ip12p[0] = -(nx * (lambda * u_ip12p[4] + lambda * u_ip12p[5] + u_ip12p[3] * (lambda + 2 * mu)) + mu * ny * u_ip12p[8] + mu * nz * u_ip12p[7]);
+    fu_ip12p[1] = -(ny * (lambda * u_ip12p[3] + lambda * u_ip12p[5] + u_ip12p[4] * (lambda + 2 * mu)) + mu * nx * u_ip12p[8] + mu * nz * u_ip12p[6]);
+    fu_ip12p[2] = -(nz * (lambda * u_ip12p[3] + lambda * u_ip12p[4] + u_ip12p[5] * (lambda + 2 * mu)) + mu * nx * u_ip12p[7] + mu * ny * u_ip12p[6]);
+    fu_ip12p[3] = -((nx * u_ip12p[0]) * buoyancy);
+    fu_ip12p[4] = -((ny * u_ip12p[1]) * buoyancy);
+    fu_ip12p[5] = -((nz * u_ip12p[2]) * buoyancy);
+    fu_ip12p[6] = -((ny * u_ip12p[2]) * buoyancy + (nz * u_ip12p[1]) * buoyancy);
+    fu_ip12p[7] = -((nx * u_ip12p[2]) * buoyancy + (nz * u_ip12p[0]) * buoyancy);
+    fu_ip12p[8] = -((nx * u_ip12p[1]) * buoyancy + (ny * u_ip12p[0]) * buoyancy);
+
+    for (int n = 0; n < 9; n++)
+    {
+        Riemann_flux[idx * WSIZE + n] = 0.5f * (fu_ip12p[n] + fu_ip12n[n] - alpha * (u_ip12p[n] - u_ip12n[n]));
+    }
+#endif
+
+    END_CALCULATE3D()
+}
+
+__GLOBAL__
 void cal_du_x(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *CJM, FLOAT *u,
 #ifdef PML
               PML_BETA pml_beta,
@@ -686,6 +1177,17 @@ void waveDeriv_alternative_flux_FD(GRID grid, WAVE wave, FLOAT *CJM,
 #endif // LF
     );
 
+//     wave_deriv_alternative_flux_FD_char_x<<<blocks, threads>>>(wave.Riemann_flux, wave.h_W, wave.W, CJM,
+// #ifdef PML
+//                                                                pml_beta,
+// #endif // PML
+//                                                                _nx_, _ny_, _nz_, rDH, DT
+// #ifdef LF
+//                                                                ,
+//                                                                vp_max_for_SCFDM
+// #endif // LF
+//     );
+
     cal_du_x<<<blocks, threads>>>(wave.Riemann_flux, wave.h_W, CJM, wave.W,
 #ifdef PML
                                   pml_beta,
@@ -702,6 +1204,16 @@ void waveDeriv_alternative_flux_FD(GRID grid, WAVE wave, FLOAT *CJM,
                                                           vp_max_for_SCFDM
 #endif // LF
     );
+//     wave_deriv_alternative_flux_FD_char_y<<<blocks, threads>>>(wave.Riemann_flux, wave.h_W, wave.W, CJM,
+// #ifdef PML
+//                                                                pml_beta,
+// #endif // PML
+//                                                                _nx_, _ny_, _nz_, rDH, DT
+// #ifdef LF
+//                                                                ,
+//                                                                vp_max_for_SCFDM
+// #endif // LF
+//     );
 
     cal_du_y<<<blocks, threads>>>(wave.Riemann_flux, wave.h_W, CJM, wave.W,
 #ifdef PML
@@ -719,6 +1231,16 @@ void waveDeriv_alternative_flux_FD(GRID grid, WAVE wave, FLOAT *CJM,
                                                           vp_max_for_SCFDM
 #endif // LF
     );
+//     wave_deriv_alternative_flux_FD_char_z<<<blocks, threads>>>(wave.Riemann_flux, wave.h_W, wave.W, CJM,
+// #ifdef PML
+//                                                                pml_beta,
+// #endif // PML
+//                                                                _nx_, _ny_, _nz_, rDH, DT
+// #ifdef LF
+//                                                                ,
+//                                                                vp_max_for_SCFDM
+// #endif // LF
+//     );
 
     cal_du_z<<<blocks, threads>>>(wave.Riemann_flux, wave.h_W, CJM, wave.W,
 #ifdef PML

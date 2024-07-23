@@ -33,7 +33,7 @@ DFLAGS_LIST := SCFDM LF
 FREE_SURFACE := ON
 
 PML :=
-EXP_DECAY := # SCFDM only can use EXP_DECAY now
+EXP_DECAY := ON # SCFDM only can use EXP_DECAY now
 
 SOLVE_DISPLACEMENT := ON
 Terrain_Smooth := ON 
