@@ -26,16 +26,6 @@
 #ifdef SCFDM
 #include "header.h"
 
-#ifdef PML
-#define TIMES_PML_BETA_X *pml_beta_x
-#define TIMES_PML_BETA_Y *pml_beta_y
-#define TIMES_PML_BETA_Z *pml_beta_z
-#else
-#define TIMES_PML_BETA_X
-#define TIMES_PML_BETA_Y
-#define TIMES_PML_BETA_Z
-#endif
-
 #define order2_approximation(u1, u2, u3, u4, u5) (1.0f / 12 * (-u1 + 16 * u2 - 30 * u3 + 16 * u4 - u5))
 #define order4_approximation(u1, u2, u3, u4, u5) ((u1 - 4 * u2 + 6 * u3 - 4 * u4 + u5))
 
