@@ -17,7 +17,7 @@
 *   Reference:
 *      1. Wang, W., Zhang, Z., Zhang, W., Yu, H., Liu, Q., Zhang, W., & Chen, X. (2022). CGFDM3D‐EQR: A platform for rapid response to earthquake disasters in 3D complex media. Seismological Research Letters, 93(4), 2320-2334. https://doi.org/https://doi.org/10.1785/0220210172
 *      2. Xu, T., & Zhang, Z. (2024). Numerical simulation of 3D seismic wave based on alternative flux finite-difference WENO scheme. Geophysical Journal International, 238(1), 496-512. https://doi.org/https://doi.org/10.1093/gji/ggae167
-*      3. Zhang, W., Liu, Y., & Chen, X. (2023). A Mixed‐Flux‐Based Nodal Discontinuous Galerkin Method for 3D Dynamic Rupture Modeling. Journal of Geophysical Research: Solid Earth, e2022JB025817. 
+*      3. Zhang, W., Liu, Y., & Chen, X. (2023). A Mixed‐Flux‐Based Nodal Discontinuous Galerkin Method for 3D Dynamic Rupture Modeling. Journal of Geophysical Research: Solid Earth, e2022JB025817.
 *
 =================================================================*/
 
@@ -42,7 +42,7 @@ __DEVICE__
 float sourceFunction(float rickerfc, int it, int irk, float DT)
 {
 	float t = 0.0f;
-	float tdelay = 1.2f / rickerfc;
+	float tdelay = 1.0f / rickerfc;
 	// tdelay = 1.0;
 
 	if (0 == irk)
@@ -57,10 +57,9 @@ float sourceFunction(float rickerfc, int it, int irk, float DT)
 	{
 		t = (it + 1.0f) * DT;
 	}
-	float f0 = 2;
 	float r = PI * rickerfc * (t - tdelay);
 	float rr = r * r;
-	float s = r * (2.0f * rr - 3.0) * exp(-rr) * f0 * PI * rickerfc;
+	float s = r * (3.0 - 2.0f * rr) * exp(-rr) * sqrt(PI) * 0.5 * rickerfc * PI;
 
 	float M0 = 1e9; // ! When M0 > 1e9, S wave residue in SCFDM
 	s *= M0;
