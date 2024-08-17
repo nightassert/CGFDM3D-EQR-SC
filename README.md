@@ -4,6 +4,9 @@ A platform for rapid response to earthquake disasters in 3D complex media.
 - CGFDM3D-EQR: Curve Grid Finite Difference Method \
 - CGFDM3D-EQR-SC: Mixed Efficient Alternative Flux Finite-Difference WENO Scheme (ME-AWENO)
 
+
+
+## Authors
 **Tianhong Xu, Wenqiang Wang, Zhenguo Zhang*** \
 Southern University of Science and Technology \
 Shenzhen, China
