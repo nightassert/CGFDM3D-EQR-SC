@@ -1,14 +1,12 @@
 # CGFDM3D-EQR-SC
 A platform for rapid response to earthquake disasters in 3D complex media. 
 
-Add Alternative Flux Finite-Difference WENO Scheme (AWENO).
+CGFDM3D-EQR: Curve Grid Finite Difference Method
+CGFDM3D-EQR-SC: Mixed Efficient Alternative Flux Finite-Difference WENO Scheme (ME-AWENO)
 
-**Tianhong Xu, Zhenguo Zhang*** \
+**Tianhong Xu, Wenqiang Wang, Zhenguo Zhang*** \
 Southern University of Science and Technology \
 Shenzhen, China
-
-## Introduction
-The code is based on Wenqiang Wang's CGFDM3D-EQR program to add shock capture schemes module.
 
 ## Reference
 1. Wang, W., Zhang, Z., Zhang, W., Yu, H., Liu, Q., Zhang, W., & Chen, X. (2022). CGFDM3D‐EQR: A platform for rapid response to earthquake disasters in 3D complex media. Seismological Research Letters, 93(4), 2320-2334. 
