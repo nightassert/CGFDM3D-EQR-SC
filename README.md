@@ -2,10 +2,12 @@
 A platform for rapid response to earthquake disasters in 3D complex media. \
 The program is developed based on CGFDM3D-EQR, adding shock-capturing AWENO scheme. It provides 2 version for seismic wave propagation simulation:
 
-- CGFDM3D-EQR: Curve Grid Finite Difference Method
+- CGFDM3D-EQR: Curve-Grid Finite-Difference Method (CGFDM)
 - CGFDM3D-EQR-SC: Mixed Efficient Alternative Flux Finite-Difference WENO Scheme (ME-AWENO)
 
-
+You can choose scheme by using different Makefile:
+- Makefile_CGFDM
+- Makefile_SCFDM
 
 ## Authors
 **Tianhong Xu, Wenqiang Wang, Zhenguo Zhang*** \
