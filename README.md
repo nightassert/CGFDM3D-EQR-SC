@@ -8,6 +8,10 @@ The program is developed based on CGFDM3D-EQR, adding shock-capturing AWENO sche
 You can choose scheme by using different Makefile:
 - Makefile_CGFDM
 - Makefile_SCFDM
+> A convient script make.sh is provided to compile the program. If you use CGFDM, run `bash make.sh CGFDM`, and if you use ME-AWENO, run `bash make.sh SCFDM`.
+
+The folder src_GJI_XU2024 contains the source codes of [Xu & Zhang (2024)](https://doi.org/10.1093/gji/ggae167).
+And the folder src contains the newest optimization codes, which has been submitted to JGR: Solid Earth.
 
 ## Authors
 **Tianhong Xu, Wenqiang Wang, Zhenguo Zhang*** \
