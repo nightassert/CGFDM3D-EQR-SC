@@ -18,6 +18,6 @@ And the folder src contains the newest optimization codes, which has been submit
 Southern University of Science and Technology \
 Shenzhen, China
 
-## Reference
+## Citation
 1. Wang, W., Zhang, Z., Zhang, W., Yu, H., Liu, Q., Zhang, W., & Chen, X. (2022). CGFDM3D‐EQR: A platform for rapid response to earthquake disasters in 3D complex media. Seismological Research Letters, 93(4), 2320-2334. 
 2. Xu, T., & Zhang, Z. (2024). Numerical simulation of 3D seismic wave based on alternative flux finite-difference WENO scheme. Geophysical Journal International, 238(1), 496-512. 
