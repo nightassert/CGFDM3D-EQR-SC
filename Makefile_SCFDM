@@ -35,6 +35,7 @@ FREE_SURFACE := ON
 PML :=
 EXP_DECAY := ON # SCFDM only can use EXP_DECAY now
 
+SOLVE_PGA := ON
 SOLVE_DISPLACEMENT := ON
 Terrain_Smooth := ON 
 DealWithFirstLayer := ON
@@ -107,7 +108,7 @@ vpath % $(OBJDIR)
 vpath % $(BINDIR)
 
 
-DFLAGS_LIST += XFAST ZFAST GPU_CUDA FLOAT16 FREE_SURFACE PML EXP_DECAY SOLVE_DISPLACEMENT \
+DFLAGS_LIST += XFAST ZFAST GPU_CUDA FLOAT16 FREE_SURFACE PML EXP_DECAY SOLVE_PGA SOLVE_DISPLACEMENT \
 			   Terrain_Smooth DealWithFirstLayer SET_BASIN LayeredStructureTerrain StructureTerrain
 
 DFLAGS := $(foreach flag,$(DFLAGS_LIST),$(if $($(flag)),-D$(flag)))

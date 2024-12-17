@@ -228,7 +228,7 @@ void propagate(
 #endif
 			);
 		if (IsFreeSurface)
-			comparePGV(grid, thisMPICoord, wave.W, pgv
+			comparePGV(grid, thisMPICoord, wave.W, pgv, DT
 #ifdef SCFDM
 					   ,
 					   CJM

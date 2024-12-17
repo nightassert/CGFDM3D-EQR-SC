@@ -60,7 +60,12 @@
 #endif
 #define WSIZE 9
 #define MATSIZE 9
+
+#ifdef SOLVE_PGA
+#define PGVSIZE 4
+#else
 #define PGVSIZE 2
+#endif
 
 #define PI 3.141592657f
 // #define PI 3.1415926535898

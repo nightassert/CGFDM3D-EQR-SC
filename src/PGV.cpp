@@ -17,7 +17,7 @@
 *   Reference:
 *      1. Wang, W., Zhang, Z., Zhang, W., Yu, H., Liu, Q., Zhang, W., & Chen, X. (2022). CGFDM3D‐EQR: A platform for rapid response to earthquake disasters in 3D complex media. Seismological Research Letters, 93(4), 2320-2334. https://doi.org/https://doi.org/10.1785/0220210172
 *      2. Xu, T., & Zhang, Z. (2024). Numerical simulation of 3D seismic wave based on alternative flux finite-difference WENO scheme. Geophysical Journal International, 238(1), 496-512. https://doi.org/https://doi.org/10.1093/gji/ggae167
-*      3. Zhang, W., Liu, Y., & Chen, X. (2023). A Mixed‐Flux‐Based Nodal Discontinuous Galerkin Method for 3D Dynamic Rupture Modeling. Journal of Geophysical Research: Solid Earth, e2022JB025817. 
+*      3. Zhang, W., Liu, Y., & Chen, X. (2023). A Mixed‐Flux‐Based Nodal Discontinuous Galerkin Method for 3D Dynamic Rupture Modeling. Journal of Geophysical Research: Solid Earth, e2022JB025817.
 *
 =================================================================*/
 
@@ -91,6 +91,9 @@ void compare_pgv(float *pgv, FLOAT *W, int nx, int ny, int nz
 #endif
 
 	float Vx = 0.0f, Vy = 0.0f, Vz = 0.0f, Vh = 0.0f, V = 0.0f;
+#ifdef SOLVE_PGA
+	float Ax = 0.0f, Ay = 0.0f, Az = 0.0f, Ah = 0.0f, A = 0.0f;
+#endif
 
 	double c = 1.0 / Cv;
 	CALCULATE2D(i0, j0, 0, nx, 0, ny)
@@ -126,6 +129,19 @@ void compare_pgv(float *pgv, FLOAT *W, int nx, int ny, int nz
 	{
 		pgv[pos * PGVSIZE + 1] = V;
 	}
+
+#ifdef SOLVE_PGA
+	if (pgv[pos * PGVSIZE + 2] < Ah) // PGAh
+	{
+		pgv[pos * PGVSIZE + 2] = Ah;
+		Ah = sqrtf(Ax * Ax + Ay * Ay);
+		A = sqrtf(Ax * Ax + Ay * Ay + Az * Az);
+	}
+	if (pgv[pos * PGVSIZE + 3] < A) // PGA
+	{
+		pgv[pos * PGVSIZE + 3] = A;
+	}
+#endif
 	END_CALCULATE2D()
 }
 
@@ -139,7 +155,7 @@ void outputPgvData(PARAMS params, MPI_COORD thisMPICoord, float *cpuPgv, int nx,
 	fclose(filePgv);
 }
 
-void comparePGV(GRID grid, MPI_COORDINATE thisMPICoord, FLOAT *W, float *pgv
+void comparePGV(GRID grid, MPI_COORDINATE thisMPICoord, FLOAT *W, float *pgv, float DT
 #ifdef SCFDM
 				,
 				FLOAT *CJM
