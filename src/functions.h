@@ -201,10 +201,16 @@ void FLOAT_mpiSendRecv(MPI_Comm comm_cart, MPI_NEIGHBOR mpiNeighbor, GRID grid, 
 void allocatePGV(GRID grid, float **pgv, float **cpu_pgv);
 void freePGV(float *pgv, float *cpu_pgv);
 void outputPGV(PARAMS params, GRID grid, MPI_COORDINATE thisMPICoord, float *pgv, float *cpuPgv);
-void comparePGV(GRID grid, MPI_COORDINATE thisMPICoord, FLOAT *W, float *pgv, float DT
+void comparePGV(GRID grid, MPI_COORDINATE thisMPICoord, FLOAT *W, float *pgv, float DT, int it
 #ifdef SCFDM
 				,
 				FLOAT *CJM
+#endif
+
+#ifdef SOLVE_PGA
+				,
+				FLOAT *W_pre
+
 #endif
 );
 

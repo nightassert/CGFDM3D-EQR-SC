@@ -59,10 +59,16 @@ void freePGV(float *pgv, float *cpu_pgv)
 }
 
 __GLOBAL__
-void compare_pgv(float *pgv, FLOAT *W, int nx, int ny, int nz
+void compare_pgv(float *pgv, FLOAT *W, int nx, int ny, int nz, float DT, int it
 #ifdef SCFDM
 				 ,
 				 FLOAT *CJM
+#endif
+
+#ifdef SOLVE_PGA
+				 ,
+				 FLOAT *W_pre
+
 #endif
 )
 {
@@ -93,6 +99,7 @@ void compare_pgv(float *pgv, FLOAT *W, int nx, int ny, int nz
 	float Vx = 0.0f, Vy = 0.0f, Vz = 0.0f, Vh = 0.0f, V = 0.0f;
 #ifdef SOLVE_PGA
 	float Ax = 0.0f, Ay = 0.0f, Az = 0.0f, Ah = 0.0f, A = 0.0f;
+	float Vx_pre = 0.0f, Vy_pre = 0.0f, Vz_pre = 0.0f;
 #endif
 
 	double c = 1.0 / Cv;
@@ -131,15 +138,37 @@ void compare_pgv(float *pgv, FLOAT *W, int nx, int ny, int nz
 	}
 
 #ifdef SOLVE_PGA
-	if (pgv[pos * PGVSIZE + 2] < Ah) // PGAh
+
+	if (it % 10 == 0)
 	{
-		pgv[pos * PGVSIZE + 2] = Ah;
+#ifdef SCFDM
+		buoyancy = CJM[index * CJMSIZE + 12];
+		buoyancy *= Crho;
+
+		Vx_pre = (float)W_pre[index * WSIZE + 0] * c * buoyancy;
+		Vy_pre = (float)W_pre[index * WSIZE + 1] * c * buoyancy;
+		Vz_pre = (float)W_pre[index * WSIZE + 2] * c * buoyancy;
+#else
+		Vx_pre = (float)W_pre[index * WSIZE + 0] * c;
+		Vy_pre = (float)W_pre[index * WSIZE + 1] * c;
+		Vz_pre = (float)W_pre[index * WSIZE + 2] * c;
+#endif
+
+		Ax = (Vx - Vx_pre) / (10 * DT);
+		Ay = (Vy - Vy_pre) / (10 * DT);
+		Az = (Vz - Vz_pre) / (10 * DT);
+
 		Ah = sqrtf(Ax * Ax + Ay * Ay);
 		A = sqrtf(Ax * Ax + Ay * Ay + Az * Az);
-	}
-	if (pgv[pos * PGVSIZE + 3] < A) // PGA
-	{
-		pgv[pos * PGVSIZE + 3] = A;
+
+		if (pgv[pos * PGVSIZE + 2] < Ah) // PGAh
+		{
+			pgv[pos * PGVSIZE + 2] = Ah;
+		}
+		if (pgv[pos * PGVSIZE + 3] < A) // PGA
+		{
+			pgv[pos * PGVSIZE + 3] = A;
+		}
 	}
 #endif
 	END_CALCULATE2D()
@@ -155,10 +184,16 @@ void outputPgvData(PARAMS params, MPI_COORD thisMPICoord, float *cpuPgv, int nx,
 	fclose(filePgv);
 }
 
-void comparePGV(GRID grid, MPI_COORDINATE thisMPICoord, FLOAT *W, float *pgv, float DT
+void comparePGV(GRID grid, MPI_COORDINATE thisMPICoord, FLOAT *W, float *pgv, float DT, int it
 #ifdef SCFDM
 				,
 				FLOAT *CJM
+#endif
+
+#ifdef SOLVE_PGA
+				,
+				FLOAT *W_pre
+
 #endif
 )
 {
@@ -172,10 +207,16 @@ void comparePGV(GRID grid, MPI_COORDINATE thisMPICoord, FLOAT *W, float *pgv, fl
 	blocks.y = (ny + threads.y - 1) / threads.y;
 	blocks.z = 1;
 
-	compare_pgv<<<blocks, threads>>>(pgv, W, nx, ny, nz
+	compare_pgv<<<blocks, threads>>>(pgv, W, nx, ny, nz, DT, it
 #ifdef SCFDM
 									 ,
 									 CJM
+#endif
+
+#ifdef SOLVE_PGA
+									 ,
+									 W_pre
+
 #endif
 	);
 	CHECK(cudaDeviceSynchronize());

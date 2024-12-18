@@ -23,6 +23,40 @@
 #define RK_NUM 4
 #endif
 
+#ifdef SOLVE_PGA
+__global__ void stroage_W_pre_gpu(FLOAT *W, FLOAT *W_pre, int _nx_, int _ny_, int _nz_)
+{
+	int i = threadIdx.x + blockIdx.x * blockDim.x;
+	int j = threadIdx.y + blockIdx.y * blockDim.y;
+	int k = threadIdx.z + blockIdx.z * blockDim.z;
+
+	long long index = INDEX(i, j, k);
+
+	W_pre[index] = W[index];
+}
+
+void storage_W_pre(GRID grid, WAVE wave)
+{
+	int _nx_ = grid._nx_;
+	int _ny_ = grid._ny_;
+	int _nz_ = grid._nz_;
+
+#ifdef XFAST
+	dim3 threads(32, 4, 4);
+#endif
+#ifdef ZFAST
+	dim3 threads(1, 8, 64);
+#endif
+
+	dim3 blocks;
+	blocks.x = (_nx_ + threads.x - 1) / threads.x;
+	blocks.y = (_ny_ + threads.y - 1) / threads.y;
+	blocks.z = (_nz_ + threads.z - 1) / threads.z;
+
+	stroage_W_pre_gpu<<<blocks, threads>>>(wave.W, wave.W_pre, _nx_, _ny_, _nz_);
+}
+#endif
+
 void isMPIBorder(GRID grid, MPI_COORD thisMPICoord, MPI_BORDER *border)
 {
 
@@ -150,6 +184,13 @@ void propagate(
 	FLOAT_allocSendRecv(grid, mpiNeighbor, &sr_wave, WSIZE);
 	for (it = 0; it < NT; it++)
 	{
+#ifdef SOLVE_PGA
+		if (it % 10 == 0)
+		{
+			storage_W_pre(grid, wave);
+		}
+#endif
+
 		FB1 = FB[it % 8][0];
 		FB2 = FB[it % 8][1];
 		FB3 = FB[it % 8][2];
@@ -228,10 +269,16 @@ void propagate(
 #endif
 			);
 		if (IsFreeSurface)
-			comparePGV(grid, thisMPICoord, wave.W, pgv, DT
+			comparePGV(grid, thisMPICoord, wave.W, pgv, DT, it
 #ifdef SCFDM
 					   ,
 					   CJM
+#endif
+
+#ifdef SOLVE_PGA
+					   ,
+					   wave.W_pre
+
 #endif
 			);
 

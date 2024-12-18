@@ -246,6 +246,8 @@ typedef struct WAVE
 	FLOAT *W;
 	FLOAT *t_W;
 	FLOAT *m_W;
+	// ! For SOLVE_PGA
+	FLOAT *W_pre;
 	// ! For alternative flux finite difference by Tianhong Xu
 	FLOAT *Riemann_flux;
 } WAVE;
