@@ -119,7 +119,25 @@ void getParams(PARAMS *params)
 		strcpy(params->LayeredFileName, item->valuestring);
 
 	if (item = cJSON_GetObjectItem(object, "useSingleSource(ricker)"))
-		params->useSingleSource = item->valueint;
+		params->useSingleSource_ricker = item->valueint;
+
+	if (item = cJSON_GetObjectItem(object, "useSingleSource(double_couple)"))
+		params->useSingleSource_double_couple = item->valueint;
+
+	if (item = cJSON_GetObjectItem(object, "strike"))
+		params->strike = item->valuedouble;
+
+	if (item = cJSON_GetObjectItem(object, "dip"))
+		params->dip = item->valuedouble;
+
+	if (item = cJSON_GetObjectItem(object, "rake"))
+		params->rake = item->valuedouble;
+
+	if (item = cJSON_GetObjectItem(object, "Mw"))
+		params->Mw = item->valuedouble;
+
+	if (item = cJSON_GetObjectItem(object, "duration"))
+		params->duration = item->valuedouble;
 
 	if (item = cJSON_GetObjectItem(object, "rickerfc"))
 		params->rickerfc = item->valuedouble;

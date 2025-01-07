@@ -147,7 +147,8 @@ void propagate(
 	locateSource(params, grid, &S);
 
 	int useMultiSource = params.useMultiSource;
-	int useSingleSource = params.useSingleSource;
+	int useSingleSource_ricker = params.useSingleSource_ricker;
+	int useSingleSource_double_couple = params.useSingleSource_double_couple;
 
 	int it = 0, irk = 0;
 	int FB1 = 0;
@@ -194,8 +195,11 @@ void propagate(
 		FB1 = FB[it % 8][0];
 		FB2 = FB[it % 8][1];
 		FB3 = FB[it % 8][2];
-		if (useSingleSource)
-			loadPointSource(grid, S, wave.W, CJM, it, 0, DT, DH, params.rickerfc);
+		if (useSingleSource_ricker)
+			loadPointSource_ricker(grid, S, wave.W, CJM, it, 0, DT, DH, params.rickerfc);
+		
+		if (useSingleSource_double_couple)
+			loadPointSource_double_couple(grid, S, wave.W, CJM, it, 0, DT, DH, params.strike, params.dip, params.rake, params.Mw, params.duration);
 
 		if (useMultiSource)
 			addMomenteRate(grid, src_in, wave.W, srcIndex, momentRate, momentRateSlice, it, 0, DT, DH, gaussFactor, nGauss, IsFreeSurface

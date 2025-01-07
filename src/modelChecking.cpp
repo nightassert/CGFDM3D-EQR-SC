@@ -20,7 +20,17 @@ void modelChecking(PARAMS params)
 	MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Comm_rank(MPI_COMM_WORLD, &thisRank);
 
-	if (params.useMultiSource && params.useSingleSource)
+	if (params.useSingleSource_ricker && params.useSingleSource_double_couple)
+	{
+		if (0 == thisRank)
+			printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+				   "You set \"useSingleSource(ricker)\" and \"useSingleSource(double_couple)\" at the same time. The program will abort!\n"
+				   "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+		MPI_Barrier(MPI_COMM_WORLD);
+		MPI_Abort(MPI_COMM_WORLD, 180);
+	}
+
+	if (params.useMultiSource && (params.useSingleSource_ricker || params.useSingleSource_double_couple))
 	{
 		params.useMultiSource = 0;
 		if (0 == thisRank)
@@ -28,7 +38,7 @@ void modelChecking(PARAMS params)
 				   "You set \"useMultiSource\" and \"useSingleSource\" at the same time. We set \"useSingleSource:\" = 0.\n"
 				   "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 	}
-	if (!(params.useMultiSource || params.useSingleSource))
+	if (!(params.useMultiSource || params.useSingleSource_ricker || params.useSingleSource_double_couple))
 	{
 
 		if (0 == thisRank)

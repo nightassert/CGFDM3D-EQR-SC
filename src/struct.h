@@ -57,8 +57,15 @@ typedef struct PARAMS
 	int useTerrain;
 	int useMedium;
 	int useMultiSource;
-	int useSingleSource;
+	int useSingleSource_ricker;
 	float rickerfc;
+
+	int useSingleSource_double_couple;
+	float strike;
+	float dip;
+	float rake;
+	float Mw;
+	float duration;
 
 	int ShenModel;
 	int Crust_1Model;

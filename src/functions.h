@@ -163,7 +163,8 @@ void storageStation(GRID grid, int NT, int stationNum, STATION station, FLOAT *W
 void stationGPU2CPU(STATION station, STATION station_cpu, int stationNum, int NT);
 void stationWrite(PARAMS params, GRID grid, MPI_COORD thisMPICoord, STATION station, int NT, int stationNum);
 
-void loadPointSource(GRID grid, SOURCE S, FLOAT *h_W, FLOAT *CJM, int it, int irk, float DT, float DH, float rickerfc);
+void loadPointSource_ricker(GRID grid, SOURCE S, FLOAT *h_W, FLOAT *CJM, int it, int irk, float DT, float DH, float rickerfc);
+void loadPointSource_double_couple(GRID grid, SOURCE S, FLOAT *h_W, FLOAT *CJM, int it, int irk, float DT, float DH, float strike, float dip, float rake, float Mw, float duration);
 
 void GaussField(GRID grid, FLOAT *W);
 
