@@ -1,0 +1,13 @@
+=============================================
+MPI:  PX =     4, PY =     2, PZ =     1
+GRID: NX =   801, NY =   601, NZ =   401
+NT:  4615
+DH = 2.00e+02
+You are using CGFDM by Wenqiang Wang
+=============================================
+SRTM90 Terrain model is used!
+Multi-source model is used!
+ShenModel is used!
+No Crust_1Model is used!
+No Layered Model is used!
+Construct coordinate including precessing terrian data...
