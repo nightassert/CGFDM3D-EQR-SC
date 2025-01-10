@@ -8,24 +8,20 @@
 	"Depth(km)": 80,
 	"centerX": 400,
 	"centerY": 300,
-	"IT_SKIP": 100,
-	"sliceX": 600,
-	"sliceY": 600,
-	"sliceZ": 100,
+	"centerLatitude": 37.7942405,
+	"centerLongitude": 101.246376,
+	"IT_SKIP": 4000,
+	"sliceX": -1,
+	"sliceY": -1,
+	"sliceZ": -1,
 	"sliceFreeSurf": 1,
 	"PX": 1,
 	"PY": 4,
 	"PZ": 2,
+
 	"sourceX": 805,
 	"sourceY": 805,
 	"sourceZ": 175,
-	"centerLatitude": 37.7942405,
-	"centerLongitude": 101.246376,
-	"nPML": 12,
-	"gauss_hill": 0,
-	"useTerrain": 1,
-	"useMedium": 1,
-	"useMultiSource": 1,
 	"useSingleSource(ricker)": 0,
 	"rickerfc": 1.2,
 	"useSingleSource(double_couple)": 0,
@@ -34,10 +30,18 @@
 	"rake": -6,
 	"Mw": 6.6,
 	"duration": 2.0,
-	"ShenModel": 1,
-	"Crust_1Model": 0,
-	"LayeredModel": 0,
+	
+	"useMultiSource": 1,
+	"sourceDir": "./source/Chenkejie",
+	"sourceFile": "Chenkejie_source106.bin",
+	
+	"nPML": 12,
+	
+	"useTerrain": 1,
+	"gauss_hill": 0,
+
 	"out": "./output",
+
 	"gpu_nodes": {
 		"teslagpus": [
 			0,
@@ -50,13 +54,20 @@
 			7
 		]
 	},
+	"srtm90": 1,
 	"TerrainTif": "./terrainTif",
 	"TerrainDir": "./TerrainDir",
-	"srtm90": 1,
+
 	"lonStart": 100,
 	"latStart": 35,
 	"blockX": 1,
 	"blockY": 1,
+
+	"useMedium": 1,
+	"LayeredModel": 0,
+	"ShenModel": 1,
+	"Crust_1Model": 0,
+
 	"MLonStart": 100,
 	"MLatStart": 35,
 	"MLonEnd": 105,
@@ -65,12 +76,14 @@
 	"MLatStep": 0.5,
 	"MVeticalStep": 500,
 	"MediumDir": "./MediumDir",
+
 	"LayeredFileName": "./LayeredModel/LayeredModel",
+	
 	"CrustDir": "./crust1.0",
 	"CrustLonStep": 1.0,
 	"CrustLatStep": 1.0,
-	"sourceDir": "./source/Chenkejie",
-	"sourceFile": "Chenkejie_source106.bin",
-	"degree2radian": 1,
+
+	"degree2radian": 0,
+
 	"FAST_AXIS": "X"
 }
