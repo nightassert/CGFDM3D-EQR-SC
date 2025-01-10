@@ -105,7 +105,10 @@ dpi = 300
 vm = np.max(np.abs(data))
 dataX /= 1000
 dataZ /= 1000
-plt.pcolormesh(dataX, dataZ, data, vmax=vm, vmin=-vm, cmap="seismic")
+if var == "Vs" or var == "Vp" or var == "rho":
+    plt.pcolormesh(dataX, dataZ, data, cmap="seismic")
+else:
+    plt.pcolormesh(dataX, dataZ, data, vmax=vm, vmin=-vm, cmap="seismic")
 plt.plot(dataX[-1, :], dataZ[-1, :], "k-")
 plt.colorbar()
 plt.axis("image")

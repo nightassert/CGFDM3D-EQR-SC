@@ -86,12 +86,11 @@ else:
 
 for mpiY in range(grid.PY):
     for mpiX in range(grid.PX):
-        mpiZ = mpiSliceZ  # grid.PZ - 1
+        mpiZ = grid.PZ - 1
         XFile = open("%s_mpi_%d_%d_%d.bin" %
                      (fileNameX, mpiX, mpiY, mpiZ), "rb")
         YFile = open("%s_mpi_%d_%d_%d.bin" %
                      (fileNameY, mpiX, mpiY, mpiZ), "rb")
-        mpiZ = grid.PZ - 1
         File = open("%s_Z_mpi_%d_%d_%d.bin" %
                     (fileName, mpiX, mpiY, mpiZ), "rb")
 

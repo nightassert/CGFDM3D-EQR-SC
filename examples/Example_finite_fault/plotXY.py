@@ -121,7 +121,10 @@ plt.rcParams['font.size'] = fontsize
 vm = np.max(np.abs(data))
 dataX = dataX/unit
 dataY = dataY/unit
-plt.pcolormesh(dataX, dataY, data, vmax=vm, vmin=-vm, cmap="seismic")
+if var == "Vs" or var == "Vp" or var == "rho":
+    plt.pcolormesh(dataX, dataY, data, cmap="seismic")
+else:
+    plt.pcolormesh(dataX, dataY, data, vmax=vm, vmin=-vm, cmap="seismic")
 plt.colorbar()
 plt.axis("equal")
 

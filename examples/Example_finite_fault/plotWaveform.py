@@ -199,7 +199,7 @@ for reciever_num in range(station_num):
         0, station_num, 1), fontsize=12)
     plt.xlabel('time(s)')
     plt.title('v_x')
-    plt.ylabel("Normalized Amplitude")
+    plt.ylabel("Amplitude")
 
     plt.subplot(1, 3, 2)
     v_y = plt.plot(t, receiver_v_y /
