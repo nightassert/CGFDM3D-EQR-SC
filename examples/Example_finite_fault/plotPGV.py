@@ -173,7 +173,7 @@ if switch == PGAh or switch == PGA:
                 Intensity[j, i] = 1
 
 # nPML = params["nPML"]
-nPML = 12
+nPML = 30
 
 NX = grid.NX
 NY = grid.NY
@@ -197,7 +197,6 @@ if switch == PGA:
 plt.figure()
 dpi = 300
 plt.pcolormesh(lon, lat, switch_data, cmap="seismic")
-# plt.clim([5, 10])
 plt.colorbar()
 plt.axis("image")
 plt.title(var)
@@ -207,7 +206,7 @@ plt.savefig("./img/" + name + ".png", dpi=dpi)
 plt.figure()
 dpi = 300
 plt.pcolormesh(lon, lat, Intensity, cmap="seismic")
-# plt.clim([5, 10])
+plt.clim([4, 10])
 plt.colorbar()
 plt.axis("image")
 plt.title("Intensity")

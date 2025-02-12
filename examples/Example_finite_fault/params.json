@@ -10,13 +10,13 @@
 	"centerY": 300,
 	"centerLatitude": 37.7942405,
 	"centerLongitude": 101.246376,
-	"IT_SKIP": 4000,
-	"sliceX": -1,
-	"sliceY": -1,
-	"sliceZ": -1,
+	"IT_SKIP": 100,
+	"sliceX": 400,
+	"sliceY": 300,
+	"sliceZ": 200,
 	"sliceFreeSurf": 1,
-	"PX": 1,
-	"PY": 4,
+	"PX": 2,
+	"PY": 2,
 	"PZ": 2,
 
 	"sourceX": 805,
@@ -83,7 +83,7 @@
 	"CrustLonStep": 1.0,
 	"CrustLatStep": 1.0,
 
-	"degree2radian": 0,
+	"degree2radian": 1,
 
 	"FAST_AXIS": "X"
 }
