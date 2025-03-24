@@ -1,3 +1,6 @@
+# create folder
+mkdir -p data img
+
 # Verify the model
 python verifyTerrain.py # Terrain
 python plotXZ.py 0 Vs  # Vs, Slice Y

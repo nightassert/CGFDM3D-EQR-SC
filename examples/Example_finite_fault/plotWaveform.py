@@ -150,11 +150,18 @@ for key in station.keys():
         if key == iKey:
             print(key)
             i = stationKeyNum[key]
-            np.savetxt(data_dir + "Vx" + str(key) + ".txt", Ux[0, i])
-            np.savetxt(data_dir + "Vy" + str(key) + ".txt", Uy[0, i])
-            np.savetxt(data_dir + "Vz" + str(key) + ".txt", Uz[0, i])
+            np.savetxt(data_dir + "Vx_" + str(key) + ".txt", Ux[0, i])
+            np.savetxt(data_dir + "Vy_" + str(key) + ".txt", Uy[0, i])
+            np.savetxt(data_dir + "Vz_" + str(key) + ".txt", Uz[0, i])
             break
 
+
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy.integrate as inte
+from matplotlib import rcParams
+import json
+from scipy import signal
 
 params = json.load(open("params.json"))
 
@@ -162,29 +169,53 @@ dt = params["DT"]
 t = np.arange(0, params["TMAX"] - 2 * dt, dt)
 print(t.shape)
 
+dt_obs = 0.01
+
 config = {"font.size": 12}
 rcParams.update(config)
 plt.figure(figsize=(18, 12))
-plt.subplots_adjust(wspace=0.03)
+plt.subplots_adjust(wspace=0.08)
 
 station = json.load(open("station.json"))
+station_keys = station["station(point)"].keys()
 station_num = len(station["station(point)"])
 
-# print("station_num = %d" % station_num)
+print("station_num = %d" % station_num)
 
-for reciever_num in range(station_num):
+# Bandpass filter: OBS
+fl = 0.01
+fh = 2.0
+wn1 = fl / (1/dt_obs/2)
+wn2 = fh / (1/dt_obs/2)
+print(wn1, wn2)
+b1, a1 = signal.butter(2, [wn1, wn2], 'bandpass')
+
+wn1 = fl / (1/dt/2)
+wn2 = fh / (1/dt/2)
+print(wn1, wn2)
+b2, a2 = signal.butter(2, [wn1, wn2], 'bandpass')
+
+idiswid = 0
+for key in station_keys:
 
     receiver_v_x = np.loadtxt(
-        "./data/Vx" + str(reciever_num) + ".txt")
+        "./data/Vx_" + str(key) + ".txt")
     receiver_v_y = np.loadtxt(
-        "./data/Vy" + str(reciever_num) + ".txt")
+        "./data/Vy_" + str(key) + ".txt")
     receiver_v_z = np.loadtxt(
-        "./data/Vz" + str(reciever_num) + ".txt")
+        "./data/Vz_" + str(key) + ".txt")
 
+    # filter
+    receiver_v_x = signal.filtfilt(b2, a2, receiver_v_x)
+    receiver_v_y = signal.filtfilt(b2, a2, receiver_v_y)
+    receiver_v_z = signal.filtfilt(b2, a2, receiver_v_z)
+
+    # # Displacement
     # receiver_v_x = inte.cumtrapz(receiver_v_x, t, initial=0)
     # receiver_v_y = inte.cumtrapz(receiver_v_y, t, initial=0)
     # receiver_v_z = inte.cumtrapz(receiver_v_z, t, initial=0)
 
+    # Normalize
     # max_value = max(max(abs(receiver_v_x)), max(
     #     abs(receiver_v_y)), max(abs(receiver_v_z)))
     max_value = 1
@@ -192,29 +223,35 @@ for reciever_num in range(station_num):
     disWid = 2
 
     plt.subplot(1, 3, 1)
-    v_x = plt.plot(t, receiver_v_x /
-                   max_value + reciever_num*disWid, "b-")
+    v_x_CGFDM = plt.plot(t, receiver_v_x /
+                         max_value + idiswid*disWid, "b-")
+    plt.xlim([0, params["TMAX"]])
     plt.ylim(-1.5, -1.5 + 2 * station_num + 1)
     plt.yticks(np.arange(0, 2 * station_num, 2), np.arange(
         0, station_num, 1), fontsize=12)
+    plt.yticks(np.arange(0, 2 * station_num, 2), station_keys, fontsize=12)
     plt.xlabel('time(s)')
     plt.title('v_x')
-    plt.ylabel("Amplitude")
+    plt.ylabel("Amplitude (m/s)")
 
     plt.subplot(1, 3, 2)
-    v_y = plt.plot(t, receiver_v_y /
-                   max_value + reciever_num*disWid, "b-")
+    v_y_CGFDM = plt.plot(t, receiver_v_y /
+                         max_value + idiswid*disWid, "b-")
     plt.ylim(-1.5, -1.5 + 2 * station_num + 1)
+    plt.xlim([0, params["TMAX"]])
     plt.yticks([])
     plt.xlabel('time(s)')
     plt.title('v_y')
 
     plt.subplot(1, 3, 3)
-    v_z = plt.plot(t, receiver_v_z /
-                   max_value + reciever_num*disWid, "b-")
+    v_z_CGFDM = plt.plot(t, receiver_v_z /
+                         max_value + idiswid*disWid, "b-")
     plt.ylim(-1.5, -1.5 + 2 * station_num + 1)
+    plt.xlim([0, params["TMAX"]])
     plt.yticks([])
     plt.xlabel('time(s)')
     plt.title('v_z')
 
-plt.savefig("./img/Waveforms.png", dpi=300)
+    idiswid += 1
+
+plt.savefig("./img/Waveform_compare.png", dpi=300)
