@@ -223,7 +223,7 @@ for key in station_keys:
     disWid = 2
 
     plt.subplot(1, 3, 1)
-    v_x_CGFDM = plt.plot(t, receiver_v_x /
+    v_x = plt.plot(t, receiver_v_x /
                          max_value + idiswid*disWid, "b-")
     plt.xlim([0, params["TMAX"]])
     plt.ylim(-1.5, -1.5 + 2 * station_num + 1)
@@ -235,7 +235,7 @@ for key in station_keys:
     plt.ylabel("Amplitude (m/s)")
 
     plt.subplot(1, 3, 2)
-    v_y_CGFDM = plt.plot(t, receiver_v_y /
+    v_y = plt.plot(t, receiver_v_y /
                          max_value + idiswid*disWid, "b-")
     plt.ylim(-1.5, -1.5 + 2 * station_num + 1)
     plt.xlim([0, params["TMAX"]])
@@ -244,7 +244,7 @@ for key in station_keys:
     plt.title('v_y')
 
     plt.subplot(1, 3, 3)
-    v_z_CGFDM = plt.plot(t, receiver_v_z /
+    v_z = plt.plot(t, receiver_v_z /
                          max_value + idiswid*disWid, "b-")
     plt.ylim(-1.5, -1.5 + 2 * station_num + 1)
     plt.xlim([0, params["TMAX"]])
@@ -254,4 +254,4 @@ for key in station_keys:
 
     idiswid += 1
 
-plt.savefig("./img/Waveform_compare.png", dpi=300)
+plt.savefig("./img/Waveforms.png", dpi=300)
