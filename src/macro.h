@@ -44,7 +44,7 @@
 // #define COORDSIZE 3 //3 coordinate components: coordX coordY coordZ
 #define CONTRASIZE 9 // contravariant components
 #ifdef SCFDM
-#define CONSIZE 18 // contravariant components (GCL)
+#define CONSIZE 9 // contravariant components (GCL)
 #else
 #define CONSIZE 9 // contravariant components
 #endif
@@ -54,7 +54,7 @@
 #define CSIZE 3
 #define MSIZE 3
 #ifdef SCFDM
-#define CJMSIZE 22 // (GCL)
+#define CJMSIZE 13 // (GCL)
 #else
 #define CJMSIZE 13
 #endif
