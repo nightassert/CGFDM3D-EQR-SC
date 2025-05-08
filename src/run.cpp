@@ -46,7 +46,7 @@ void run(MPI_Comm comm_cart, MPI_COORD thisMPICoord, MPI_NEIGHBOR mpiNeighbor, G
 
 	// construct coordinate
 	if (thisRank == 0)
-		printf("Construct coordinate including precessing terrian data...\n");
+		printf("Construct coordinate including processing terrian data...\n");
 	MPI_Barrier(MPI_COMM_WORLD);
 
 	float *coord, *cpu_coord;
@@ -57,7 +57,7 @@ void run(MPI_Comm comm_cart, MPI_COORD thisMPICoord, MPI_NEIGHBOR mpiNeighbor, G
 
 	// construct medium
 	if (thisRank == 0)
-		printf("Construct medium including precessing Vs Vp Rho...\n");
+		printf("Construct medium including processing Vs Vp Rho...\n");
 	MPI_Barrier(MPI_COMM_WORLD);
 
 	float *medium, *cpu_medium;

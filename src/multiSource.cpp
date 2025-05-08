@@ -783,7 +783,7 @@ void init_MultiSource(PARAMS params, GRID grid, MPI_COORD thisMPICoord, float *c
 	MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Comm_rank(MPI_COMM_WORLD, &thisRank);
 	if (thisRank == 0)
-		printf("Processing fault(Source data precessing) data...\n");
+		printf("Processing fault(Source data processing) data...\n");
 	MPI_Barrier(MPI_COMM_WORLD);
 
 	SOURCE_FILE_INPUT src_in;
