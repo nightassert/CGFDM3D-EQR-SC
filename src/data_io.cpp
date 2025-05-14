@@ -431,6 +431,7 @@ void data2D_output_bin(GRID grid, SLICE slice,
 	}
 }
 
+#ifdef SCFDM
 __GLOBAL__
 void wave_conserv2phy(FLOAT *wave_conserv, FLOAT *wave_phy, FLOAT *CJM, int _nx_, int _ny_, int _nz_)
 {
@@ -479,6 +480,7 @@ void wave_conserv2phy(FLOAT *wave_conserv, FLOAT *wave_phy, FLOAT *CJM, int _nx_
 
 	END_CALCULATE3D()
 }
+#endif
 
 void data2D_XYZ_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, FLOAT *wave, SLICE slice, SLICE_DATA sliceData, SLICE_DATA sliceDataCpu, char var, int it
 #ifdef SCFDM
@@ -614,6 +616,7 @@ void data2D_Model_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, float *c
 	}
 }
 
+#ifdef SOLVE_DISPLACEMENT
 void data2D_XYZ_out_Dis(MPI_COORD thisMPICoord, PARAMS params, GRID grid, SLICE slice, SLICE_DATA sliceData, SLICE_DATA sliceDataCpu, int it, FLOAT *Dis)
 {
 
@@ -628,3 +631,4 @@ void data2D_XYZ_out_Dis(MPI_COORD thisMPICoord, PARAMS params, GRID grid, SLICE 
 	data2D_output_bin(grid, slice, thisMPICoord, Dis, 1 /*x*/, 3, sliceData, sliceDataCpu, UyFileName, 1, FP_TYPE);
 	data2D_output_bin(grid, slice, thisMPICoord, Dis, 2 /*x*/, 3, sliceData, sliceDataCpu, UzFileName, 1, FP_TYPE);
 }
+#endif

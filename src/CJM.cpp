@@ -69,12 +69,10 @@ void calculate_medium(float *medium, int num)
 	Vs = medium[i * MSIZE + 0];
 	Vp = medium[i * MSIZE + 1];
 	rho = medium[i * MSIZE + 2];
-	// rho = medium[i*MSIZE+2] * c;
 
 	medium[i * MSIZE + 0] = rho * (Vs * Vs);
 	medium[i * MSIZE + 1] = rho * (Vp * Vp - 2.0f * Vs * Vs);
 	medium[i * MSIZE + 2] = 1.0f / rho;
-	// medium[i*MSIZE+2] = 1.0f / rho / Crho ;
 	END_CALCULATE1D()
 }
 
@@ -114,7 +112,6 @@ void set_CJM(FLOAT *CJM, float *medium, float *con, float *Jac, int num)
 	int i = 0;
 #endif
 	float Vp, Vs, rho;
-	double c = 1.0 * Cs / Cv;
 
 	CALCULATE1D(i, 0, num)
 
@@ -132,19 +129,7 @@ void set_CJM(FLOAT *CJM, float *medium, float *con, float *Jac, int num)
 
 	CJM[i * CJMSIZE + 10] = medium[i * MSIZE + 0];
 	CJM[i * CJMSIZE + 11] = medium[i * MSIZE + 1];
-	CJM[i * CJMSIZE + 12] = medium[i * MSIZE + 2] / c / Crho;
-
-#ifdef SCFDM
-	// CJM[i * CJMSIZE + 13] = con[i * CONSIZE + 9];  // x_xi
-	// CJM[i * CJMSIZE + 14] = con[i * CONSIZE + 10]; // y_xi
-	// CJM[i * CJMSIZE + 15] = con[i * CONSIZE + 11]; // z_xi
-	// CJM[i * CJMSIZE + 16] = con[i * CONSIZE + 12]; // x_et
-	// CJM[i * CJMSIZE + 17] = con[i * CONSIZE + 13]; // y_et
-	// CJM[i * CJMSIZE + 18] = con[i * CONSIZE + 14]; // z_et
-	// CJM[i * CJMSIZE + 19] = con[i * CONSIZE + 15]; // x_zt
-	// CJM[i * CJMSIZE + 20] = con[i * CONSIZE + 16]; // y_zt
-	// CJM[i * CJMSIZE + 21] = con[i * CONSIZE + 17]; // z_zt
-#endif
+	CJM[i * CJMSIZE + 12] = medium[i * MSIZE + 2];
 
 	END_CALCULATE1D()
 }

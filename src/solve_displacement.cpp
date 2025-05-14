@@ -21,6 +21,7 @@
 *
 =================================================================*/
 
+#ifdef SOLVE_DISPLACEMENT
 #include "header.h"
 
 __GLOBAL__
@@ -71,3 +72,4 @@ void SolveDisplacement(GRID grid, FLOAT *W, FLOAT *Dis, FLOAT *CJM, FLOAT dt)
 
     SolveDisplacementKernel<<<blocks, threads>>>(W, Dis, CJM, grid._nx_, grid._ny_, grid._nz_, dt);
 }
+#endif

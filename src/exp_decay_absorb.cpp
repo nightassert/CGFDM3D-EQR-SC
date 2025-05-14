@@ -11,7 +11,7 @@
 *      2. Xu, T., & Zhang, Z. (2024). Numerical simulation of 3D seismic wave based on alternative flux finite-difference WENO scheme. Geophysical Journal International, 238(1), 496-512. https://doi.org/https://doi.org/10.1093/gji/ggae167
 *
 =================================================================*/
-
+#ifdef SCFDM
 #include "header.h"
 
 #ifdef EXP_DECAY
@@ -143,3 +143,4 @@ void expDecayLayers(
 #endif // GPU_CUDA
 }
 #endif // EXP_DECAY
+#endif
