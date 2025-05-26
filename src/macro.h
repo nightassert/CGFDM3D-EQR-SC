@@ -42,15 +42,22 @@
 
 // #define WAVESIZE 9 //9 Wave components: Vx Vy Vz Txx Tyy Tzz Txy Txz Tyz
 // #define COORDSIZE 3 //3 coordinate components: coordX coordY coordZ
-#define CONTRASIZE 9 // contravariant components
+#ifdef SCFDM
+#define CONSIZE 18 // contravariant components (GCL)
+#else
 #define CONSIZE 9 // contravariant components
+#endif
 
 #define MEDIUMSIZE 3 // 3 medium components: Vs Vp rho ( lam mu bouyancy )
 #define MOMSIZE 6
 
 #define CSIZE 3
 #define MSIZE 3
+#ifdef SCFDM
+#define CJMSIZE 22 // contravariant components (GCL)
+#else
 #define CJMSIZE 13
+#endif
 #define WSIZE 9
 #define MATSIZE 9
 
