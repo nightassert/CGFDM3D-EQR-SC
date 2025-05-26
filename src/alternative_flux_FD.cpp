@@ -58,32 +58,6 @@ float WENO5_JS(float u1, float u2, float u3, float u4, float u5)
     return (WENO_beta1 * total_weights) * (0.375f * u3 + 0.75f * u4 - 0.125f * u5) + (WENO_beta2 * total_weights) * (-0.125f * u2 + 0.75f * u3 + 0.375f * u4) + (WENO_beta3 * total_weights) * (0.375f * u1 - 1.25f * u2 + 1.875f * u3);
 }
 
-// WENO5-Z interpolation scheme
-__DEVICE__
-float WENO5_Z(float u1, float u2, float u3, float u4, float u5)
-{
-    // float WENO_beta1 = 13.0f / 12.0f * (u3 - 2 * u4 + u5) * (u3 - 2 * u4 + u5) + 1.0f / 4.0f * (3 * u3 - 4 * u4 + u5) * (3 * u3 - 4 * u4 + u5);
-    // float WENO_beta2 = 13.0f / 12.0f * (u2 - 2 * u3 + u4) * (u2 - 2 * u3 + u4) + 1.0f / 4.0f * (u2 - u4) * (u2 - u4);
-    // float WENO_beta3 = 13.0f / 12.0f * (u1 - 2 * u2 + u3) * (u1 - 2 * u2 + u3) + 1.0f / 4.0f * (u1 - 4 * u2 + 3 * u3) * (u1 - 4 * u2 + 3 * u3);
-
-    float WENO_beta1 = 0.3333333333f * (10 * u3 * u3 - 31 * u3 * u4 + 25 * u4 * u4 + 11 * u3 * u5 - 19 * u4 * u5 + 4 * u5 * u5);
-    float WENO_beta2 = 0.3333333333f * (4 * u2 * u2 - 13 * u2 * u3 + 13 * u3 * u3 + 5 * u2 * u4 - 13 * u3 * u4 + 4 * u4 * u4);
-    float WENO_beta3 = 0.3333333333f * (4 * u1 * u1 - 19 * u1 * u2 + 25 * u2 * u2 + 11 * u1 * u3 - 31 * u2 * u3 + 10 * u3 * u3);
-
-    float tao5 = abs(WENO_beta1 - WENO_beta3);
-    WENO_beta1 = tao5 / (WENO_beta1 + 1.0e-12f);
-    WENO_beta2 = tao5 / (WENO_beta2 + 1.0e-12f);
-    WENO_beta3 = tao5 / (WENO_beta3 + 1.0e-12f);
-
-    WENO_beta1 = 0.3125f * (1 + WENO_beta1 * WENO_beta1);
-    WENO_beta2 = 0.625f * (1 + WENO_beta2 * WENO_beta2);
-    WENO_beta3 = 0.0625f * (1 + WENO_beta3 * WENO_beta3);
-
-    float total_weights = 1.0f / (WENO_beta1 + WENO_beta2 + WENO_beta3);
-
-    return (WENO_beta1 * total_weights) * (0.375f * u3 + 0.75f * u4 - 0.125f * u5) + (WENO_beta2 * total_weights) * (-0.125f * u2 + 0.75f * u3 + 0.375f * u4) + (WENO_beta3 * total_weights) * (0.375f * u1 - 1.25f * u2 + 1.875f * u3);
-}
-
 __GLOBAL__
 void wave_deriv_alternative_flux_FD_x(FLOAT *Riemann_flux, FLOAT *h_W, FLOAT *W, FLOAT *CJM,
 #ifdef PML

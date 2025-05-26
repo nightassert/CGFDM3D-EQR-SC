@@ -109,8 +109,8 @@ void expDecayLayers(
     GRID grid, WAVE wave)
 {
 
-    int n_exp_decay_layers = 30;
-    float exp_decay_alpha = 0.008;
+    int n_exp_decay_layers = 20;
+    float exp_decay_alpha = 0.015;
 
     int _nx_ = grid._nx_;
     int _ny_ = grid._ny_;
