@@ -167,9 +167,9 @@ void solve_con_jac_CMM(float *con, float *coord, float *Jac_inv, float *Covarian
 	con[idx * CONSIZE + 12] = Covariant[idx * Covariant_Size + 3]; // x_et
 	con[idx * CONSIZE + 13] = Covariant[idx * Covariant_Size + 4]; // y_et
 	con[idx * CONSIZE + 14] = Covariant[idx * Covariant_Size + 5]; // z_et
-	con[idx * CONSIZE + 15] = Covariant[idx * Covariant_Size + 6]; // x_zt
-	con[idx * CONSIZE + 16] = Covariant[idx * Covariant_Size + 7]; // y_zt
-	con[idx * CONSIZE + 17] = Covariant[idx * Covariant_Size + 8]; // z_zt
+	// con[idx * CONSIZE + 15] = Covariant[idx * Covariant_Size + 6]; // x_zt
+	// con[idx * CONSIZE + 16] = Covariant[idx * Covariant_Size + 7]; // y_zt
+	// con[idx * CONSIZE + 17] = Covariant[idx * Covariant_Size + 8]; // z_zt
 
 	END_CALCULATE3D()
 
@@ -550,7 +550,7 @@ void solveContravariantJac(MPI_Comm comm_cart, GRID grid, float *con, float *coo
 
 #ifdef SCFDM
 	solve_con_jac_CMM<<<blocks, threads>>>(con, coord, Jac, Cov, _nx_, _ny_, _nz_, rDH);
-	cudaFree(Cov);
+	Free(Cov);
 #else
 	solve_con_jac<<<blocks, threads>>>(con, coord, Jac, _nx_, _ny_, _nz_, rDH);
 #endif
@@ -558,6 +558,7 @@ void solveContravariantJac(MPI_Comm comm_cart, GRID grid, float *con, float *coo
 	solve_con_jac(con, coord, Jac, _nx_, _ny_, _nz_, rDH);
 #endif
 
+#ifndef SCFDM
 #ifdef FREE_SURFACE
 
 #ifdef GPU_CUDA
@@ -578,4 +579,5 @@ void solveContravariantJac(MPI_Comm comm_cart, GRID grid, float *con, float *coo
 #endif // GPU_CUDA
 
 #endif // FREE_SURFACE
+#endif
 }

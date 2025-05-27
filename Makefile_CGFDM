@@ -35,7 +35,7 @@ FREE_SURFACE := ON
 PML := ON 
 EXP_DECAY :=  # SCFDM only can use EXP_DECAY now
 
-SOLVE_PGA := ON
+SOLVE_PGA := 
 SOLVE_DISPLACEMENT := ON
 Terrain_Smooth := ON 
 DealWithFirstLayer := ON

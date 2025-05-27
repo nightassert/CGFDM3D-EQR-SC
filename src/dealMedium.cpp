@@ -245,16 +245,16 @@ void readWeisenShenModel(PARAMS params, GRID grid, MPI_COORD thisMPICoord, float
 	sprintf(lonName, "%.1f", LonStart + i * LonStep);
 	sprintf(latName, "%.1f", LatStart + j * LatStep);
 
-	if (lonName[strlen(lonName) - 1] == '0')
-	{
-		lonName[strlen(lonName) - 1] = 0;
-		lonName[strlen(lonName) - 1] = 0;
-	}
-	if (latName[strlen(latName) - 1] == '0')
-	{
-		latName[strlen(latName) - 1] = 0;
-		latName[strlen(latName) - 1] = 0;
-	}
+	// if (lonName[strlen(lonName) - 1] == '0')
+	// {
+	// 	lonName[strlen(lonName) - 1] = 0;
+	// 	lonName[strlen(lonName) - 1] = 0;
+	// }
+	// if (latName[strlen(latName) - 1] == '0')
+	// {
+	// 	latName[strlen(latName) - 1] = 0;
+	// 	latName[strlen(latName) - 1] = 0;
+	// }
 
 	// !
 	// sprintf(lonName, "%.3f", LonStart + i * LonStep);

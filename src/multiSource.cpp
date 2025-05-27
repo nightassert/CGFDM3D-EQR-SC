@@ -764,7 +764,7 @@ void allocMomentRateSlice(float **momentRateSlice, long long npts)
 
 	if (*momentRateSlice == NULL)
 	{
-		printf("can't allocate momentRateSlice  memory!\n");
+		printf("can't allocate momentRateSlice memory!\n");
 		MPI_Abort(MPI_COMM_WORLD, 10001);
 	}
 }

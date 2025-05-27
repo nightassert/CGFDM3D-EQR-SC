@@ -78,8 +78,10 @@ void run(MPI_Comm comm_cart, MPI_COORD thisMPICoord, MPI_NEIGHBOR mpiNeighbor, G
 	allocCJM(grid, &CJM);
 
 	Mat_rDZ mat_rDZ;
+#ifndef SCFDM
 #ifdef FREE_SURFACE
 	allocMat_rDZ(grid, &mat_rDZ);
+#endif
 #endif
 
 	if (thisRank == 0)
@@ -126,8 +128,10 @@ void run(MPI_Comm comm_cart, MPI_COORD thisMPICoord, MPI_NEIGHBOR mpiNeighbor, G
 	MPI_Barrier(MPI_COMM_WORLD);
 
 	freeWave(wave);
+#ifndef SCFDM
 #ifdef FREE_SURFACE
 	freeMat_rDZ(mat_rDZ);
+#endif
 #endif
 	freeCJM(CJM);
 	freeSliceData(grid, slice, sliceData, sliceDataCpu);

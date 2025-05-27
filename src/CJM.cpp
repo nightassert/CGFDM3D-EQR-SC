@@ -138,9 +138,9 @@ void set_CJM(FLOAT *CJM, float *medium, float *con, float *Jac, int num)
 	CJM[i * CJMSIZE + 16] = con[i * CONSIZE + 12]; // x_et
 	CJM[i * CJMSIZE + 17] = con[i * CONSIZE + 13]; // y_et
 	CJM[i * CJMSIZE + 18] = con[i * CONSIZE + 14]; // z_et
-	CJM[i * CJMSIZE + 19] = con[i * CONSIZE + 15]; // x_zt
-	CJM[i * CJMSIZE + 20] = con[i * CONSIZE + 16]; // y_zt
-	CJM[i * CJMSIZE + 21] = con[i * CONSIZE + 17]; // z_zt
+	// CJM[i * CJMSIZE + 19] = con[i * CONSIZE + 15]; // x_zt
+	// CJM[i * CJMSIZE + 20] = con[i * CONSIZE + 16]; // y_zt
+	// CJM[i * CJMSIZE + 21] = con[i * CONSIZE + 17]; // z_zt
 #endif
 
 	END_CALCULATE1D()
