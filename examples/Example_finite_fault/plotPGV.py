@@ -53,7 +53,7 @@ fileNameY = params["out"] + "/lat"
 
 fileName = outputPath + "/PGV"
 
-PGVSIZE = 4
+PGVSIZE = 2
 
 sliceX = params["sliceX"] - grid.frontNX
 sliceY = params["sliceY"] - grid.frontNY
@@ -123,21 +123,21 @@ switch_data = data
 if switch == PGVh:
     for j in range(grid.NY):
         for i in range(grid.NX):
-            if switch[j, i] >= 1.41:
+            if switch_data[j, i] >= 1.41:
                 Intensity[j, i] = 11
-            if switch[j, i] >= 0.71 and switch[j, i] < 1.41:
+            if switch_data[j, i] >= 0.71 and switch_data[j, i] < 1.41:
                 Intensity[j, i] = 10
-            if switch[j, i] >= 0.35 and switch[j, i] < 0.71:
+            if switch_data[j, i] >= 0.35 and switch_data[j, i] < 0.71:
                 Intensity[j, i] = 9
-            if switch[j, i] >= 0.18 and switch[j, i] < 0.35:
+            if switch_data[j, i] >= 0.18 and switch_data[j, i] < 0.35:
                 Intensity[j, i] = 8
-            if switch[j, i] >= 0.09 and switch[j, i] < 0.18:
+            if switch_data[j, i] >= 0.09 and switch_data[j, i] < 0.18:
                 Intensity[j, i] = 7
-            if switch[j, i] >= 0.04 and switch[j, i] < 0.09:
+            if switch_data[j, i] >= 0.04 and switch_data[j, i] < 0.09:
                 Intensity[j, i] = 6
-            if switch[j, i] >= 0.02 and switch[j, i] < 0.04:
+            if switch_data[j, i] >= 0.02 and switch_data[j, i] < 0.04:
                 Intensity[j, i] = 5
-            if switch[j, i] < 0.02:
+            if switch_data[j, i] < 0.02:
                 Intensity[j, i] = 4
 
 if switch == PGV:
