@@ -183,7 +183,7 @@ station_num = len(station["station(point)"])
 print("station_num = %d" % station_num)
 
 # Bandpass filter: OBS
-fl = 0.01
+fl = 1e-10
 fh = 2.0
 wn1 = fl / (1/dt_obs/2)
 wn2 = fh / (1/dt_obs/2)
