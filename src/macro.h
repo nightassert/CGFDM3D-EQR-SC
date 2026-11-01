@@ -40,24 +40,17 @@
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 
-// #define WAVESIZE 9 //9 Wave components: Vx Vy Vz Txx Tyy Tzz Txy Txz Tyz
-// #define COORDSIZE 3 //3 coordinate components: coordX coordY coordZ
-#ifdef SCFDM
-#define CONSIZE 15 // contravariant components (GCL)
-#else
-#define CONSIZE 9 // contravariant components
-#endif
+// Both schemes share one memory layout.  CGFDM only uses the first 9/13
+// entries; the extra entries are produced by the WENO metric construction
+// and are ignored by CGFDM.
+#define CONSIZE 15 // contravariant components (including covariant metrics)
+#define CJMSIZE 19 // contravariant components (GCL) + material
 
 #define MEDIUMSIZE 3 // 3 medium components: Vs Vp rho ( lam mu bouyancy )
 #define MOMSIZE 6
 
 #define CSIZE 3
 #define MSIZE 3
-#ifdef SCFDM
-#define CJMSIZE 19 // contravariant components (GCL)
-#else
-#define CJMSIZE 13
-#endif
 #define WSIZE 9
 #define MATSIZE 9
 
@@ -68,13 +61,9 @@
 #endif
 
 #define PI 3.141592657f
-// #define PI 3.1415926535898
 #define RADIAN2DEGREE (180.0 / PI)
 #define DEGREE2RADIAN (PI / 180.0)
 
-// #define Cv 5.0e3
-// #define Cs 1.0e-6
-// #define Crho 1e6//~= Cv/Cs/rho
 #define Cv 1.0
 #define Cs 1.0
 #define Crho 1.0 //~= Cv/Cs/rho
@@ -96,9 +85,10 @@
     const cudaError_t error = call;                          \
     if (error != cudaSuccess)                                \
     {                                                        \
-      fprintf(stderr, "Error: %s:%d, ", __FILE__, __LINE__); \
+      fprintf(stderr, "CUDA error: %s:%d, ", __FILE__, __LINE__); \
       fprintf(stderr, "code: %d, reason: %s\n",              \
               error, cudaGetErrorString(error));             \
+      MPI_Abort(MPI_COMM_WORLD, 10002);                      \
     }                                                        \
   }
 
@@ -135,7 +125,6 @@ int Malloc(void **mem, long long size);
 #define alpha3 0.5f
 #define alpha4 1.0f
 
-// #define beta1 1.0f//0.16666667f
 #define beta1 0.16666667f
 #define beta2 0.33333333f
 #define beta3 0.33333333f
@@ -148,14 +137,6 @@ int Malloc(void **mem, long long size);
 #define Cb1 (1.16666667f)
 #define Cb2 (-1.33333333f)
 #define Cb3 (0.16666667f)
-
-// #define Cf1 ( - 7.0 / 6.0 )
-// #define Cf2 (   4.0 / 3.0 )
-// #define Cf3 ( - 1.0 / 6.0 )
-
-// #define Cb1 (   7.0 / 6.0 )
-// #define Cb2 ( - 4.0 / 3.0 )
-// #define Cb3 (   1.0 / 6.0 )
 
 // grid: x, y, z
 

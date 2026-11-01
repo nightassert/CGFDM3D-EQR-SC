@@ -17,7 +17,6 @@ typedef void (*WAVE_RK_FUNC_FLOAT)(FLOAT *h_W, FLOAT *W, FLOAT *t_W, FLOAT *m_W,
 __GLOBAL__
 void wave_rk0(FLOAT *h_W, FLOAT *W, FLOAT *t_W, FLOAT *m_W, long long WStride)
 {
-	// printf( "wave_rk0\n" );
 #ifdef GPU_CUDA
 	long long i = threadIdx.x + blockIdx.x * blockDim.x;
 #else
@@ -40,7 +39,6 @@ void wave_rk0(FLOAT *h_W, FLOAT *W, FLOAT *t_W, FLOAT *m_W, long long WStride)
 __GLOBAL__
 void wave_rk1(FLOAT *h_W, FLOAT *W, FLOAT *t_W, FLOAT *m_W, long long WStride)
 {
-	// printf( "wave_rk1\n" );
 #ifdef GPU_CUDA
 	long long i = threadIdx.x + blockIdx.x * blockDim.x;
 #else
@@ -63,7 +61,6 @@ void wave_rk1(FLOAT *h_W, FLOAT *W, FLOAT *t_W, FLOAT *m_W, long long WStride)
 __GLOBAL__
 void wave_rk2(FLOAT *h_W, FLOAT *W, FLOAT *t_W, FLOAT *m_W, long long WStride)
 {
-	// printf( "wave_rk2\n" );
 #ifdef GPU_CUDA
 	long long i = threadIdx.x + blockIdx.x * blockDim.x;
 #else
@@ -86,11 +83,10 @@ void wave_rk2(FLOAT *h_W, FLOAT *W, FLOAT *t_W, FLOAT *m_W, long long WStride)
 __GLOBAL__
 void wave_rk3(FLOAT *h_W, FLOAT *W, FLOAT *t_W, FLOAT *m_W, long long WStride)
 {
-	// printf( "wave_rk3\n" );
 #ifdef GPU_CUDA
-	long i = threadIdx.x + blockIdx.x * blockDim.x;
+	long long i = threadIdx.x + blockIdx.x * blockDim.x;
 #else
-	long i = 0;
+	long long i = 0;
 #endif
 	float h_w, w, t_w, m_w;
 	CALCULATE1D(i, 0, WStride)
@@ -115,7 +111,6 @@ void waveRk(GRID grid, int irk, WAVE wave)
 	blocks.y = 1;
 	blocks.z = 1;
 	wave_rk[irk]<<<blocks, threads>>>(wave.h_W, wave.W, wave.t_W, wave.m_W, num);
-	// wave_rk<<< blocks, threads >>>( h_W, W, t_W, m_W, num, DT );
 	CHECK(cudaDeviceSynchronize());
 #else
 	wave_rk[irk](wave.h_W, wave.W, wave.t_W, wave.m_W, num);

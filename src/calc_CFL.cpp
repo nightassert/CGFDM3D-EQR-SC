@@ -65,12 +65,6 @@ double distance_point2plane(double P[3], double A[3], double B[3], double C[3])
 		C[1] - A[1],
 		C[2] - A[2]};
 
-	// double BC[3] = {
-	//	C[0] - B[0],
-	//	C[1] - B[1],
-	//	C[2] - B[2]
-	// };
-
 	double n[3] = {
 		AB[1] * AC[2] - AB[2] * AC[1],
 		AB[2] * AC[0] - AB[0] * AC[2],
@@ -127,9 +121,6 @@ void calculate_DH_Range(
 	P[1] = coord[index + 1];
 	P[2] = coord[index + 2];
 
-	// if ( coord[index+2] > -10e3 )
-	// printf( "coord = %f\n", coord[index+2] );
-
 	for (ii = -1; ii <= 1; ii += 2)
 		for (jj = -1; jj <= 1; jj += 2)
 			for (kk = -1; kk <= 1; kk += 2)
@@ -151,7 +142,6 @@ void calculate_DH_Range(
 				C[2] = coord[posC + 2];
 
 				d = distance_point2plane(P, A, B, C);
-				// d = 100.0f / sqrt( 3.0 );
 				hmin = MIN(hmin, d);
 				hmax = MAX(hmax, d);
 			}
@@ -160,6 +150,86 @@ void calculate_DH_Range(
 
 	h_min_max[0] = hmin;
 	h_min_max[1] = hmax;
+}
+
+// Smallest distance between the grid planes of each coordinate direction:
+//
+//     h_d = J / |con_d|,      con_d = cofactor row of d(x,y,z)/d(xi,eta,zt).
+//
+// These are the same covariant components and cofactors that
+// constructCJM() builds in contravariant.cpp, but here the central
+// differences are taken without the 1/DH factors, so h_d comes out in meters
+// and no DH argument is needed.
+//
+// calculate_DH_Range() above measures the distance from a point to a slanted
+// plane through one neighbour in each direction; that is not the distance a
+// wave travels between two xi = const planes, which is what the directional
+// CFL number of the WENO flux uses (du = DT*con/J * (F_i - F_{i-1}) / DH, so
+// the effective spacing along xi is J/|con_xi|).
+void calculate_direction_spacing(
+	float *coord,
+	float h_min[3],
+	int _nx_, int _ny_, int _nz_)
+{
+	int i, j, k, m;
+	long long ip = 0, im = 0, jp = 0, jm = 0, kp = 0, km = 0;
+
+	int _nx = _nx_ - HALO;
+	int _ny = _ny_ - HALO;
+	int _nz = _nz_ - HALO;
+
+	double dv[3][3]; // dv[d][c] = d(coord[c]) / d(direction d), per index step
+	double con[3][3];
+	double J = 0.0;
+	double d = 0.0;
+	double h[3] = {1.0e20, 1.0e20, 1.0e20};
+
+	FOR_LOOP3D(i, j, k, HALO, _nx, HALO, _ny, HALO, _nz)
+
+	ip = INDEX(i + 1, j, k) * CSIZE;
+	im = INDEX(i - 1, j, k) * CSIZE;
+	jp = INDEX(i, j + 1, k) * CSIZE;
+	jm = INDEX(i, j - 1, k) * CSIZE;
+	kp = INDEX(i, j, k + 1) * CSIZE;
+	km = INDEX(i, j, k - 1) * CSIZE;
+
+	for (m = 0; m < 3; m++)
+	{
+		dv[0][m] = 0.5 * ((double)coord[ip + m] - (double)coord[im + m]);
+		dv[1][m] = 0.5 * ((double)coord[jp + m] - (double)coord[jm + m]);
+		dv[2][m] = 0.5 * ((double)coord[kp + m] - (double)coord[km + m]);
+	}
+
+	con[0][0] = dv[1][1] * dv[2][2] - dv[1][2] * dv[2][1]; // xi_x * J
+	con[0][1] = dv[1][2] * dv[2][0] - dv[1][0] * dv[2][2]; // xi_y * J
+	con[0][2] = dv[1][0] * dv[2][1] - dv[1][1] * dv[2][0]; // xi_z * J
+
+	con[1][0] = dv[2][1] * dv[0][2] - dv[2][2] * dv[0][1]; // et_x * J
+	con[1][1] = dv[2][2] * dv[0][0] - dv[2][0] * dv[0][2]; // et_y * J
+	con[1][2] = dv[2][0] * dv[0][1] - dv[2][1] * dv[0][0]; // et_z * J
+
+	con[2][0] = dv[0][1] * dv[1][2] - dv[0][2] * dv[1][1]; // zt_x * J
+	con[2][1] = dv[0][2] * dv[1][0] - dv[0][0] * dv[1][2]; // zt_y * J
+	con[2][2] = dv[0][0] * dv[1][1] - dv[0][1] * dv[1][0]; // zt_z * J
+
+	J = dv[0][0] * con[0][0] + dv[0][1] * con[0][1] + dv[0][2] * con[0][2];
+
+	for (m = 0; m < 3; m++)
+	{
+		d = sqrt(con[m][0] * con[m][0] + con[m][1] * con[m][1] + con[m][2] * con[m][2]);
+		if (d > 1.0e-12)
+		{
+			d = J / d;
+			if (d > 0.0 && d < h[m])
+				h[m] = d;
+		}
+	}
+
+	END_LOOP3D()
+
+	h_min[0] = (float)h[0];
+	h_min[1] = (float)h[1];
+	h_min[2] = (float)h[2];
 }
 
 void calculate_range(float *data, float range[2], long long num)
@@ -179,66 +249,11 @@ void calculate_range(float *data, float range[2], long long num)
 	range[1] = maxValue;
 }
 
-/*
-__GLOBAL__
-void medium2structure( GRID grid, STRUCTURE structure, float * medium )
-{
-	//printf( "3: medium = %p\n", medium );
-#ifdef GPU_CUDA
-	int i = threadIdx.x + blockIdx.x * blockDim.x;
-	int j = threadIdx.y + blockIdx.y * blockDim.y;
-	int k = threadIdx.z + blockIdx.z * blockDim.z;
-#else
-	int i = 0;
-	int j = 0;
-	int k = 0;
-#endif
-	long long index = 0, idx = 0;
-
-	int nx = grid.nx;
-	int ny = grid.ny;
-	int nz = grid.nz;
-
-	int _nx = grid._nx;
-	int _ny = grid._ny;
-	int _nz = grid._nz;
-
-	int _nx_ = grid._nx_;
-	int _ny_ = grid._ny_;
-	int _nz_ = grid._nz_;
-
-
-	FOR_LOOP3D( i, j, k, 0, _nx_, 0, _ny_, 0, _nz_ )
-		index = INDEX( i, j, k ) * MSIZE;
-		structure.Vs [index] = medium[index+0];
-		structure.Vp [index] = medium[index+1];
-		structure.rho[index] = medium[index+2];
-
-		if ( medium[index+0] < 1000.0 )
-			printf( "%f\n", medium[index+0] );
-
-	END_LOOP3D( )
-}
-*/
-
 void medium2structure(GRID grid, STRUCTURE structure, float *medium)
 {
-	// printf( "3: medium = %p\n", medium );
 	long long i = 0;
-	int nx = grid.nx;
-	int ny = grid.ny;
-	int nz = grid.nz;
-
-	int _nx = grid._nx;
-	int _ny = grid._ny;
-	int _nz = grid._nz;
-
-	int _nx_ = grid._nx_;
-	int _ny_ = grid._ny_;
-	int _nz_ = grid._nz_;
 
 	long long num = grid._nx_ * grid._ny_ * grid._nz_;
-	// printf( "3: num = %d\n", num );
 
 	FOR_LOOP1D(i, 0, num)
 	structure.Vs[i] = medium[i * MSIZE + 0];
@@ -247,12 +262,7 @@ void medium2structure(GRID grid, STRUCTURE structure, float *medium)
 	END_LOOP1D()
 }
 
-#ifdef SCFDM
-#ifdef LF
-extern float vp_max_for_SCFDM;
-#endif
-#endif
-void calc_CFL(GRID grid, float *coord, float *medium, PARAMS params)
+void calc_CFL(GRID grid, float *coord, float *medium, PARAMS &params)
 {
 
 	int nx = grid.nx;
@@ -265,6 +275,9 @@ void calc_CFL(GRID grid, float *coord, float *medium, PARAMS params)
 
 	float h_min_max[2];
 
+	float h_dir[3];
+	float h_dir_min[3];
+
 	float Vs_min_max[2];
 	float Vp_min_max[2];
 	float rho_min_max[2];
@@ -272,6 +285,7 @@ void calc_CFL(GRID grid, float *coord, float *medium, PARAMS params)
 	long long num = nx * ny * nz;
 
 	calculate_DH_Range(coord, h_min_max, _nx_, _ny_, _nz_);
+	calculate_direction_spacing(coord, h_dir, _nx_, _ny_, _nz_);
 
 	MPI_Barrier(MPI_COMM_WORLD);
 
@@ -290,10 +304,6 @@ void calc_CFL(GRID grid, float *coord, float *medium, PARAMS params)
 
 	int thisRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &thisRank);
-	// printf( "thisRank = %d, H   Range: %5.f ~ %5.f\n", thisRank, h_min_max[0], h_min_max[1] );
-	// printf( "thisRank = %d, Vs  Range: %5.f ~ %5.f\n", thisRank, Vs_min_max[0], Vs_min_max[1] );
-	// printf( "thisRank = %d, Vp  Range: %5.f ~ %5.f\n", thisRank, Vp_min_max[0], Vp_min_max[1] );
-	// printf( "thisRank = %d, rho Range: %5.f ~ %5.f\n", thisRank, rho_min_max[0], rho_min_max[1] );
 
 	float H_min, H_max;
 	float Vs_min, Vs_max;
@@ -302,6 +312,17 @@ void calc_CFL(GRID grid, float *coord, float *medium, PARAMS params)
 
 	MPI_Allreduce(&h_min_max[0], &H_min, 1, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
 	MPI_Allreduce(&h_min_max[1], &H_max, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
+
+	MPI_Allreduce(h_dir, h_dir_min, 3, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
+
+	// A degenerate cell can make one directional spacing vanish or come out
+	// non-finite; fall back to the cell-size estimate rather than clamping the
+	// time step to an absurd value.
+	for (int m = 0; m < 3; m++)
+	{
+		if (!(h_dir_min[m] > 0.0f) || !(h_dir_min[m] < 1.0e19f))
+			h_dir_min[m] = H_min;
+	}
 
 	MPI_Allreduce(&Vs_min_max[0], &Vs_min, 1, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
 	MPI_Allreduce(&Vs_min_max[1], &Vs_max, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
@@ -314,30 +335,82 @@ void calc_CFL(GRID grid, float *coord, float *medium, PARAMS params)
 
 	MPI_Barrier(MPI_COMM_WORLD);
 
-#ifdef SCFDM
-	// ! For alternative flux finite difference by Tianhong Xu
-#ifdef LF
-	// ! For Lax-Friedriches Riemann solver: alpha = vp_max
-	vp_max_for_SCFDM = Vp_max;
-#endif
-#endif
+	// Lax-Friedrichs wave-speed bound used by the WENO flux.
+	g_vp_max = Vp_max;
 
-	float dtmax = 1.34 * H_min / Vp_max;
+	// Time-step bound.
+	//
+	// CGFDM keeps the historical 1-D bound, 1.34 * H_min / Vp_max, with H_min
+	// the plane distance from calculate_DH_Range().  Runs with 2/2/2 and this
+	// bound have always been stable, so it is left untouched.
+	//
+	// The WENO5 + TVD-RK3 scheme is different: the Rusanov (Lax-Friedrichs)
+	// flux uses alpha = Vp_max in *all three* directions, and the directional
+	// operators add, so the quantity that must stay below the 1-D limit of
+	// the integrator is the SUM of the three CFL numbers:
+	//
+	//     Vp_max * DT * (1/h_xi + 1/h_eta + 1/h_zeta) <= 1.34.
+	//
+	// The 1-D stability limit of this discrete operator was measured to be
+	// CFL = 1.34 (stable) / 1.40 (unstable); in 3-D the same operator turns
+	// unstable at a summed CFL of roughly 1.7-1.8, so 1.34 leaves margin.
+	// With only the vertical term checked, the fault model (DH = 200 m,
+	// h_zeta ~ 1.2e2 m, Vp_max = 8056 m/s, DT = 1.3e-2 s) passes with a 3-D
+	// sum of ~2, the scheme grows the grid-scale content injected by the
+	// finite-fault source at ~1.2-1.5x per step, and the field overflows a
+	// few hundred steps in -- which looks like the source blowing up.
+	float slow3D = 1.0f / h_dir_min[0] + 1.0f / h_dir_min[1] + 1.0f / h_dir_min[2];
+
+	float dtmax;
+	if (SCHEME_WENO == params.scheme)
+		dtmax = 1.34f / (Vp_max * slow3D);
+	else
+		dtmax = 1.34f * H_min / Vp_max;
+
+	float DT_input = (float)params.DT;
+
+	// Clamp the step for the WENO scheme.  dtmax was reduced over the whole
+	// communicator, so every rank takes the same branch and keeps the same
+	// DT -> the MPI exchange stays consistent.  The reduction of TMAX in
+	// propagate() then produces more, smaller steps for the same duration.
+	if (SCHEME_WENO == params.scheme && params.DT > dtmax)
+	{
+		params.DT = dtmax;
+		g_params.DT = dtmax;
+	}
 
 	if (0 == thisRank)
 	{
-
-		// cout << "H   : min = " << H_min    << ", max = " << H_max   << endl;
-		// cout << "Vs  : min = " << Vs_min   << ", max = " << Vs_max  << endl;
-		// cout << "Vp  : min = " << Vp_min   << ", max = " << Vp_max  << endl;
-		// cout << "rho : min = " << rho_min  << ", max = " << rho_max << endl;
-
 		printf("H   Range: %5.4e ~ %5.4e\n", H_min, H_max);
 		printf("Vs  Range: %5.4e ~ %5.4e\n", Vs_min, Vs_max);
 		printf("Vp  Range: %5.4e ~ %5.4e\n", Vp_min, Vp_max);
 		printf("rho Range: %5.4e ~ %5.4e\n", rho_min, rho_max);
 
+		if (SCHEME_WENO == params.scheme)
+		{
+			printf("h   min per direction (x, y, z): %5.4e %5.4e %5.4e\n",
+				   h_dir_min[0], h_dir_min[1], h_dir_min[2]);
+			printf("3-D CFL: Vp_max*DT*(1/hx+1/hy+1/hz) = %.3f  (limit 1.34)\n",
+				   Vp_max * (float)params.DT * slow3D);
+		}
+
 		printf("dtmax = %5.2e, DT = %5.2e\n", dtmax, params.DT);
+
+		if ((float)params.DT < DT_input)
+		{
+			printf("\n");
+			printf("****************************************************************\n");
+			printf("  WARNING: the WENO scheme cannot run stably at DT = %5.2e s.\n", DT_input);
+			printf("  The 3-D CFL number would be %.3f (limit 1.34); DT has been\n",
+				   Vp_max * DT_input * slow3D);
+			printf("  reduced to %5.2e s for this run, so the number of time steps\n", (float)params.DT);
+			printf("  grows by %.2f x (NT = %d) and TMAX is unchanged.\n",
+				   DT_input / (float)params.DT, (int)(params.TMAX / params.DT));
+			printf("  Put \"DT\": %5.2e (or smaller) in params.json to silence this.\n", dtmax);
+			printf("****************************************************************\n");
+			printf("\n");
+		}
+
 		if (params.DT > dtmax)
 		{
 			printf("The parameters can't afford the CFL condition!\n");

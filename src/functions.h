@@ -15,16 +15,14 @@
 #ifndef __FUNCTIONS__
 #define __FUNCTIONS__
 
-/*extern*/ void getParams(PARAMS *params);
+// Set once in run() before any scheme-dependent work starts.
+extern PARAMS g_params;
+extern float g_vp_max; // maximum P-wave speed, used by the WENO Riemann solver
+
+void getParams(PARAMS *params);
 
 void projTrans(double lon_0, double lat_0, GRID grid, float *coord, LONLAT LonLat, float lonMin, float lonMax, float latMin, float latMax);
 double interp2d(double x[2], double y[2], double z[4], double x_, double y_);
-/*
-double bilinear( double x, double y, double x1, double x2, double y1, double y2, double f11, double f12, double f21, double f22 );
-double bilinearInterp( double x, double y, double x1, double y1, double x2, double y2, double A, double B, double C, double D );
-void cart2LonLat( GRID grid, PJ * P,  PJ_DIRECTION PD, COORD coord, LONLAT LonLat );
-void preprocessTerrain( PARAMS params, MPI_Comm comm_cart, MPI_COORD thisMPICoord, GRID grid, COORD coord );
-*/
 void init_grid(PARAMS params, GRID *grid, MPI_COORD thisMPICoord);
 void printInfo(GRID grid, PARAMS params);
 void createDir(PARAMS params);
@@ -53,37 +51,28 @@ void constructMedium(MPI_COORD thisMPICoord, PARAMS params, GRID grid, float *cp
 void readWeisenShenModel(PARAMS params, GRID grid, MPI_COORD thisMPICoord, float *cpu_coord, float *cpu_terrain, float *structure);
 void readCrustal_1(PARAMS params, GRID grid, MPI_COORD thisMPICoord, float *coord, float *structure);
 
-void calc_CFL(GRID grid, float *cpu_coord, float *cpu_medium, PARAMS params);
+// PARAMS is passed by reference: the routine lowers params.DT when the WENO
+// scheme cannot run stably at the requested step (see calc_CFL.cpp).
+void calc_CFL(GRID grid, float *cpu_coord, float *cpu_medium, PARAMS &params);
 
 void init_MultiSource(PARAMS params, GRID grid, MPI_COORD thisMPICoord, float *coord, float *terrain, long long **srcIndex, float **momentRate, float **momentRateSlice, SOURCE_FILE_INPUT *ret_src_in);
 
 void addMomenteRate(GRID grid, SOURCE_FILE_INPUT src_in,
-					FLOAT *hW, long long *srcIndex,
-					float *momentRate, float *momentRateSlice,
+					FLOAT *hW, long long *&srcIndex,
+					float *&momentRate, float *&momentRateSlice,
 					int it, int irk, float DT, float DH,
-					float *gaussFactor, int nGauss, int flagSurf
-#ifdef SCFDM
-					,
-					FLOAT *CJM
-#endif
-);
+					float *gaussFactor, int nGauss, int flagSurf,
+					FLOAT *CJM);
 
-void finish_MultiSource(long long *srcIndex, float *momentRate, float *momentRateSlice, long long npts);
+// Takes the handles by reference so that finishing the source can clear them
+// in the caller; see finish_MultiSource in multiSource.cpp.
+void finish_MultiSource(long long *&srcIndex, float *&momentRate, float *&momentRateSlice, long long npts);
 
 void calculateMomentRate(SOURCE_FILE_INPUT src_in, FLOAT *CJM, float *momentRate, long long *srcIndex, float DH);
 
 void allocGaussFactor(float **gaussFactor, int nGauss);
 void gaussSmooth(float *gaussFactor, int nGauss);
 void freeGaussFactor(float *gaussFactor);
-
-/*
-#ifdef FREE_SURFACE
-void solveContravariantJac( MPI_Comm comm_cart, GRID grid, float * con, float * coord, float * Jac,
-float * medium, Mat_rDZ mat_rDZ );
-#else
-void solveContravariantJac( MPI_Comm comm_cart, GRID grid, float * con, float * coord, float * Jac );
-#endif
-*/
 
 void allocWave(GRID grid, WAVE *wave);
 void freeWave(WAVE wave);
@@ -94,11 +83,8 @@ void waveDeriv(GRID grid, WAVE wave, FLOAT *CJM,
 #endif
 			   int FB1, int FB2, int FB3, float DT);
 
-void waveDeriv_alternative_flux_FD(GRID grid, WAVE wave, FLOAT *CJM,
-#ifdef PML
-								   PML_BETA pml_beta,
-#endif
-								   int FB1, int FB2, int FB3, float DT, MPI_COORD thisMPICoord, PARAMS params); // ! For alternative flux finite difference by Tianhong Xu
+void waveDeriv_alternative_flux_FD(GRID grid, WAVE wave, FLOAT *CJM, AUX6 Aux6, MPI_BORDER border,
+								   int FB1, int FB2, int FB3, float DT, MPI_COORD thisMPICoord, PARAMS params); // WENO alternative-flux scheme
 
 void freeSurfaceDeriv(
 	GRID grid, WAVE wave, FLOAT *CJM, Mat_rDZ mat_rDZ,
@@ -108,11 +94,8 @@ void freeSurfaceDeriv(
 	int FB1, int FB2, int FB3, float DT);
 
 void charfreeSurfaceDeriv(
-	GRID grid, WAVE wave, FLOAT *CJM, Mat_rDZ mat_rDZ,
-#ifdef PML
-	PML_BETA pml_beta,
-#endif
-	int FB1, int FB2, int FB3, float DT); // ! For alternative flux finite difference by Tianhong Xu
+	GRID grid, WAVE wave, FLOAT *CJM,
+	int FB1, int FB2, int FB3, float DT); // WENO characteristic free surface
 
 void expDecayLayers(GRID grid, WAVE wave); // Exponential attenuation absorption layer
 
@@ -136,6 +119,12 @@ void pmlFreeSurfaceDeriv(GRID grid, WAVE wave,
 						 FLOAT *CJM, AUX6 Aux6, Mat_rDZ mat_rDZ,
 						 PML_D pml_d, MPI_BORDER border, int FB1, int FB2, float DT);
 
+// WENO C-PML (conservative variables), see weno_pml.cpp
+void allocWenoPML(GRID grid, AUX6SURF *Aux6, MPI_BORDER border);
+void wenoPmlDeriv(GRID grid, WAVE wave, AUX6 Aux6, PML_ALPHA pml_alpha,
+				  PML_BETA pml_beta, PML_D pml_d, MPI_BORDER border, float DT);
+void wenoPmlRk(GRID grid, MPI_BORDER border, int irk, AUX6 Aux6);
+
 void finalize_MPI(MPI_Comm *comm_cart);
 void init_MPI(int *argc, char ***argv, PARAMS params, MPI_Comm *comm_cart, MPI_COORD *thisMPICoord, MPI_NEIGHBOR *mpiNeigbor);
 
@@ -154,12 +143,8 @@ void freeStation(STATION station, STATION cpu_station);
 int readStationIndex(GRID grid);
 void initStationIndex(GRID grid, STATION station);
 void stationCPU2GPU(STATION station, STATION station_cpu, int stationNum);
-void storageStation(GRID grid, int NT, int stationNum, STATION station, FLOAT *W, int it
-#ifdef SCFDM
-					,
-					FLOAT *CJM
-#endif
-);
+void storageStation(GRID grid, int NT, int stationNum, STATION station, FLOAT *W, int it,
+					FLOAT *CJM);
 void stationGPU2CPU(STATION station, STATION station_cpu, int stationNum, int NT);
 void stationWrite(PARAMS params, GRID grid, MPI_COORD thisMPICoord, STATION station, int NT, int stationNum);
 
@@ -177,14 +162,10 @@ void allocSliceData(GRID grid, SLICE slice, SLICE_DATA *sliceData, SLICE_DATA *s
 void freeSliceData(GRID grid, SLICE slice, SLICE_DATA sliceData, SLICE_DATA sliceDataCpu);
 void data2D_output_bin(GRID grid, SLICE slice,
 					   MPI_COORD thisMPICoord,
-					   float *datain, SLICE_DATA sliceData, SLICE_DATA sliceDataCpu,
-					   const char *name);
-void data2D_XYZ_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, FLOAT *wave, SLICE slice, SLICE_DATA sliceData, SLICE_DATA sliceDataCpu, char var, int it
-#ifdef SCFDM
-					,
-					FLOAT *CJM
-#endif
-);
+					   void *datain, int VAR, int VARSIZE, SLICE_DATA sliceData, SLICE_DATA sliceDataCpu,
+					   const char *name, int CVS, int FP_TYPE);
+void data2D_XYZ_out(MPI_COORD thisMPICoord, PARAMS params, GRID grid, WAVE *wave, SLICE slice, SLICE_DATA sliceData, SLICE_DATA sliceDataCpu, char var, int it,
+					FLOAT *CJM);
 
 void SolveDisplacement(GRID grid, FLOAT *W, FLOAT *Dis, FLOAT *CJM, FLOAT dt);
 void data2D_XYZ_out_Dis(MPI_COORD thisMPICoord, PARAMS params, GRID grid, SLICE slice, SLICE_DATA sliceData, SLICE_DATA sliceDataCpu, int it, FLOAT *Dis);
@@ -202,16 +183,11 @@ void FLOAT_mpiSendRecv(MPI_Comm comm_cart, MPI_NEIGHBOR mpiNeighbor, GRID grid, 
 void allocatePGV(GRID grid, float **pgv, float **cpu_pgv);
 void freePGV(float *pgv, float *cpu_pgv);
 void outputPGV(PARAMS params, GRID grid, MPI_COORDINATE thisMPICoord, float *pgv, float *cpuPgv);
-void comparePGV(GRID grid, MPI_COORDINATE thisMPICoord, FLOAT *W, float *pgv, float DT, int it
-#ifdef SCFDM
-				,
+void comparePGV(GRID grid, MPI_COORDINATE thisMPICoord, FLOAT *W, float *pgv, float DT, int it,
 				FLOAT *CJM
-#endif
-
 #ifdef SOLVE_PGA
 				,
 				FLOAT *W_pre
-
 #endif
 );
 

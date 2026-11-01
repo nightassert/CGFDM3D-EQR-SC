@@ -65,14 +65,6 @@ void freeJac(float *Jac)
 	Free(Jac);
 }
 
-// When change the fast axises:
-/*
- * =============================================
- *             BE careful!!!!!!!!!!!!
- * =============================================
- */
-
-#ifdef SCFDM
 
 #define central_difference2(u1, u_1, rdh) (0.5 * (u1 - u_1) * rdh)
 #define Covariant_Size 9
@@ -119,8 +111,6 @@ void solve_con_jac_CMM(float *con, float *coord, float *Jac_inv, float *Covarian
 
 	END_CALCULATE3D()
 
-	cudaDeviceSynchronize();
-
 	CALCULATE3D(i, j, k, 2, _nx_ - 2, 2, _ny_ - 2, 2, _nz_ - 2)
 	idx = INDEX(i, j, k);
 	idx_p1 = INDEX(i + 1, j, k);
@@ -142,24 +132,11 @@ void solve_con_jac_CMM(float *con, float *coord, float *Jac_inv, float *Covarian
 	con[idx * CONSIZE + 8] = (Covariant[idx * Covariant_Size + 0] * Covariant[idx * Covariant_Size + 4] - Covariant[idx * Covariant_Size + 1] * Covariant[idx * Covariant_Size + 3]); // zt_z_J
 	END_CALCULATE3D()
 
-	cudaDeviceSynchronize();
-
 	CALCULATE3D(i, j, k, 1, _nx_ - 1, 1, _ny_ - 1, 1, _nz_ - 1)
 	idx = INDEX(i, j, k);
 	idx_p1 = INDEX(i + 1, j, k);
 	idy_p1 = INDEX(i, j + 1, k);
 	idz_p1 = INDEX(i, j, k + 1);
-
-	// ！ For characteristic free surface boundary conditons
-	// con[idx * CONSIZE + 9] =  (con[idx * CONSIZE + 6] / Jac_inv[idx]) / (sqrt((con[idx * CONSIZE + 6] / Jac_inv[idx]) * (con[idx * CONSIZE + 6] / Jac_inv[idx]) + (con[idx * CONSIZE + 7] / Jac_inv[idx]) * (con[idx * CONSIZE + 7] / Jac_inv[idx]) + (con[idx * CONSIZE + 8] / Jac_inv[idx]) * (con[idx * CONSIZE + 8] / Jac_inv[idx])));  // nx
-	// con[idx * CONSIZE + 10] = (con[idx * CONSIZE + 7] / Jac_inv[idx]) / (sqrt((con[idx * CONSIZE + 6] / Jac_inv[idx]) * (con[idx * CONSIZE + 6] / Jac_inv[idx]) + (con[idx * CONSIZE + 7] / Jac_inv[idx]) * (con[idx * CONSIZE + 7] / Jac_inv[idx]) + (con[idx * CONSIZE + 8] / Jac_inv[idx]) * (con[idx * CONSIZE + 8] / Jac_inv[idx]))); // ny
-	// con[idx * CONSIZE + 11] = (con[idx * CONSIZE + 8] / Jac_inv[idx]) / (sqrt((con[idx * CONSIZE + 6] / Jac_inv[idx]) * (con[idx * CONSIZE + 6] / Jac_inv[idx]) + (con[idx * CONSIZE + 7] / Jac_inv[idx]) * (con[idx * CONSIZE + 7] / Jac_inv[idx]) + (con[idx * CONSIZE + 8] / Jac_inv[idx]) * (con[idx * CONSIZE + 8] / Jac_inv[idx]))); // nz
-	// con[idx * CONSIZE + 12] = Covariant[idx * Covariant_Size + 0] / (sqrt(Covariant[idx * Covariant_Size + 0] * Covariant[idx * Covariant_Size + 0] + Covariant[idx * Covariant_Size + 1] * Covariant[idx * Covariant_Size + 1] + Covariant[idx * Covariant_Size + 2] * Covariant[idx * Covariant_Size + 2]));							   // sx
-	// con[idx * CONSIZE + 13] = Covariant[idx * Covariant_Size + 1] / (sqrt(Covariant[idx * Covariant_Size + 0] * Covariant[idx * Covariant_Size + 0] + Covariant[idx * Covariant_Size + 1] * Covariant[idx * Covariant_Size + 1] + Covariant[idx * Covariant_Size + 2] * Covariant[idx * Covariant_Size + 2]));							   // sy
-	// con[idx * CONSIZE + 14] = Covariant[idx * Covariant_Size + 2] / (sqrt(Covariant[idx * Covariant_Size + 0] * Covariant[idx * Covariant_Size + 0] + Covariant[idx * Covariant_Size + 1] * Covariant[idx * Covariant_Size + 1] + Covariant[idx * Covariant_Size + 2] * Covariant[idx * Covariant_Size + 2]));							   // sz
-	// con[idx * CONSIZE + 15] = Covariant[idx * Covariant_Size + 3] / (sqrt(Covariant[idx * Covariant_Size + 3] * Covariant[idx * Covariant_Size + 3] + Covariant[idx * Covariant_Size + 4] * Covariant[idx * Covariant_Size + 4] + Covariant[idx * Covariant_Size + 5] * Covariant[idx * Covariant_Size + 5]));							   // tx
-	// con[idx * CONSIZE + 16] = Covariant[idx * Covariant_Size + 4] / (sqrt(Covariant[idx * Covariant_Size + 3] * Covariant[idx * Covariant_Size + 3] + Covariant[idx * Covariant_Size + 4] * Covariant[idx * Covariant_Size + 4] + Covariant[idx * Covariant_Size + 5] * Covariant[idx * Covariant_Size + 5]));							   // ty
-	// con[idx * CONSIZE + 17] = Covariant[idx * Covariant_Size + 5] / (sqrt(Covariant[idx * Covariant_Size + 3] * Covariant[idx * Covariant_Size + 3] + Covariant[idx * Covariant_Size + 4] * Covariant[idx * Covariant_Size + 4] + Covariant[idx * Covariant_Size + 5] * Covariant[idx * Covariant_Size + 5]));							   // tz
 
 	con[idx * CONSIZE + 9] = Covariant[idx * Covariant_Size + 0];  // x_xi
 	con[idx * CONSIZE + 10] = Covariant[idx * Covariant_Size + 1]; // y_xi
@@ -167,16 +144,9 @@ void solve_con_jac_CMM(float *con, float *coord, float *Jac_inv, float *Covarian
 	con[idx * CONSIZE + 12] = Covariant[idx * Covariant_Size + 3]; // x_et
 	con[idx * CONSIZE + 13] = Covariant[idx * Covariant_Size + 4]; // y_et
 	con[idx * CONSIZE + 14] = Covariant[idx * Covariant_Size + 5]; // z_et
-	// con[idx * CONSIZE + 15] = Covariant[idx * Covariant_Size + 6]; // x_zt
-	// con[idx * CONSIZE + 16] = Covariant[idx * Covariant_Size + 7]; // y_zt
-	// con[idx * CONSIZE + 17] = Covariant[idx * Covariant_Size + 8]; // z_zt
 
 	END_CALCULATE3D()
-
-	cudaDeviceSynchronize();
 }
-
-#endif
 
 __GLOBAL__
 void solve_con_jac(float *con, float *coord, float *Jac, int _nx_, int _ny_, int _nz_, float rDH)
@@ -216,21 +186,6 @@ void solve_con_jac(float *con, float *coord, float *Jac, int _nx_, int _ny_, int
 	y_et = 0.5f * (LC(coord /*y*/, 1, CSIZE, 1, et) + LC(coord /*y*/, 1, CSIZE, -1, et));
 	y_zt = 0.5f * (LC(coord /*y*/, 1, CSIZE, 1, zt) + LC(coord /*y*/, 1, CSIZE, -1, zt));
 
-	/*
-	if ( index == INDEX( _nx/2 - 19, _ny / 2 - 31, _nz - 1 ) )
-	{
-		printf( "z-1 = %3.10e\n", coord[INDEX_et( i, j, k, -1 )*CSIZE+2]  );
-		printf( "z+0 = %3.10e\n", coord[INDEX_et( i, j, k, +0 )*CSIZE+2]  );
-		printf( "z+1 = %3.10e\n", coord[INDEX_et( i, j, k, +1 )*CSIZE+2]  );
-		printf( "z+2 = %3.10e\n", coord[INDEX_et( i, j, k, +2 )*CSIZE+2]  );
-		printf( "z+3 = %3.10e\n", coord[INDEX_et( i, j, k, +3 )*CSIZE+2]  );
-
-		printf( "z-2 = %3.10e\n", coord[INDEX_et( i, j, k, -2 )*CSIZE+2]  );
-		printf( "z-3 = %3.10e\n", coord[INDEX_et( i, j, k, -3 )*CSIZE+2]  );
-
-	}
-	*/
-
 	z_xi = 0.5f * (LC(coord /*z*/, 2, CSIZE, 1, xi) + LC(coord /*z*/, 2, CSIZE, -1, xi));
 	z_et = 0.5f * (LC(coord /*z*/, 2, CSIZE, 1, et) + LC(coord /*z*/, 2, CSIZE, -1, et));
 	z_zt = 0.5f * (LC(coord /*z*/, 2, CSIZE, 1, zt) + LC(coord /*z*/, 2, CSIZE, -1, zt));
@@ -259,37 +214,10 @@ void solve_con_jac(float *con, float *coord, float *Jac, int _nx_, int _ny_, int
 	con[index * CONSIZE + 6] = zt_x;
 	con[index * CONSIZE + 7] = zt_y;
 	con[index * CONSIZE + 8] = zt_z;
-	// if ( index == INDEX( _nx/2 - 10, _ny / 2 - 10, _nz - 1 ) )
-	/*
-	if ( index == INDEX( _nx/2 - 19, _ny / 2 - 31, _nz - 1 ) )
-	{
-		printf( "x = %3.10e\n", coord[index*CSIZE+0]  );
-		printf( "y = %3.10e\n", coord[index*CSIZE+1]  );
-		printf( "z = %3.10e\n", coord[index*CSIZE+2]  );
-
-		printf( "Jac = %3.10e\n", JacobiInv );
-
-		printf("x_xi = %3.10e\n", x_xi );
-		printf("y_xi = %3.10e\n", y_xi );
-		printf("z_xi = %3.10e\n", z_xi );
-		printf("x_et = %3.10e\n", x_et );
-		printf("y_et = %3.10e\n", y_et );
-		printf("z_et = %3.10e\n", z_et );
-		printf("x_zt = %3.10e\n", x_zt );
-		printf("y_zt = %3.10e\n", y_zt );
-		printf("z_zt = %3.10e\n", z_zt );
-	}
-	*/
 
 	END_CALCULATE3D()
 }
 
-// When change the fast axises:
-/*
- * =============================================
- *             BE careful!!!!!!!!!!!!
- * =============================================
- */
 void allocMat_rDZ(GRID grid, Mat_rDZ *mat_rDZ)
 {
 	int _nx_ = grid._nx_;
@@ -379,7 +307,6 @@ void solve_coordinate_on_free_surface(
 		lambda = medium[index * MSIZE + 1];
 		chi = 2.0f * lambda + mu; // 希腊字母
 		lam_mu = lambda + mu;
-		// printf( "mu = %f, lambda = %f\n", mu, lambda );
 		/****************
 		---				  ---
 		| DZ[0] DZ[1] DZ[2] |
@@ -458,46 +385,6 @@ void solve_coordinate_on_free_surface(
 		_rDZ_DY[indexOnSurf * MATSIZE + 6] = -DOT_PRODUCT3D(rDZ[6], rDZ[7], rDZ[8], DY[0], DY[3], DY[6]); // M31
 		_rDZ_DY[indexOnSurf * MATSIZE + 7] = -DOT_PRODUCT3D(rDZ[6], rDZ[7], rDZ[8], DY[1], DY[4], DY[7]); // M32
 		_rDZ_DY[indexOnSurf * MATSIZE + 8] = -DOT_PRODUCT3D(rDZ[6], rDZ[7], rDZ[8], DY[2], DY[5], DY[8]); // M33
-
-		/*
-		if ( index == INDEX( _nx/2 - 19, _ny / 2 - 31, _nz - 1 ) )
-		//if ( index == INDEX( _nx/2 - 10, _ny / 2 - 10, _nz - 1 ) )
-		{
-			printf("xi_x = %3.10e\n", xi_x );
-			printf("xi_y = %3.10e\n", xi_y );
-			printf("xi_z = %3.10e\n", xi_z );
-			printf("et_x = %3.10e\n", et_x );
-			printf("et_y = %3.10e\n", et_y );
-			printf("et_z = %3.10e\n", et_z );
-			printf("zt_x = %3.10e\n", zt_x );
-			printf("zt_y = %3.10e\n", zt_y );
-			printf("zt_z = %3.10e\n", zt_z );
-
-			printf("_rDZ_DX0 = %3.10e\n", _rDZ_DX[indexOnSurf*MATSIZE+0]);
-			printf("_rDZ_DX1 = %3.10e\n", _rDZ_DX[indexOnSurf*MATSIZE+1]);
-			printf("_rDZ_DX2 = %3.10e\n", _rDZ_DX[indexOnSurf*MATSIZE+2]);
-															//
-			printf("_rDZ_DX3 = %3.10e\n", _rDZ_DX[indexOnSurf*MATSIZE+3]);
-			printf("_rDZ_DX4 = %3.10e\n", _rDZ_DX[indexOnSurf*MATSIZE+4]);
-			printf("_rDZ_DX5 = %3.10e\n", _rDZ_DX[indexOnSurf*MATSIZE+5]);
-															//
-			printf("_rDZ_DX6 = %3.10e\n", _rDZ_DX[indexOnSurf*MATSIZE+6]);
-			printf("_rDZ_DX7 = %3.10e\n", _rDZ_DX[indexOnSurf*MATSIZE+7]);
-			printf("_rDZ_DX8 = %3.10e\n", _rDZ_DX[indexOnSurf*MATSIZE+8]);
-															 //
-			printf("_rDZ_DY0 = %3.10e\n", _rDZ_DY[indexOnSurf*MATSIZE+0]);
-			printf("_rDZ_DY1 = %3.10e\n", _rDZ_DY[indexOnSurf*MATSIZE+1]);
-			printf("_rDZ_DY2 = %3.10e\n", _rDZ_DY[indexOnSurf*MATSIZE+2]);
-															 //
-			printf("_rDZ_DY3 = %3.10e\n", _rDZ_DY[indexOnSurf*MATSIZE+3]);
-			printf("_rDZ_DY4 = %3.10e\n", _rDZ_DY[indexOnSurf*MATSIZE+4]);
-			printf("_rDZ_DY5 = %3.10e\n", _rDZ_DY[indexOnSurf*MATSIZE+5]);
-															 //
-			printf("_rDZ_DY6 = %3.10e\n", _rDZ_DY[indexOnSurf*MATSIZE+6]);
-			printf("_rDZ_DY7 = %3.10e\n", _rDZ_DY[indexOnSurf*MATSIZE+7]);
-			printf("_rDZ_DY8 = %3.10e\n", _rDZ_DY[indexOnSurf*MATSIZE+8]);
-		}
-		*/
 	}
 	else
 	{
@@ -534,33 +421,41 @@ void solveContravariantJac(MPI_Comm comm_cart, GRID grid, float *con, float *coo
 
 	dim3 threads(32, 4, 4);
 	dim3 blocks;
+#endif
 
-#ifdef SCFDM
-	blocks.x = (_nx_ + threads.x - 1) / threads.x;
-	blocks.y = (_ny_ + threads.y - 1) / threads.y;
-	blocks.z = (_nz_ + threads.z - 1) / threads.z;
+	if (g_params.scheme == SCHEME_WENO)
+	{
+		// The WENO metrics need one-sided differences at the free surface,
+		// so they are evaluated in two passes with a temporary buffer.
+		float *Cov = NULL;
+		long long covSize = sizeof(float) * (long long)_nx_ * _ny_ * _nz_ * Covariant_Size;
+		CHECK(Malloc((void **)&Cov, covSize));
+		CHECK(Memset(Cov, 0, covSize));
 
-	float *Cov;
-	Malloc((void **)&Cov, sizeof(float) * _nx_ * _ny_ * _nz_ * Covariant_Size);
+#ifdef GPU_CUDA
+		blocks.x = (_nx_ + threads.x - 1) / threads.x;
+		blocks.y = (_ny_ + threads.y - 1) / threads.y;
+		blocks.z = (_nz_ + threads.z - 1) / threads.z;
+
+		solve_con_jac_CMM<<<blocks, threads>>>(con, coord, Jac, Cov, _nx_, _ny_, _nz_, rDH);
 #else
+		solve_con_jac_CMM(con, coord, Jac, Cov, _nx_, _ny_, _nz_, rDH);
+#endif
+		Free(Cov);
+		return;
+	}
+
+#ifdef GPU_CUDA
 	blocks.x = (nx + threads.x - 1) / threads.x;
 	blocks.y = (ny + threads.y - 1) / threads.y;
 	blocks.z = (nz + threads.z - 1) / threads.z;
-#endif
 
-#ifdef SCFDM
-	solve_con_jac_CMM<<<blocks, threads>>>(con, coord, Jac, Cov, _nx_, _ny_, _nz_, rDH);
-	Free(Cov);
-#else
 	solve_con_jac<<<blocks, threads>>>(con, coord, Jac, _nx_, _ny_, _nz_, rDH);
-#endif
 #else
 	solve_con_jac(con, coord, Jac, _nx_, _ny_, _nz_, rDH);
 #endif
 
-#ifndef SCFDM
 #ifdef FREE_SURFACE
-
 #ifdef GPU_CUDA
 	dim3 threadSurf(32, 16, 1);
 	dim3 blockSurf;
@@ -575,9 +470,6 @@ void solveContravariantJac(MPI_Comm comm_cart, GRID grid, float *con, float *coo
 	solve_coordinate_on_free_surface(con, coord, Jac,
 									 medium, mat_rDZ,
 									 _nx_, _ny_, _nz_);
-
 #endif // GPU_CUDA
-
 #endif // FREE_SURFACE
-#endif
 }

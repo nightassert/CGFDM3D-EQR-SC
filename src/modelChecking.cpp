@@ -20,6 +20,28 @@ void modelChecking(PARAMS params)
 	MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Comm_rank(MPI_COMM_WORLD, &thisRank);
 
+	if (params.scheme != SCHEME_CGFDM && params.scheme != SCHEME_WENO)
+	{
+		if (0 == thisRank)
+			printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+				   "Unknown numerical scheme. Use \"CGFDM\", \"WENO-JS\" or \"WENO-Z\" in params.json.\n"
+				   "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+		MPI_Barrier(MPI_COMM_WORLD);
+		MPI_Abort(MPI_COMM_WORLD, 180);
+	}
+
+#ifdef PML
+	if (params.scheme == SCHEME_CGFDM && params.nPML < 2)
+	{
+		if (0 == thisRank)
+			printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+				   "CGFDM requires nPML >= 2. The program will abort!\n"
+				   "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+		MPI_Barrier(MPI_COMM_WORLD);
+		MPI_Abort(MPI_COMM_WORLD, 180);
+	}
+#endif
+
 	if (params.useSingleSource_ricker && params.useSingleSource_double_couple)
 	{
 		if (0 == thisRank)

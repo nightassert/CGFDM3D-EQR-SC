@@ -25,7 +25,6 @@
 #ifdef GPU_CUDA
 #include <cublas_v2.h>
 #include <cuda_fp16.h>
-// #include <cuda_bf16.h>
 #endif
 
 #include <fstream>

@@ -74,9 +74,6 @@ void construct_homo_medium(float *medium, int _nx_, int _ny_, int _nz_)
 
 	CALCULATE3D(i, j, k, 0, _nx_, 0, _ny_, 0, _nz_)
 	index = INDEX(i, j, k) * MSIZE;
-	// medium[index + 0] = 3464.0f;
-	// medium[index + 1] = 6000.0f;
-	// medium[index + 2] = 2670.0f;
 
 	// ! TPV10
 	medium[index + 0] = 3300.0f;
@@ -128,7 +125,6 @@ void generate_1D_medium(PARAMS params, GRID grid, float *cpu_medium, float *cpu_
 		VsData[F] *= 1000.f;
 		VpData[F] *= 1000.f;
 		RhoData[F] *= 1000.f;
-		// printf("height = %f, VsData = %f\n", heightData[F], VsData[F]);
 	}
 
 	fclose(file);
@@ -152,7 +148,6 @@ void generate_1D_medium(PARAMS params, GRID grid, float *cpu_medium, float *cpu_
 #ifdef LayeredStructureTerrain
 	pos = Index2D(i, j, _nx_, _ny_);
 	terrain = cpu_terrain[pos];
-	// printf( "terrain = %f\n", terrain  );
 #else
 	terrain = 0.0;
 #endif
@@ -171,9 +166,6 @@ void generate_1D_medium(PARAMS params, GRID grid, float *cpu_medium, float *cpu_
 			vs = VsData[0];
 			vp = VpData[0];
 			rho = RhoData[0];
-			// if( i == 100 && j == 100) {
-			//	printf("coordZ = %f, Vs = %f, Vp = %f, rho = %f\n", coordz, vs, vp, rho );
-			// }
 			cpu_medium[index + 0] = vs;
 			cpu_medium[index + 1] = vp;
 			cpu_medium[index + 2] = rho;
@@ -183,9 +175,6 @@ void generate_1D_medium(PARAMS params, GRID grid, float *cpu_medium, float *cpu_
 			vs = VsData[F - 1];
 			vp = VpData[F - 1];
 			rho = RhoData[F - 1];
-			// if( i == 100 && j == 100) {
-			//	printf("coordZ = %f, Vs = %f, Vp = %f, rho = %f\n", coordZ, Vs, Vp, rho );
-			// }
 			cpu_medium[index + 0] = vs;
 			cpu_medium[index + 1] = vp;
 			cpu_medium[index + 2] = rho;
@@ -195,9 +184,6 @@ void generate_1D_medium(PARAMS params, GRID grid, float *cpu_medium, float *cpu_
 			vs = VsData[F];
 			vp = VpData[F];
 			rho = RhoData[F];
-			// if( i == 100 && j == 100) {
-			//	printf("coordZ = %f, Vs = %f, Vp = %f, rho = %f\n", coordZ, Vs, Vp, rho );
-			// }
 			cpu_medium[index + 0] = vs;
 			cpu_medium[index + 1] = vp;
 			cpu_medium[index + 2] = rho;
@@ -257,7 +243,6 @@ void constructMedium(MPI_COORD thisMPICoord, PARAMS params, GRID grid, float *cp
 	long long num = _nx_ * _ny_ * _nz_;
 	long long size = num * MSIZE * sizeof(float);
 
-	// printf( "Vs: %p, Vp: %p, rho: %p\n", structure.Vs, structure.Vp, structure.rho  );
 #ifdef GPU_CUDA
 	dim3 threads(32, 16, 1);
 	dim3 blocks;
@@ -266,14 +251,12 @@ void constructMedium(MPI_COORD thisMPICoord, PARAMS params, GRID grid, float *cp
 	blocks.z = (_nz_ + threads.z - 1) / threads.z;
 
 	construct_homo_medium<<<blocks, threads>>>(medium, _nx_, _ny_, _nz_);
-	// CHECK( cudaDeviceSynchronize( )  );
 	CHECK(cudaMemcpy(cpu_medium, medium, size, cudaMemcpyDeviceToHost));
 	CHECK(cudaDeviceSynchronize());
 #else
 	construct_homo_medium(medium, _nx_, _ny_, _nz_);
 #endif
 
-	// printf( "1: medium = %p\n", medium );
 	MPI_Barrier(MPI_COMM_WORLD);
 	if (params.useMedium)
 	{
@@ -291,27 +274,8 @@ void constructMedium(MPI_COORD thisMPICoord, PARAMS params, GRID grid, float *cp
 		CHECK(cudaMemcpy(medium, cpu_medium, size, cudaMemcpyHostToDevice));
 		CHECK(cudaDeviceSynchronize());
 #endif
-		// printf( "2: cpu_medium = %p\n", cpu_medium );
 	}
 
 	MPI_Barrier(MPI_COMM_WORLD);
 
-	/*
-	int i = HALO;
-	int j = HALO;
-	int k = HALO;
-
-	int _nx = grid._nx;
-	int _ny = grid._ny;
-	int _nz = grid._nz;
-
-	long long index = 0;
-	FOR_LOOP3D( i, j, k, HALO, _nx, HALO, _ny, HALO, _nz )
-		index = INDEX( i, j, k ) * MSIZE;
-		if ( cpu_medium[index+0] < 1000.0 )
-			printf( "%f\n", cpu_medium[index+0] );
-	END_LOOP3D( )
-	//printf( "2: num = %d\n", _nx_ * _ );
-	//printf( "2: cpu_medium = %p\n", cpu_medium );
-	*/
 }

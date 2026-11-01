@@ -37,7 +37,6 @@ void FLOAT_packX(FLOAT *wave, FLOAT *thisSend,
 	int j = 0;
 	int k = 0;
 
-	// printf( "X = %d, Y = %d, Z = %d; X0 = %d, Y0 = %d, Z0 = %d\n", X, Y, Z, X0, Y0, Z0 );
 	CALCULATE3D(i0, j0, k0, 0, X0, 0, Y0, 0, Z0)
 	i = i0 + xStartHalo;
 	j = j0;
@@ -118,7 +117,6 @@ __GLOBAL__
 void FLOAT_packY(FLOAT *wave, FLOAT *thisSend,
 				 int yStartHalo, int X0, int Y0, int Z0, int X, int Y, int Z)
 {
-	// printf("pack_MPI_y\n");
 #ifdef GPU_CUDA
 	int i0 = threadIdx.x + blockIdx.x * blockDim.x;
 	int j0 = threadIdx.y + blockIdx.y * blockDim.y;
@@ -150,7 +148,6 @@ __GLOBAL__
 void FLOAT_unpackY(FLOAT *wave, FLOAT *thisRecv,
 				   int yStartHalo, int X0, int Y0, int Z0, int X, int Y, int Z)
 {
-	// printf("unpack_MPI_y\n");
 #ifdef GPU_CUDA
 	int i0 = threadIdx.x + blockIdx.x * blockDim.x;
 	int j0 = threadIdx.y + blockIdx.y * blockDim.y;
@@ -214,7 +211,6 @@ __GLOBAL__
 void FLOAT_packZ(FLOAT *wave, FLOAT *thisSend,
 				 int zStartHalo, int X0, int Y0, int Z0, int X, int Y, int Z)
 {
-	// printf("pack_MPI_y\n");
 #ifdef GPU_CUDA
 	int i0 = threadIdx.x + blockIdx.x * blockDim.x;
 	int j0 = threadIdx.y + blockIdx.y * blockDim.y;
@@ -246,7 +242,6 @@ __GLOBAL__
 void FLOAT_unpackZ(FLOAT *wave, FLOAT *thisRecv,
 				   int zStartHalo, int X0, int Y0, int Z0, int X, int Y, int Z)
 {
-	// printf("unpack_MPI_y\n");
 #ifdef GPU_CUDA
 	int i0 = threadIdx.x + blockIdx.x * blockDim.x;
 	int j0 = threadIdx.y + blockIdx.y * blockDim.y;
@@ -294,7 +289,6 @@ void FLOAT_PackUnpackZ(FLOAT *wave, FLOAT *thisSendRecv,
 	zStartHalo = zStartHalo * VARSIZE;
 #endif
 
-	// printf( "X = %d, Y = %d, Z = %d; X0 = %d, Y0 = %d, Z0 = %d\n", X, Y, Z, X0, Y0, Z0 );
 #ifdef GPU_CUDA
 	dim3 threads(16, 8, 4);
 	dim3 blocks;
@@ -347,42 +341,30 @@ void FLOAT_allocSendRecv(GRID grid, MPI_NEIGHBOR mpiNeighbor, SEND_RECV_DATA_FLO
 {
 	memset(sr, 0, sizeof(SEND_RECV_DATA_FLOAT));
 
-	/*if ( mpiNeighbor.X1 > 0 )*/ FLOAT_alloc_send_recv(grid, &(sr->thisXSend1), &(sr->thisXRecv1), VARSIZE, 'X');
-	/*if ( mpiNeighbor.Y1 > 0 )*/ FLOAT_alloc_send_recv(grid, &(sr->thisYSend1), &(sr->thisYRecv1), VARSIZE, 'Y');
-	/*if ( mpiNeighbor.Z1 > 0 )*/ FLOAT_alloc_send_recv(grid, &(sr->thisZSend1), &(sr->thisZRecv1), VARSIZE, 'Z');
+	FLOAT_alloc_send_recv(grid, &(sr->thisXSend1), &(sr->thisXRecv1), VARSIZE, 'X');
+	FLOAT_alloc_send_recv(grid, &(sr->thisYSend1), &(sr->thisYRecv1), VARSIZE, 'Y');
+	FLOAT_alloc_send_recv(grid, &(sr->thisZSend1), &(sr->thisZRecv1), VARSIZE, 'Z');
 
-	/*if ( mpiNeighbor.X2 > 0 )*/ FLOAT_alloc_send_recv(grid, &(sr->thisXSend2), &(sr->thisXRecv2), VARSIZE, 'X');
-	/*if ( mpiNeighbor.Y2 > 0 )*/ FLOAT_alloc_send_recv(grid, &(sr->thisYSend2), &(sr->thisYRecv2), VARSIZE, 'Y');
-	/*if ( mpiNeighbor.Z2 > 0 )*/ FLOAT_alloc_send_recv(grid, &(sr->thisZSend2), &(sr->thisZRecv2), VARSIZE, 'Z');
+	FLOAT_alloc_send_recv(grid, &(sr->thisXSend2), &(sr->thisXRecv2), VARSIZE, 'X');
+	FLOAT_alloc_send_recv(grid, &(sr->thisYSend2), &(sr->thisYRecv2), VARSIZE, 'Y');
+	FLOAT_alloc_send_recv(grid, &(sr->thisZSend2), &(sr->thisZRecv2), VARSIZE, 'Z');
 }
 
 void FLOAT_freeSendRecv(MPI_NEIGHBOR mpiNeighbor, SEND_RECV_DATA_FLOAT sr)
 {
-	/*if ( mpiNeighbor.X1 > 0 )*/ {
-		Free(sr.thisXSend1);
-		Free(sr.thisXRecv1);
-	};
-	/*if ( mpiNeighbor.Y1 > 0 )*/ {
-		Free(sr.thisYSend1);
-		Free(sr.thisYRecv1);
-	};
-	/*if ( mpiNeighbor.Z1 > 0 )*/ {
-		Free(sr.thisZSend1);
-		Free(sr.thisZRecv1);
-	};
+	Free(sr.thisXSend1);
+	Free(sr.thisXRecv1);
+	Free(sr.thisYSend1);
+	Free(sr.thisYRecv1);
+	Free(sr.thisZSend1);
+	Free(sr.thisZRecv1);
 
-	/*if ( mpiNeighbor.X2 > 0 )*/ {
-		Free(sr.thisXSend2);
-		Free(sr.thisXRecv2);
-	};
-	/*if ( mpiNeighbor.Y2 > 0 )*/ {
-		Free(sr.thisYSend2);
-		Free(sr.thisYRecv2);
-	};
-	/*if ( mpiNeighbor.Z2 > 0 )*/ {
-		Free(sr.thisZSend2);
-		Free(sr.thisZRecv2);
-	};
+	Free(sr.thisXSend2);
+	Free(sr.thisXRecv2);
+	Free(sr.thisYSend2);
+	Free(sr.thisYRecv2);
+	Free(sr.thisZSend2);
+	Free(sr.thisZRecv2);
 }
 
 void FLOAT_mpiSendRecv(MPI_Comm comm_cart, MPI_NEIGHBOR mpiNeighbor, GRID grid, FLOAT *wave, SEND_RECV_DATA_FLOAT sr, int VARSIZE)
@@ -391,13 +373,14 @@ void FLOAT_mpiSendRecv(MPI_Comm comm_cart, MPI_NEIGHBOR mpiNeighbor, GRID grid, 
 	int _ny_ = grid._ny_;
 	int _nz_ = grid._nz_;
 
+	int _nx = grid._nx;
+	int _ny = grid._ny;
+	int _nz = grid._nz;
+
 	int nx = grid.nx;
 	int ny = grid.ny;
 	int nz = grid.nz;
 
-	int _nx = grid._nx;
-	int _ny = grid._ny;
-	int _nz = grid._nz;
 
 	long long num = 0;
 
@@ -500,6 +483,4 @@ void FLOAT_mpiSendRecv(MPI_Comm comm_cart, MPI_NEIGHBOR mpiNeighbor, GRID grid, 
 	if (mpiNeighbor.Z2 >= 0)
 		FLOAT_PackUnpackZ(wave, thisZRecv2, zStartHalo, VARSIZE, _nx_, _ny_, _nz_, FLOAT_unpackZ);
 
-	/*
-	 */
 }

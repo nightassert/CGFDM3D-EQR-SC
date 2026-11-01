@@ -37,7 +37,6 @@ void packX(float *con, float *thisSend,
 	int j = 0;
 	int k = 0;
 
-	// printf( "X = %d, Y = %d, Z = %d; X0 = %d, Y0 = %d, Z0 = %d\n", X, Y, Z, X0, Y0, Z0 );
 	CALCULATE3D(i0, j0, k0, 0, X0, 0, Y0, 0, Z0)
 	i = i0 + xStartHalo;
 	j = j0;
@@ -118,7 +117,6 @@ __GLOBAL__
 void packY(float *con, float *thisSend,
 		   int yStartHalo, int X0, int Y0, int Z0, int X, int Y, int Z)
 {
-	// printf("pack_MPI_y\n");
 #ifdef GPU_CUDA
 	int i0 = threadIdx.x + blockIdx.x * blockDim.x;
 	int j0 = threadIdx.y + blockIdx.y * blockDim.y;
@@ -150,7 +148,6 @@ __GLOBAL__
 void unpackY(float *con, float *thisRecv,
 			 int yStartHalo, int X0, int Y0, int Z0, int X, int Y, int Z)
 {
-	// printf("unpack_MPI_y\n");
 #ifdef GPU_CUDA
 	int i0 = threadIdx.x + blockIdx.x * blockDim.x;
 	int j0 = threadIdx.y + blockIdx.y * blockDim.y;
@@ -214,7 +211,6 @@ __GLOBAL__
 void packZ(float *con, float *thisSend,
 		   int zStartHalo, int X0, int Y0, int Z0, int X, int Y, int Z)
 {
-	// printf("pack_MPI_y\n");
 #ifdef GPU_CUDA
 	int i0 = threadIdx.x + blockIdx.x * blockDim.x;
 	int j0 = threadIdx.y + blockIdx.y * blockDim.y;
@@ -246,7 +242,6 @@ __GLOBAL__
 void unpackZ(float *con, float *thisRecv,
 			 int zStartHalo, int X0, int Y0, int Z0, int X, int Y, int Z)
 {
-	// printf("unpack_MPI_y\n");
 #ifdef GPU_CUDA
 	int i0 = threadIdx.x + blockIdx.x * blockDim.x;
 	int j0 = threadIdx.y + blockIdx.y * blockDim.y;
@@ -294,7 +289,6 @@ void PackUnpackZ(float *con, float *thisSendRecv,
 	zStartHalo = zStartHalo * VARSIZE;
 #endif
 
-	// printf( "X = %d, Y = %d, Z = %d; X0 = %d, Y0 = %d, Z0 = %d\n", X, Y, Z, X0, Y0, Z0 );
 #ifdef GPU_CUDA
 	dim3 threads(16, 8, 4);
 	dim3 blocks;
@@ -347,42 +341,30 @@ void allocSendRecv(GRID grid, MPI_NEIGHBOR mpiNeighbor, SEND_RECV_DATA *sr, int 
 {
 	memset(sr, 0, sizeof(SEND_RECV_DATA));
 
-	/*if ( mpiNeighbor.X1 > 0 )*/ alloc_send_recv(grid, &(sr->thisXSend1), &(sr->thisXRecv1), VARSIZE, 'X');
-	/*if ( mpiNeighbor.Y1 > 0 )*/ alloc_send_recv(grid, &(sr->thisYSend1), &(sr->thisYRecv1), VARSIZE, 'Y');
-	/*if ( mpiNeighbor.Z1 > 0 )*/ alloc_send_recv(grid, &(sr->thisZSend1), &(sr->thisZRecv1), VARSIZE, 'Z');
+	alloc_send_recv(grid, &(sr->thisXSend1), &(sr->thisXRecv1), VARSIZE, 'X');
+	alloc_send_recv(grid, &(sr->thisYSend1), &(sr->thisYRecv1), VARSIZE, 'Y');
+	alloc_send_recv(grid, &(sr->thisZSend1), &(sr->thisZRecv1), VARSIZE, 'Z');
 
-	/*if ( mpiNeighbor.X2 > 0 )*/ alloc_send_recv(grid, &(sr->thisXSend2), &(sr->thisXRecv2), VARSIZE, 'X');
-	/*if ( mpiNeighbor.Y2 > 0 )*/ alloc_send_recv(grid, &(sr->thisYSend2), &(sr->thisYRecv2), VARSIZE, 'Y');
-	/*if ( mpiNeighbor.Z2 > 0 )*/ alloc_send_recv(grid, &(sr->thisZSend2), &(sr->thisZRecv2), VARSIZE, 'Z');
+	alloc_send_recv(grid, &(sr->thisXSend2), &(sr->thisXRecv2), VARSIZE, 'X');
+	alloc_send_recv(grid, &(sr->thisYSend2), &(sr->thisYRecv2), VARSIZE, 'Y');
+	alloc_send_recv(grid, &(sr->thisZSend2), &(sr->thisZRecv2), VARSIZE, 'Z');
 }
 
 void freeSendRecv(MPI_NEIGHBOR mpiNeighbor, SEND_RECV_DATA sr)
 {
-	/*if ( mpiNeighbor.X1 > 0 )*/ {
-		Free(sr.thisXSend1);
-		Free(sr.thisXRecv1);
-	};
-	/*if ( mpiNeighbor.Y1 > 0 )*/ {
-		Free(sr.thisYSend1);
-		Free(sr.thisYRecv1);
-	};
-	/*if ( mpiNeighbor.Z1 > 0 )*/ {
-		Free(sr.thisZSend1);
-		Free(sr.thisZRecv1);
-	};
+	Free(sr.thisXSend1);
+	Free(sr.thisXRecv1);
+	Free(sr.thisYSend1);
+	Free(sr.thisYRecv1);
+	Free(sr.thisZSend1);
+	Free(sr.thisZRecv1);
 
-	/*if ( mpiNeighbor.X2 > 0 )*/ {
-		Free(sr.thisXSend2);
-		Free(sr.thisXRecv2);
-	};
-	/*if ( mpiNeighbor.Y2 > 0 )*/ {
-		Free(sr.thisYSend2);
-		Free(sr.thisYRecv2);
-	};
-	/*if ( mpiNeighbor.Z2 > 0 )*/ {
-		Free(sr.thisZSend2);
-		Free(sr.thisZRecv2);
-	};
+	Free(sr.thisXSend2);
+	Free(sr.thisXRecv2);
+	Free(sr.thisYSend2);
+	Free(sr.thisYRecv2);
+	Free(sr.thisZSend2);
+	Free(sr.thisZRecv2);
 }
 
 void mpiSendRecv(MPI_Comm comm_cart, MPI_NEIGHBOR mpiNeighbor, GRID grid, float *con, SEND_RECV_DATA sr, int VARSIZE)
@@ -500,6 +482,4 @@ void mpiSendRecv(MPI_Comm comm_cart, MPI_NEIGHBOR mpiNeighbor, GRID grid, float 
 	if (mpiNeighbor.Z2 >= 0)
 		PackUnpackZ(con, thisZRecv2, zStartHalo, VARSIZE, _nx_, _ny_, _nz_, unpackZ);
 
-	/*
-	 */
 }

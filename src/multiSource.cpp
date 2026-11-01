@@ -19,7 +19,6 @@
 
 #include "header.h"
 
-// bug: line 596: long long ii, indexII, indexI;
 
 void readSourceInfo(SOURCE_FILE_INPUT *src_in, char *sourceFileName)
 {
@@ -86,10 +85,6 @@ void readSourceLocation(SOURCE_FILE_INPUT src_in, char *sourceFileName)
 		fseek(sourceFile, 3 * sizeof(float) + 2 * nt * sizeof(float), SEEK_CUR);
 	}
 
-	// int nnnn = 1000;
-
-	// cout << "lon[" << nnnn  <<"] = " << src_in.lon[nnnn] << endl;
-	// cout << "npts = " << npts << ", nt = " << nt << ", dt = " << src_in.dt << endl;
 	fclose(sourceFile);
 }
 
@@ -147,7 +142,6 @@ void projTrans(PARAMS params, SOURCE_FILE_INPUT src_in)
 		}
 	}
 
-	// cout << "maxLon = " << maxLon << ", minLon = " << minLon << ", maxLat = " << maxLat << ", minLat = " << minLat << endl;
 
 	PJ_CONTEXT *C;
 	PJ *P;
@@ -157,8 +151,6 @@ void projTrans(PARAMS params, SOURCE_FILE_INPUT src_in)
 	char projStr[256]; //""
 	sprintf(projStr, "+proj=aeqd +lon_0=%lf +lat_0=%lf +x_0=0.0 +y_0=0.0 +ellps=WGS84", lon_0, lat_0);
 
-	// printf( projStr  );
-	// printf( "\n"  );
 	P = proj_create(C, projStr);
 	if (NULL == P)
 	{
@@ -205,7 +197,6 @@ long long srcCoord2Index(GRID grid, float Depth, float *coord, float *cpu_terrai
 
 	long long pointNum = 0;
 
-	// cout << "x = " << x[npts-1] << ", y = " << y[npts-1] << ", z = " << z[npts-1] << endl;
 	float maxCoordZ = -Depth;
 	float minCoordZ = Depth;
 	for (int jj = 0; jj < npts; jj++)
@@ -221,11 +212,9 @@ long long srcCoord2Index(GRID grid, float Depth, float *coord, float *cpu_terrai
 	{
 		z[jj] = z[jj] - maxCoordZ;
 	}
-	// cout << "maxCoordZ = " << maxCoordZ << ", minCoordZ = " << minCoordZ  << endl;
 
 	int extendNZ = 0;
 
-	// cout << npts << endl;
 	int rank;
 
 	int k = 0;
@@ -367,9 +356,7 @@ void readSourceParams(SOURCE_FILE_INPUT src_in, char *sourceFileName, map<long l
 	for (map<long long, long long>::iterator it = point_index.begin(); it != point_index.end(); it++)
 	{
 		nptsIndex = it->first;
-		// cout << nptsIndex << endl;
 		fseek(sourceFile, headSize + byteSize * nptsIndex + 3 * sizeof(float), SEEK_SET);
-		//
 		fread(src_in.area + i, sizeof(float), 1, sourceFile);
 		fread(src_in.strike + i, sizeof(float), 1, sourceFile);
 		fread(src_in.dip + i, sizeof(float), 1, sourceFile);
@@ -377,21 +364,8 @@ void readSourceParams(SOURCE_FILE_INPUT src_in, char *sourceFileName, map<long l
 		fread(src_in.rake + i * nt, sizeof(float), nt, sourceFile);
 		fread(src_in.rate + i * nt, sizeof(float), nt, sourceFile);
 		i++;
-		// if ( i == 10000 )
-		//		cout << "s = " << src_in.strike[i] << ", d = " << src_in.dip[i] << ", a = " << src_in.area[i] << ", r = " << src_in.rake[i] << endl;
 	}
 
-	// cout << "size = " << size << endl;
-	// for ( i = 0; i < size; i ++ )
-	//{
-	//	cout << "dip = " << src_in.area[i] << endl;
-	// }
-
-	// int nnnn = 1000;
-	// cout <<  size   << endl;
-
-	// cout << "lon[" << nnnn  <<"] = " << src_in.lon[nnnn] << endl;
-	// cout << "npts = " << npts << ", nt = " << nt << ", dt = " << src_in.dt << endl;
 	fclose(sourceFile);
 }
 
@@ -467,16 +441,11 @@ void solveMomentRate(PARAMS params, SOURCE_FILE_INPUT src_in, float *momentRate,
 	float M13 = 0.0f;
 	float M23 = 0.0f;
 
-	// cout << "pointNum = " << pointNum << endl;
 	for (p = 0; p < pointNum; p++)
 	{
 		s = strike[p] * DEGREE2RADIAN;
 		d = dip[p] * DEGREE2RADIAN;
 		a = area[p];
-		// if ( p == 1000 )
-		//{
-		//	cout << "s = " << s << ", d = " << d << ", a = " << a << endl;
-		// }
 
 		for (it = 0; it < nt; it++)
 		{
@@ -488,21 +457,6 @@ void solveMomentRate(PARAMS params, SOURCE_FILE_INPUT src_in, float *momentRate,
 				r = rake[index] * DEGREE2RADIAN;
 			rt = rate[index];
 
-			/*
-			M11 = -(sin(d) * cos(r) * sin(s * 2.0) + sin(d * 2.0) * sin(r) * sin(s) * sin(s));
-			M22 = sin(d) * cos(r) * sin(s * 2.0) - sin(d * 2.0) * sin(r) * cos(s) * cos(s);
-			M33 = -(M11+M22);
-			M12 = sin(d) * cos(r) * cos(s * 2.0) + 0.5 * sin(d * 2.0) * sin(r) * sin(s * 2.0);
-			M13 = -(cos(d) * cos(r) * cos(s) + cos(d * 2.0) * sin(r) * sin(s));
-			M23 = -(cos(d) * cos(r) * sin(s) - cos(d * 2.0) * sin(r) * cos(s));
-
-			Mxx[index] =  M22 * a * rt;
-			Myy[index] =  M11 * a * rt;
-			Mzz[index] =  M33 * a * rt;
-			Mxy[index] =  M12 * a * rt;
-			Mxz[index] = -M23 * a * rt;
-			Myz[index] = -M13 * a * rt;
-			*/
 
 			M11 = -(sin(d) * cos(r) * sin(2.0 * s) + sin(2.0 * d) * sin(r) * sin(s) * sin(s));
 			M22 = sin(d) * cos(r) * sin(2.0 * s) - sin(2.0 * d) * sin(r) * cos(s) * cos(s);
@@ -518,18 +472,6 @@ void solveMomentRate(PARAMS params, SOURCE_FILE_INPUT src_in, float *momentRate,
 			momentRate[index * MOMSIZE + 4] = -M23 * a * rt; // Mxz
 			momentRate[index * MOMSIZE + 5] = -M13 * a * rt; // Myz
 
-			/*
-			if ( p == 10000 && it == 500 )
-			{
-				cout << "s = " << s << ", d = " << d << ", a = " << a << ", r = " << r << endl;
-				printf( "M0 = %.10f\n",   M22 * a * rt );
-				printf( "M1 = %.10f\n",   M11 * a * rt );
-				printf( "M2 = %.10f\n",   M33 * a * rt );
-				printf( "M3 = %.10f\n",   M12 * a * rt );
-				printf( "M4 = %.10f\n", - M23 * a * rt );
-				printf( "M5 = %.10f\n", - M13 * a * rt );
-			}
-			*/
 		}
 	}
 }
@@ -541,17 +483,14 @@ void dealDuplicateIndex(float *momentRate,
 {
 
 	long long point_num = point_index.size();
-	// cout << "point_num = " << point_num  <<  endl;
 	if (0 == point_num)
 	{
 		return;
 	}
 	long long pnt = 0, idx = 0;
 
-	// map < long long, long long > index_point;
 
 	int i = 0;
-	// cout << "1111111111111111111111111111111111111111111"<< endl;
 	for (map<long long, long long>::iterator it = point_index.begin(); it != point_index.end(); it++)
 	{
 		idx = it->second;
@@ -559,7 +498,6 @@ void dealDuplicateIndex(float *momentRate,
 		i++;
 	}
 
-	// cout << "2222222222222222222222222222222222222222222"<< endl;
 
 	int t = 0;
 	int nt = src_in.nt;
@@ -588,7 +526,6 @@ void dealDuplicateIndex(float *momentRate,
 		i++;
 	}
 
-	// cout << "point_index size = " << point_index.size( )  << ", index_point size = " << index_point.size()  << endl;
 }
 
 void outputSourceData(PARAMS params, SOURCE_FILE_INPUT src_in,
@@ -735,17 +672,6 @@ void changeStorageOrder(SOURCE_FILE_INPUT src_in,
 			momentRateNew[pos1 * MOMSIZE + 3] = momentRateOld[pos0 * MOMSIZE + 3];
 			momentRateNew[pos1 * MOMSIZE + 4] = momentRateOld[pos0 * MOMSIZE + 4];
 			momentRateNew[pos1 * MOMSIZE + 5] = momentRateOld[pos0 * MOMSIZE + 5];
-			/*
-			if ( J == 10000 && t == 500 )
-			{
-				printf( "momentRateNew = %f\n", momentRateNew[pos1*MOMSIZE+0] );
-				printf( "momentRateNew = %f\n", momentRateNew[pos1*MOMSIZE+1] );
-				printf( "momentRateNew = %f\n", momentRateNew[pos1*MOMSIZE+2] );
-				printf( "momentRateNew = %f\n", momentRateNew[pos1*MOMSIZE+3] );
-				printf( "momentRateNew = %f\n", momentRateNew[pos1*MOMSIZE+4] );
-				printf( "momentRateNew = %f\n", momentRateNew[pos1*MOMSIZE+5] );
-			}
-			*/
 		}
 		J++;
 	}
@@ -790,8 +716,6 @@ void init_MultiSource(PARAMS params, GRID grid, MPI_COORD thisMPICoord, float *c
 	char sourceFileName[256];
 	sprintf(sourceFileName, "%s/%s", params.sourceDir, params.sourceFile);
 
-	// cout << sourceFileName << ", is source file" << endl;
-	// cout << "==================================" << endl;
 
 	readSourceInfo(&src_in, sourceFileName);
 	allocSourceLocation(&src_in); // A1
@@ -799,7 +723,6 @@ void init_MultiSource(PARAMS params, GRID grid, MPI_COORD thisMPICoord, float *c
 
 	projTrans(params, src_in);
 
-	// allocSrcIndex( srcIndex, src_in.npts );
 
 	float Depth = params.Depth * 1000;
 
@@ -819,7 +742,6 @@ void init_MultiSource(PARAMS params, GRID grid, MPI_COORD thisMPICoord, float *c
 
 	allocSourceParams(&src_in, pointNum); // A2
 	readSourceParams(src_in, sourceFileName, point_index);
-	/**/
 	float *momentRateOld;
 	allocMomentRate_cpu(&momentRateOld, pointNum, src_in.nt); // A3
 
@@ -862,14 +784,24 @@ void init_MultiSource(PARAMS params, GRID grid, MPI_COORD thisMPICoord, float *c
 	ret_src_in->nt = src_in.nt;
 	ret_src_in->dt = src_in.dt;
 	ret_src_in->npts = npts;
-	// MPI_Barrier( MPI_COMM_WORLD );
-	// cout << "npts = "<< npts << endl;
-	// cout << "1111111111111111111111111111111111111111111"<< endl;
 }
 
-void finish_MultiSource(long long *srcIndex, float *momentRate, float *momentRateSlice, long long npts)
+void finish_MultiSource(long long *&srcIndex, float *&momentRate, float *&momentRateSlice, long long npts)
 {
 	freeSrcIndex(srcIndex, npts);
 	freeMomentRate(momentRate, npts);
 	freeMomentRateSlice(momentRateSlice, npts);
+
+	// addMomenteRate() calls this routine on every remaining time step once
+	// the fault source has run out, so the handles have to be cleared here.
+	// Freeing the same pointer a second time makes cudaFree() return
+	// cudaErrorInvalidValue (code 1, "invalid argument"); that error is not
+	// checked here, stays pending, and only surfaces at the next
+	// cudaGetLastError() -- the one right after the WENO x-derivative launch
+	// in alternative_flux_FD.cpp -- which aborts the whole run dozens of
+	// steps after the real cause.  cudaFree(NULL) is a no-op, so the repeat
+	// calls become harmless.
+	srcIndex = NULL;
+	momentRate = NULL;
+	momentRateSlice = NULL;
 }

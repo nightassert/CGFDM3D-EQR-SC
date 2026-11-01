@@ -117,7 +117,6 @@ int readStationIndex(GRID grid)
 
 	fread(jsonStr, sizeof(char), len, fp);
 
-	// printf( "%s\n", jsonStr );
 	cJSON *object;
 	cJSON *objArray;
 
@@ -125,7 +124,6 @@ int readStationIndex(GRID grid)
 	if (NULL == object)
 	{
 		printf("Can't parse json file!\n");
-		// exit( 1 );
 		return 0;
 	}
 
@@ -181,7 +179,6 @@ int readStationIndex(GRID grid)
 			stationNum++;
 		}
 	}
-	// printf( "stationNum = %d\n", stationNum );
 
 	return stationNum;
 }
@@ -214,7 +211,6 @@ void initStationIndex(GRID grid, STATION station)
 
 	fread(jsonStr, sizeof(char), len, fp);
 
-	// printf( "%s\n", jsonStr );
 	cJSON *object;
 	cJSON *objArray;
 
@@ -222,7 +218,6 @@ void initStationIndex(GRID grid, STATION station)
 	if (NULL == object)
 	{
 		printf("Can't parse json file!\n");
-		// exit( 1 );
 		return;
 	}
 
@@ -233,7 +228,6 @@ void initStationIndex(GRID grid, STATION station)
 	if (objArray = cJSON_GetObjectItem(object, "station(point)"))
 	{
 		stationCnt = cJSON_GetArraySize(objArray);
-		// printf( "stationCnt = %d\n", stationCnt );
 	}
 
 	cJSON *stationObj, *stationItem;
@@ -250,9 +244,6 @@ void initStationIndex(GRID grid, STATION station)
 
 	int X, Y, Z;
 
-	// printf( "X = %p\n", station.X  );
-	// printf( "Y = %p\n", station.Y  );
-	// printf( "Z = %p\n", station.Z  );
 
 	int stationIdx = 0;
 	for (i = 0; i < stationCnt; i++)
@@ -300,12 +291,8 @@ void stationCPU2GPU(STATION station, STATION station_cpu, int stationNum)
 }
 
 __GLOBAL__
-void storage_station(int stationNum, STATION station, FLOAT *W, int _nx_, int _ny_, int _nz_, int NT, int it
-#ifdef SCFDM
-					 ,
-					 FLOAT *CJM
-#endif
-)
+void storage_station(int stationNum, STATION station, FLOAT *W, int _nx_, int _ny_, int _nz_, int NT, int it,
+					 FLOAT *CJM, int scheme)
 {
 
 #ifdef GPU_CUDA
@@ -319,12 +306,6 @@ void storage_station(int stationNum, STATION station, FLOAT *W, int _nx_, int _n
 	float C1 = 1.0 / Cv;
 	float C2 = 1.0 / Cs;
 
-#ifdef SCFDM
-	float mu, lambda, buoyancy;
-	float u_conserv[9]; // Exx, Eyy, Ezz, Exy, Eyz, Exz, Px, Py, Pz
-	float u_phy[9];		// Txx, Tyy, Tzz, Txy, Txz, Tyz, Vx, Vy, Vz
-#endif
-
 	CALCULATE1D(i, 0, stationNum)
 	X = station.XYZ[i * CSIZE + 0];
 	Y = station.XYZ[i * CSIZE + 1];
@@ -333,58 +314,55 @@ void storage_station(int stationNum, STATION station, FLOAT *W, int _nx_, int _n
 	index = INDEX(X, Y, Z);
 	pos = it + i * NT;
 
-#ifdef SCFDM
-	mu = CJM[index * CJMSIZE + 10];
-	lambda = CJM[index * CJMSIZE + 11];
-	buoyancy = CJM[index * CJMSIZE + 12];
-	buoyancy *= Crho;
-
-	for (int n = 0; n < 9; n++)
+	if (scheme == SCHEME_WENO)
 	{
-		u_conserv[n] = W[index * WSIZE + n];
+		float mu = CJM[index * CJMSIZE + 10];
+		float lambda = CJM[index * CJMSIZE + 11];
+		float buoyancy = CJM[index * CJMSIZE + 12] * Crho;
+		float u_conserv[9]; // Px, Py, Pz, Exx, Eyy, Ezz, Eyz, Exz, Exy, Px, Py, Pz
+		float u_phy[9];		// Txx, Tyy, Tzz, Txy, Txz, Tyz, Vx, Vy, Vz
+
+		for (int n = 0; n < 9; n++)
+			u_conserv[n] = W[index * WSIZE + n];
+
+		u_phy[0] = lambda * u_conserv[4] + lambda * u_conserv[5] + u_conserv[3] * (lambda + 2 * mu);
+		u_phy[1] = lambda * u_conserv[3] + lambda * u_conserv[5] + u_conserv[4] * (lambda + 2 * mu);
+		u_phy[2] = lambda * u_conserv[3] + lambda * u_conserv[4] + u_conserv[5] * (lambda + 2 * mu);
+		u_phy[3] = mu * u_conserv[8];
+		u_phy[4] = mu * u_conserv[7];
+		u_phy[5] = mu * u_conserv[6];
+		u_phy[6] = u_conserv[0] * buoyancy;
+		u_phy[7] = u_conserv[1] * buoyancy;
+		u_phy[8] = u_conserv[2] * buoyancy;
+
+		station.wave[pos * WSIZE + 0] = (float)u_phy[6];
+		station.wave[pos * WSIZE + 1] = (float)u_phy[7];
+		station.wave[pos * WSIZE + 2] = (float)u_phy[8];
+		station.wave[pos * WSIZE + 3] = (float)u_phy[0];
+		station.wave[pos * WSIZE + 4] = (float)u_phy[1];
+		station.wave[pos * WSIZE + 5] = (float)u_phy[2];
+		station.wave[pos * WSIZE + 6] = (float)u_phy[3];
+		station.wave[pos * WSIZE + 7] = (float)u_phy[4];
+		station.wave[pos * WSIZE + 8] = (float)u_phy[5];
 	}
-
-	u_phy[0] = lambda * u_conserv[4] + lambda * u_conserv[5] + u_conserv[3] * (lambda + 2 * mu);
-	u_phy[1] = lambda * u_conserv[3] + lambda * u_conserv[5] + u_conserv[4] * (lambda + 2 * mu);
-	u_phy[2] = lambda * u_conserv[3] + lambda * u_conserv[4] + u_conserv[5] * (lambda + 2 * mu);
-	u_phy[3] = mu * u_conserv[8];
-	u_phy[4] = mu * u_conserv[7];
-	u_phy[5] = mu * u_conserv[6];
-	u_phy[6] = u_conserv[0] * buoyancy;
-	u_phy[7] = u_conserv[1] * buoyancy;
-	u_phy[8] = u_conserv[2] * buoyancy;
-
-	station.wave[pos * WSIZE + 0] = (float)u_phy[6];
-	station.wave[pos * WSIZE + 1] = (float)u_phy[7];
-	station.wave[pos * WSIZE + 2] = (float)u_phy[8];
-	station.wave[pos * WSIZE + 3] = (float)u_phy[0];
-	station.wave[pos * WSIZE + 4] = (float)u_phy[1];
-	station.wave[pos * WSIZE + 5] = (float)u_phy[2];
-	station.wave[pos * WSIZE + 6] = (float)u_phy[3];
-	station.wave[pos * WSIZE + 7] = (float)u_phy[4];
-	station.wave[pos * WSIZE + 8] = (float)u_phy[5];
-#else
-
-	station.wave[pos * WSIZE + 0] = (float)W[index * WSIZE + 0] * C1;
-	station.wave[pos * WSIZE + 1] = (float)W[index * WSIZE + 1] * C1;
-	station.wave[pos * WSIZE + 2] = (float)W[index * WSIZE + 2] * C1;
-	station.wave[pos * WSIZE + 3] = (float)W[index * WSIZE + 3] * C2;
-	station.wave[pos * WSIZE + 4] = (float)W[index * WSIZE + 4] * C2;
-	station.wave[pos * WSIZE + 5] = (float)W[index * WSIZE + 5] * C2;
-	station.wave[pos * WSIZE + 6] = (float)W[index * WSIZE + 6] * C2;
-	station.wave[pos * WSIZE + 7] = (float)W[index * WSIZE + 7] * C2;
-	station.wave[pos * WSIZE + 8] = (float)W[index * WSIZE + 8] * C2;
-#endif
+	else
+	{
+		station.wave[pos * WSIZE + 0] = (float)W[index * WSIZE + 0] * C1;
+		station.wave[pos * WSIZE + 1] = (float)W[index * WSIZE + 1] * C1;
+		station.wave[pos * WSIZE + 2] = (float)W[index * WSIZE + 2] * C1;
+		station.wave[pos * WSIZE + 3] = (float)W[index * WSIZE + 3] * C2;
+		station.wave[pos * WSIZE + 4] = (float)W[index * WSIZE + 4] * C2;
+		station.wave[pos * WSIZE + 5] = (float)W[index * WSIZE + 5] * C2;
+		station.wave[pos * WSIZE + 6] = (float)W[index * WSIZE + 6] * C2;
+		station.wave[pos * WSIZE + 7] = (float)W[index * WSIZE + 7] * C2;
+		station.wave[pos * WSIZE + 8] = (float)W[index * WSIZE + 8] * C2;
+	}
 
 	END_CALCULATE1D()
 }
 
-void storageStation(GRID grid, int NT, int stationNum, STATION station, FLOAT *W, int it
-#ifdef SCFDM
-					,
-					FLOAT *CJM
-#endif
-)
+void storageStation(GRID grid, int NT, int stationNum, STATION station, FLOAT *W, int it,
+					FLOAT *CJM)
 {
 	long long num = stationNum;
 
@@ -398,15 +376,10 @@ void storageStation(GRID grid, int NT, int stationNum, STATION station, FLOAT *W
 	blocks.x = (num + threads.x - 1) / threads.x;
 	blocks.y = 1;
 	blocks.z = 1;
-	storage_station<<<blocks, threads>>>(stationNum, station, W, _nx_, _ny_, _nz_, NT, it
-#ifdef SCFDM
-										 ,
-										 CJM
-#endif
-	);
+	storage_station<<<blocks, threads>>>(stationNum, station, W, _nx_, _ny_, _nz_, NT, it, CJM, g_params.scheme);
 	CHECK(cudaDeviceSynchronize());
 #else
-	storage_station(stationNum, station, W, _nx_, _ny_, _nz_, NT, it);
+	storage_station(stationNum, station, W, _nx_, _ny_, _nz_, NT, it, CJM, g_params.scheme);
 #endif
 }
 

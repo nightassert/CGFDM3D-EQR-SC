@@ -107,9 +107,7 @@ void crustInterpFunc(PARAMS params, GRID grid, int nLon, int nLat, int nLayer,
 
 	for (K = 0; K < nLayer; K++)
 	{
-		// printf( "K = %d\n", K  );
 		FOR_LOOP2D(i, j, 0, _nx_, 0, _ny_)
-		// index = i + j * _nx_;
 		index = Index2D(i, j, _nx_, _ny_);
 
 		x_ = LonLat.lon[index];
@@ -129,7 +127,6 @@ void crustInterpFunc(PARAMS params, GRID grid, int nLon, int nLat, int nLayer,
 		y[0] = y1;
 		y[1] = y2;
 
-		// pos = K + I * NLayer + J * NLayer * nLon;
 		pos = Index2D(I, J, nLon, nLat) + K * nLonLat;
 		// A
 		vs[0] = crustFile.vs[pos];
@@ -137,7 +134,6 @@ void crustInterpFunc(PARAMS params, GRID grid, int nLon, int nLat, int nLayer,
 		rho[0] = crustFile.rho[pos];
 		bnds[0] = crustFile.bnds[pos];
 
-		// pos = K + ( I + 1 ) * NLayer + J * NLayer * nLon;
 		pos = Index2D(I + 1, J, nLon, nLat) + K * nLonLat;
 		// B
 		vs[2] = crustFile.vs[pos];
@@ -145,7 +141,6 @@ void crustInterpFunc(PARAMS params, GRID grid, int nLon, int nLat, int nLayer,
 		rho[2] = crustFile.rho[pos];
 		bnds[2] = crustFile.bnds[pos];
 
-		// pos = K + I * NLayer + ( J + 1 ) * NLayer * nLon;
 		pos = Index2D(I, J - 1, nLon, nLat) + K * nLonLat;
 		// C
 		vs[1] = crustFile.vs[pos];
@@ -153,7 +148,6 @@ void crustInterpFunc(PARAMS params, GRID grid, int nLon, int nLat, int nLayer,
 		rho[1] = crustFile.rho[pos];
 		bnds[1] = crustFile.bnds[pos];
 
-		// pos = K + ( I + 1 ) * NLayer + ( J + 1 ) * NLayer * nLon;
 		pos = Index2D(I + 1, J - 1, nLon, nLat) + K * nLonLat;
 		// D
 		vs[3] = crustFile.vs[pos];
@@ -161,7 +155,6 @@ void crustInterpFunc(PARAMS params, GRID grid, int nLon, int nLat, int nLayer,
 		rho[3] = crustFile.rho[pos];
 		bnds[3] = crustFile.bnds[pos];
 
-		// pos = i + j * _nx_ + K * _nx_ * _ny_;
 		pos = K * _nx_ * _ny_ + Index2D(i, j, _nx_, _ny_);
 		crustInterp.vs[pos] = interp2d(x, y, vs, x_, y_);
 		crustInterp.vp[pos] = interp2d(x, y, vp, x_, y_);
@@ -212,7 +205,6 @@ void solveStructure(GRID grid, float *structure, float *coord, CRUST crustInterp
 		END_LOOP2D()
 	}
 
-	// printf( "maxBnd = %f, minBnd = %f\n", maxBnd, minBnd );
 
 	FOR_LOOP3D(i, j, k, 0, _nx_, 0, _ny_, 0, _nz_)
 	index = INDEX(i, j, k) * MSIZE;

@@ -14,10 +14,42 @@
 
 #include "header.h"
 
+#ifdef GPU_CUDA
+// 在 MPI_Init 之前为本进程建立 CUDA context。
+// 原因：OpenMPI 5 的 accelerator(cuda) 组件在 MPI_Init 阶段用 cuCtxGetCurrent
+// 探测当前线程的 CUDA context。CGFDM3D 原本在 init_MPI(MPI_Init) 之后才在
+// init_gpu 里 cudaSetDevice 建 context，导致探测失败、CUDA IPC 直传被禁用，
+// halo 的 device 缓冲区回退到 smcuda 碎块中转路径（大量 cuMemcpyAsync+sync，
+// 严重拖慢多卡通信）。在 MPI_Init 前预建 context 即可恢复 IPC 直传。
+static void establish_cuda_context_before_mpi(void)
+{
+	// 优先用本地 rank 预绑定本进程将使用的 GPU（与 params.json 的 gpu_nodes
+	// 顺序一致）；取不到时退化为在 device 0 上建 context，仅为让 MPI 探测成功。
+	int dev = 0;
+	const char *lr = getenv("OMPI_COMM_WORLD_LOCAL_RANK"); // OpenMPI
+	if (NULL == lr)
+		lr = getenv("PMI_LOCAL_RANK"); // 部分启动器
+	if (NULL == lr)
+		lr = getenv("MPI_LOCALRANKID"); // Intel MPI 兼容
+	if (NULL != lr)
+	{
+		int devCount = 0;
+		if (cudaGetDeviceCount(&devCount) == cudaSuccess && devCount > 0)
+			dev = atoi(lr) % devCount;
+	}
+	cudaSetDevice(dev); // 建立该设备 context
+	cudaFree(0);		// 强制 runtime 真正初始化 context
+}
+#endif // GPU_CUDA
+
 int main(int argc, char **argv)
 {
 
-	PARAMS params;
+#ifdef GPU_CUDA
+	establish_cuda_context_before_mpi();
+#endif
+
+	PARAMS params = {};
 	GRID grid = {0};
 
 	MPI_COORD thisMPICoord = {0};

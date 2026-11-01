@@ -24,8 +24,6 @@ void wave_pml_rk0(float *h_W, float *W, float *t_W, float *m_W, long long WStrid
 	int i = 0;
 #endif
 	CALCULATE1D(i, 0, WStride)
-	// if( i == WStride )
-	//	printf( "WStride = %d\n", WStride );
 	m_W[i] = W[i];
 	t_W[i] = m_W[i] + beta1 * h_W[i];
 	W[i] = m_W[i] + alpha2 * h_W[i];
@@ -117,7 +115,6 @@ void pmlRk(GRID grid, MPI_BORDER border, int irk, AUX6 Aux6)
 		pml_rk[irk]<<<blockX, thread>>>(Aux6.Aux2x.h_Aux, Aux6.Aux2x.Aux, Aux6.Aux2x.t_Aux, Aux6.Aux2x.m_Aux, numx);
 	if (border.isy2)
 		pml_rk[irk]<<<blockY, thread>>>(Aux6.Aux2y.h_Aux, Aux6.Aux2y.Aux, Aux6.Aux2y.t_Aux, Aux6.Aux2y.m_Aux, numy);
-		// CHECK( cudaDeviceSynchronize( ) );
 #ifndef FREE_SURFACE
 	if (border.isz2)
 		pml_rk[irk]<<<blockZ, thread>>>(Aux6.Aux2z.h_Aux, Aux6.Aux2z.Aux, Aux6.Aux2z.t_Aux, Aux6.Aux2z.m_Aux, numz);

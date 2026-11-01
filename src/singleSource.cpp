@@ -36,14 +36,12 @@ void locateSource(PARAMS params, GRID grid, SOURCE *source)
 	source->Y = sourceY - frontNY + HALO;
 	source->Z = sourceZ - frontNZ + HALO;
 
-	// printf( "source.X = %d, source.Y = %d, source.Z = %d\n", source->X, source->Y, source->Z );
 }
 __DEVICE__
 float sourceFunction(float rickerfc, int it, int irk, float DT)
 {
 	float t = 0.0f;
 	float tdelay = 1.0f / rickerfc;
-	// tdelay = 1.0;
 
 	if (0 == irk)
 	{
@@ -72,7 +70,6 @@ float gaussFunction(float duration, int it, int irk, float DT)
 {
 	float t = 0.0f;
 	float tdelay = duration / 2 + 1;
-	// tdelay = 1.0;
 
 	if (0 == irk)
 	{
@@ -92,25 +89,8 @@ float gaussFunction(float duration, int it, int irk, float DT)
 }
 
 __GLOBAL__
-void load_point_source(SOURCE S, FLOAT *h_W, int _nx_, int _ny_, int _nz_,
-					   FLOAT *CJM, int it, int irk, float DT, float DH)
-{
-	float amp = 1.0;
-	float s = sourceFunction(2.0f, it, irk, DT);
-
-	float jacb = CJM[INDEX(S.X, S.Y, S.Z) * CJMSIZE + 9];
-
-	float value = -1.0f * s * amp / (jacb * (DH * DH * DH));
-
-	// printf("index = %d, value = %f\n",  INDEX( S.X, S.Y, S.Z ), value );
-	h_W[INDEX(S.X, S.Y, S.Z) * WSIZE + 3] += value;
-	h_W[INDEX(S.X, S.Y, S.Z) * WSIZE + 4] += value;
-	h_W[INDEX(S.X, S.Y, S.Z) * WSIZE + 5] += value;
-}
-
-__GLOBAL__
 void load_smooth_source_ricker(SOURCE S, FLOAT *h_W, int _nx_, int _ny_, int _nz_,
-							   FLOAT *CJM, int it, int iRK, float DT, float DH, int nGauss, float rickerfc)
+							   FLOAT *CJM, int it, int iRK, float DT, float DH, int nGauss, float rickerfc, int scheme)
 {
 #ifdef GPU_CUDA
 	int i = threadIdx.x + blockIdx.x * blockDim.x + S.X - nGauss;
@@ -122,14 +102,11 @@ void load_smooth_source_ricker(SOURCE S, FLOAT *h_W, int _nx_, int _ny_, int _nz
 	int k = 0;
 #endif
 	long long index = 0;
-	float amp = 0.0f;
 	float s = 0.0f;
 	float value = 0.0f;
 
 	CALCULATE3D(i, j, k, S.X - nGauss, S.X + nGauss + 1, S.Y - nGauss, S.Y + nGauss + 1, S.Z - nGauss, S.Z + nGauss + 1)
 	index = INDEX(i, j, k);
-	if (iRK == 0)
-		s = 0.0f;
 	s = sourceFunction(rickerfc, it, iRK, DT);
 	float ra = nGauss * 0.5;
 	float D1 = GAUSS_FUN(i - S.X, ra, 0.0);
@@ -138,44 +115,29 @@ void load_smooth_source_ricker(SOURCE S, FLOAT *h_W, int _nx_, int _ny_, int _nz
 	float amp = D1 * D2 * D3;
 
 	amp /= 0.998125703461425; // # 3
-	// amp /= 0.9951563131100551; // # 5
 
 	float jacb = CJM[INDEX(S.X, S.Y, S.Z) * CJMSIZE + 9];
 
 	value = -1.0f * s * amp / (jacb * (DH * DH * DH));
-	// value = -1.0f * s * amp  / (  DH * DH * DH );
-	// printf( "value = %f\n", value );
-
-	// if ( i == S.X && j == S.Y && k == S.Z )
-	// printf( "index = %d\n", index  );
-	// printf( "value = %10.10lf\n", value  );
 	value *= Cs * DT;
 
-#ifdef SCFDM
-
-	float mu, lambda, buoyancy;
-
-	mu = CJM[index * CJMSIZE + 10];
-	lambda = CJM[index * CJMSIZE + 11];
-
-	value = value / (3 * lambda + 2 * mu);
+	if (scheme == SCHEME_WENO)
+	{
+		// WENO evolves strain; convert the isotropic stress source.
+		float mu = CJM[index * CJMSIZE + 10];
+		float lambda = CJM[index * CJMSIZE + 11];
+		value = value / (3 * lambda + 2 * mu);
+	}
 
 	h_W[index * WSIZE + 3] = ((float)h_W[index * WSIZE + 3] + value);
 	h_W[index * WSIZE + 4] = ((float)h_W[index * WSIZE + 4] + value);
 	h_W[index * WSIZE + 5] = ((float)h_W[index * WSIZE + 5] + value);
-#else
-	h_W[index * WSIZE + 3] = ((float)h_W[index * WSIZE + 3] + value);
-	h_W[index * WSIZE + 4] = ((float)h_W[index * WSIZE + 4] + value);
-	h_W[index * WSIZE + 5] = ((float)h_W[index * WSIZE + 5] + value);
-#endif
 
 	END_CALCULATE3D()
 }
 
 void loadPointSource_ricker(GRID grid, SOURCE S, FLOAT *h_W, FLOAT *CJM, int it, int irk, float DT, float DH, float rickerfc)
 {
-	// load_point_source<<< 1, 1 >>>( S, h_W, _nx_, _ny_, _nz_, Jac, it, irk, DT, DH );
-
 	int nGauss = 3;
 
 	int _nx_ = grid._nx_;
@@ -198,7 +160,7 @@ void loadPointSource_ricker(GRID grid, SOURCE S, FLOAT *h_W, FLOAT *CJM, int it,
 		S.Y >= HALO && S.Y < _ny &&
 		S.Z >= HALO && S.Z < _nz)
 	{
-		load_smooth_source_ricker<<<blocks, threads>>>(S, h_W, _nx_, _ny_, _nz_, CJM, it, irk, DT, DH, nGauss, rickerfc);
+		load_smooth_source_ricker<<<blocks, threads>>>(S, h_W, _nx_, _ny_, _nz_, CJM, it, irk, DT, DH, nGauss, rickerfc, g_params.scheme);
 	}
 	CHECK(cudaDeviceSynchronize());
 #else
@@ -207,7 +169,7 @@ void loadPointSource_ricker(GRID grid, SOURCE S, FLOAT *h_W, FLOAT *CJM, int it,
 		S.Y >= HALO && S.Y < _ny &&
 		S.Z >= HALO && S.Z < _nz)
 	{
-		load_smooth_source(S, h_W, _nx_, _ny_, _nz_, CJM, it, irk, DT, DH, nGauss, rickerfc);
+		load_smooth_source_ricker(S, h_W, _nx_, _ny_, _nz_, CJM, it, irk, DT, DH, nGauss, rickerfc, g_params.scheme);
 	}
 
 #endif
@@ -215,7 +177,7 @@ void loadPointSource_ricker(GRID grid, SOURCE S, FLOAT *h_W, FLOAT *CJM, int it,
 
 __GLOBAL__
 void load_smooth_source_double_couple(SOURCE S, FLOAT *h_W, int _nx_, int _ny_, int _nz_,
-									  FLOAT *CJM, int it, int iRK, float DT, float DH, int nGauss, float strike, float dip, float rake, float Mw, float duration)
+									  FLOAT *CJM, int it, int iRK, float DT, float DH, int nGauss, float strike, float dip, float rake, float Mw, float duration, int scheme)
 {
 #ifdef GPU_CUDA
 	int i = threadIdx.x + blockIdx.x * blockDim.x + S.X - nGauss;
@@ -227,7 +189,6 @@ void load_smooth_source_double_couple(SOURCE S, FLOAT *h_W, int _nx_, int _ny_, 
 	int k = 0;
 #endif
 	long long index = 0;
-	float amp = 0.0f;
 	float s = 0.0f;
 	float rate = 0.0f;
 
@@ -249,8 +210,6 @@ void load_smooth_source_double_couple(SOURCE S, FLOAT *h_W, int _nx_, int _ny_, 
 
 	CALCULATE3D(i, j, k, S.X - nGauss, S.X + nGauss + 1, S.Y - nGauss, S.Y + nGauss + 1, S.Z - nGauss, S.Z + nGauss + 1)
 	index = INDEX(i, j, k);
-	if (iRK == 0)
-		s = 0.0f;
 	s = gaussFunction(duration, it, iRK, DT);
 	float ra = nGauss * 0.5;
 	float D1 = GAUSS_FUN(i - S.X, ra, 0.0);
@@ -259,17 +218,10 @@ void load_smooth_source_double_couple(SOURCE S, FLOAT *h_W, int _nx_, int _ny_, 
 	float amp = D1 * D2 * D3;
 
 	amp /= 0.998125703461425; // # 3
-	// amp /= 0.9951563131100551; // # 5
 
 	float jacb = CJM[INDEX(S.X, S.Y, S.Z) * CJMSIZE + 9];
 
 	rate = -1.0f * s * amp / (jacb * (DH * DH * DH)) * m0;
-	// value = -1.0f * s * amp  / (  DH * DH * DH );
-	// printf( "value = %f\n", value );
-
-	// if ( i == S.X && j == S.Y && k == S.Z )
-	// printf( "index = %d\n", index  );
-	// printf( "value = %10.10lf\n", value  );
 	rate *= Cs * DT;
 
 	M11 = -(sin(dip) * cos(rake) * sin(2.0 * strike) + sin(2.0 * dip) * sin(rake) * sin(strike) * sin(strike));
@@ -286,41 +238,41 @@ void load_smooth_source_double_couple(SOURCE S, FLOAT *h_W, int _nx_, int _ny_, 
 	momentrate[4] = -M23 * rate;
 	momentrate[5] = -M13 * rate;
 
-#ifdef SCFDM
-	float mu, lambda, buoyancy;
+	if (scheme == SCHEME_WENO)
+	{
+		// WENO evolves strain: convert the moment tensor from stress to strain.
+		float mu = CJM[index * CJMSIZE + 10];
+		float lambda = CJM[index * CJMSIZE + 11];
 
-	mu = CJM[index * CJMSIZE + 10];
-	lambda = CJM[index * CJMSIZE + 11];
+		momentrate_strain[0] = (momentrate[0] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * momentrate[1]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * momentrate[2]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
+		momentrate_strain[1] = (momentrate[1] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * momentrate[0]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * momentrate[2]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
+		momentrate_strain[2] = (momentrate[2] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * momentrate[0]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * momentrate[1]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
+		momentrate_strain[3] = momentrate[5] / mu;
+		momentrate_strain[4] = momentrate[4] / mu;
+		momentrate_strain[5] = momentrate[3] / mu;
 
-	momentrate_strain[0] = (momentrate[0] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * momentrate[1]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * momentrate[2]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
-	momentrate_strain[1] = (momentrate[1] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * momentrate[0]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * momentrate[2]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
-	momentrate_strain[2] = (momentrate[2] * (lambda + mu)) / (2 * (mu * mu) + 3 * lambda * mu) - (lambda * momentrate[0]) / (2 * (2 * (mu * mu) + 3 * lambda * mu)) - (lambda * momentrate[1]) / (2 * (2 * (mu * mu) + 3 * lambda * mu));
-	momentrate_strain[3] = momentrate[5] / (mu);
-	momentrate_strain[4] = momentrate[4] / (mu);
-	momentrate_strain[5] = momentrate[3] / (mu);
-
-	h_W[index * WSIZE + 3] = ((float)h_W[index * WSIZE + 3] - momentrate_strain[0]);
-	h_W[index * WSIZE + 4] = ((float)h_W[index * WSIZE + 4] - momentrate_strain[1]);
-	h_W[index * WSIZE + 5] = ((float)h_W[index * WSIZE + 5] - momentrate_strain[2]);
-	h_W[index * WSIZE + 6] = ((float)h_W[index * WSIZE + 6] - momentrate_strain[3]);
-	h_W[index * WSIZE + 7] = ((float)h_W[index * WSIZE + 7] - momentrate_strain[4]);
-	h_W[index * WSIZE + 8] = ((float)h_W[index * WSIZE + 8] - momentrate_strain[5]);
-#else
-	h_W[index * WSIZE + 3] = ((float)h_W[index * WSIZE + 3] - momentrate[0]);
-	h_W[index * WSIZE + 4] = ((float)h_W[index * WSIZE + 4] - momentrate[1]);
-	h_W[index * WSIZE + 5] = ((float)h_W[index * WSIZE + 5] - momentrate[2]);
-	h_W[index * WSIZE + 6] = ((float)h_W[index * WSIZE + 6] - momentrate[3]);
-	h_W[index * WSIZE + 7] = ((float)h_W[index * WSIZE + 7] - momentrate[4]);
-	h_W[index * WSIZE + 8] = ((float)h_W[index * WSIZE + 8] - momentrate[5]);
-#endif
+		h_W[index * WSIZE + 3] = ((float)h_W[index * WSIZE + 3] - momentrate_strain[0]);
+		h_W[index * WSIZE + 4] = ((float)h_W[index * WSIZE + 4] - momentrate_strain[1]);
+		h_W[index * WSIZE + 5] = ((float)h_W[index * WSIZE + 5] - momentrate_strain[2]);
+		h_W[index * WSIZE + 6] = ((float)h_W[index * WSIZE + 6] - momentrate_strain[3]);
+		h_W[index * WSIZE + 7] = ((float)h_W[index * WSIZE + 7] - momentrate_strain[4]);
+		h_W[index * WSIZE + 8] = ((float)h_W[index * WSIZE + 8] - momentrate_strain[5]);
+	}
+	else
+	{
+		h_W[index * WSIZE + 3] = ((float)h_W[index * WSIZE + 3] - momentrate[0]);
+		h_W[index * WSIZE + 4] = ((float)h_W[index * WSIZE + 4] - momentrate[1]);
+		h_W[index * WSIZE + 5] = ((float)h_W[index * WSIZE + 5] - momentrate[2]);
+		h_W[index * WSIZE + 6] = ((float)h_W[index * WSIZE + 6] - momentrate[3]);
+		h_W[index * WSIZE + 7] = ((float)h_W[index * WSIZE + 7] - momentrate[4]);
+		h_W[index * WSIZE + 8] = ((float)h_W[index * WSIZE + 8] - momentrate[5]);
+	}
 
 	END_CALCULATE3D()
 }
 
 void loadPointSource_double_couple(GRID grid, SOURCE S, FLOAT *h_W, FLOAT *CJM, int it, int irk, float DT, float DH, float strike, float dip, float rake, float Mw, float duration)
 {
-	// load_point_source<<< 1, 1 >>>( S, h_W, _nx_, _ny_, _nz_, Jac, it, irk, DT, DH );
-
 	int nGauss = 3;
 
 	int _nx_ = grid._nx_;
@@ -343,7 +295,7 @@ void loadPointSource_double_couple(GRID grid, SOURCE S, FLOAT *h_W, FLOAT *CJM, 
 		S.Y >= HALO && S.Y < _ny &&
 		S.Z >= HALO && S.Z < _nz)
 	{
-		load_smooth_source_double_couple<<<blocks, threads>>>(S, h_W, _nx_, _ny_, _nz_, CJM, it, irk, DT, DH, nGauss, strike, dip, rake, Mw, duration);
+		load_smooth_source_double_couple<<<blocks, threads>>>(S, h_W, _nx_, _ny_, _nz_, CJM, it, irk, DT, DH, nGauss, strike, dip, rake, Mw, duration, g_params.scheme);
 	}
 	CHECK(cudaDeviceSynchronize());
 #else
@@ -352,7 +304,7 @@ void loadPointSource_double_couple(GRID grid, SOURCE S, FLOAT *h_W, FLOAT *CJM, 
 		S.Y >= HALO && S.Y < _ny &&
 		S.Z >= HALO && S.Z < _nz)
 	{
-		load_smooth_source(S, h_W, _nx_, _ny_, _nz_, CJM, it, irk, DT, DH, nGauss, rickerfc);
+		load_smooth_source_double_couple(S, h_W, _nx_, _ny_, _nz_, CJM, it, irk, DT, DH, nGauss, strike, dip, rake, Mw, duration, g_params.scheme);
 	}
 
 #endif
@@ -385,12 +337,10 @@ void Gaussian_pluse(FLOAT *W,
 	int J = frontNY + j;
 	int K = frontNZ + k;
 
-	// printf( "===============\n" );
 	CALCULATE3D(i, j, k, HALO, _nx, HALO, _ny, HALO, _nz)
 	index = INDEX(i, j, k);
-	float r2 = -((I - _NX_ / 2) * (I - _NX_ / 2) + (J - _NY_ / 2) * (J - _NY_ / 2) + (K - _NZ_ / 2) * (K - _NZ_ / 2)); // powf( i - _nx_ * 0.5, 2 ) + powf( j - _ny_ * 0.5, 2 ) + powf( k - _nz_ * 0.5, 2 );
+	float r2 = -((I - _NX_ / 2) * (I - _NX_ / 2) + (J - _NY_ / 2) * (J - _NY_ / 2) + (K - _NZ_ / 2) * (K - _NZ_ / 2));
 	float a2 = 2.0f * sigma * sigma;
-	float M0 = 1e2f * expf(r2 / a2);
 
 	W[index * WSIZE + 3] = 1e19f * (1.0f / (PI * a2)) * exp(r2 / a2);
 	W[index * WSIZE + 4] = 1e19f * (1.0f / (PI * a2)) * exp(r2 / a2);
@@ -417,8 +367,6 @@ void GaussField(GRID grid, FLOAT *W)
 	int originalY = grid.originalY;
 
 #ifdef GPU_CUDA
-
-	printf("W = %p\n", W);
 
 	dim3 threads(32, 4, 4);
 	dim3 blocks;

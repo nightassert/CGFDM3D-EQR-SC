@@ -17,22 +17,25 @@
 =================================================================*/
 
 #include "header.h"
-#ifdef SCFDM
-#define RK_NUM 3
-#else
-#define RK_NUM 4
-#endif
 
 #ifdef SOLVE_PGA
-__global__ void stroage_W_pre_gpu(FLOAT *W, FLOAT *W_pre, int _nx_, int _ny_, int _nz_)
+__GLOBAL__ void stroage_W_pre_gpu(FLOAT *W, FLOAT *W_pre, int _nx_, int _ny_, int _nz_)
 {
+#ifdef GPU_CUDA
 	int i = threadIdx.x + blockIdx.x * blockDim.x;
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
 	int k = threadIdx.z + blockIdx.z * blockDim.z;
+#else
+	int i = 0;
+	int j = 0;
+	int k = 0;
+#endif
 
+	CALCULATE3D(i, j, k, 0, _nx_, 0, _ny_, 0, _nz_)
 	long long index = INDEX(i, j, k);
 
 	W_pre[index] = W[index];
+	END_CALCULATE3D()
 }
 
 void storage_W_pre(GRID grid, WAVE wave)
@@ -41,6 +44,7 @@ void storage_W_pre(GRID grid, WAVE wave)
 	int _ny_ = grid._ny_;
 	int _nz_ = grid._nz_;
 
+#ifdef GPU_CUDA
 #ifdef XFAST
 	dim3 threads(32, 4, 4);
 #endif
@@ -54,6 +58,9 @@ void storage_W_pre(GRID grid, WAVE wave)
 	blocks.z = (_nz_ + threads.z - 1) / threads.z;
 
 	stroage_W_pre_gpu<<<blocks, threads>>>(wave.W, wave.W_pre, _nx_, _ny_, _nz_);
+#else
+	stroage_W_pre_gpu(wave.W, wave.W_pre, _nx_, _ny_, _nz_);
+#endif
 }
 #endif
 
@@ -92,6 +99,10 @@ void propagate(
 
 	int sliceFreeSurf = params.sliceFreeSurf;
 
+	// WENO uses TVD-RK3; CGFDM uses classical RK4.
+	const bool useWENO = (params.scheme == SCHEME_WENO);
+	const int RK_NUM = useWENO ? 3 : 4;
+
 	SLICE freeSurfSlice;
 	float *pgv, *cpuPgv;
 
@@ -120,16 +131,31 @@ void propagate(
 	MPI_BORDER border = {0};
 	isMPIBorder(grid, thisMPICoord, &border);
 
-	AUX6SURF Aux6;
+	AUX6SURF Aux6 = {0};
+	PML_ALPHA pml_alpha = {0};
+	PML_BETA pml_beta = {0};
+	PML_D pml_d = {0};
+
 #ifdef PML
-	allocPML(grid, &Aux6, border);
-
-	PML_ALPHA pml_alpha;
-	PML_BETA pml_beta;
-	PML_D pml_d;
-
-	allocPMLParameter(grid, &pml_alpha, &pml_beta, &pml_d);
-	init_pml_parameter(params, grid, border, pml_alpha, pml_beta, pml_d);
+	if (params.scheme == SCHEME_CGFDM)
+	{
+		// CGFDM C-PML: the split auxiliary fields hold velocity-stress
+		// variables and are integrated with the classical RK4, so four
+		// arrays per surface are allocated (pml_deriv.cpp / pml_rk.cpp).
+		allocPML(grid, &Aux6, border);
+		allocPMLParameter(grid, &pml_alpha, &pml_beta, &pml_d);
+		init_pml_parameter(params, grid, border, pml_alpha, pml_beta, pml_d);
+	}
+	else if (params.nPML > 0)
+	{
+		// WENO C-PML: the same damping profiles as CGFDM, but the split
+		// auxiliary fields hold the conservative variables and follow the
+		// TVD-RK3 integration, so three arrays per surface are allocated
+		// (weno_pml.cpp).  nPML == 0 falls back to expDecayLayers.
+		allocWenoPML(grid, &Aux6, border);
+		allocPMLParameter(grid, &pml_alpha, &pml_beta, &pml_d);
+		init_pml_parameter(params, grid, border, pml_alpha, pml_beta, pml_d);
+	}
 #endif
 
 	int stationNum;
@@ -167,8 +193,6 @@ void propagate(
 			{-1, 1, 1},
 		}; // F = 1, B = -1
 
-	// GaussField( grid, wave.W );
-	// useSingleSource = 0;
 
 	float *gaussFactor;
 	int nGauss = 3;
@@ -183,6 +207,7 @@ void propagate(
 
 	SEND_RECV_DATA_FLOAT sr_wave;
 	FLOAT_allocSendRecv(grid, mpiNeighbor, &sr_wave, WSIZE);
+
 	for (it = 0; it < NT; it++)
 	{
 #ifdef SOLVE_PGA
@@ -202,113 +227,114 @@ void propagate(
 			loadPointSource_double_couple(grid, S, wave.W, CJM, it, 0, DT, DH, params.strike, params.dip, params.rake, params.Mw, params.duration);
 
 		if (useMultiSource)
-			addMomenteRate(grid, src_in, wave.W, srcIndex, momentRate, momentRateSlice, it, 0, DT, DH, gaussFactor, nGauss, IsFreeSurface
-#ifdef SCFDM
-						   ,
-						   CJM
-#endif
-			);
+			addMomenteRate(grid, src_in, wave.W, srcIndex, momentRate, momentRateSlice, it, 0, DT, DH, gaussFactor, nGauss, IsFreeSurface, CJM);
 
 		for (irk = 0; irk < RK_NUM; irk++)
 		{
 			MPI_Barrier(comm_cart);
 			FLOAT_mpiSendRecv(comm_cart, mpiNeighbor, grid, wave.W, sr_wave, WSIZE);
-#ifdef PML
-#ifdef SCFDM
-			// ! For alternative flux finite difference by Tianhong Xu
-			waveDeriv_alternative_flux_FD(grid, wave, CJM, pml_beta, FB1, FB2, FB3, DT, thisMPICoord, params);
-#else
-			waveDeriv(grid, wave, CJM, pml_beta, FB1, FB2, FB3, DT);
-#endif // SCFDM
-			if (IsFreeSurface)
-				freeSurfaceDeriv(grid, wave, CJM, mat_rDZ, pml_beta, FB1, FB2, FB3, DT);
-			pmlDeriv(grid, wave, CJM, Aux6, pml_alpha, pml_beta, pml_d, border, FB1, FB2, FB3, DT);
-			if (IsFreeSurface)
-				pmlFreeSurfaceDeriv(grid, wave, CJM, Aux6, mat_rDZ, pml_d, border, FB1, FB2, DT);
-#else // PML
-#ifdef SCFDM
-			// ! For alternative flux finite difference by Tianhong Xu
-			waveDeriv_alternative_flux_FD(grid, wave, CJM, FB1, FB2, FB3, DT, thisMPICoord, params);
-#else
-			waveDeriv(grid, wave, CJM, FB1, FB2, FB3, DT);
-			if (IsFreeSurface)
-				freeSurfaceDeriv(grid, wave, CJM, mat_rDZ, FB1, FB2, FB3, DT);
-#endif // SCFDM
-
-#endif // PML
-
-#ifdef SCFDM
-			waveRk_tvd(grid, irk, wave);
-#else
-			waveRk(grid, irk, wave);
+#ifdef GPU_CUDA
+			// Catches a CUDA error latched by anything since the last RK stage
+			// (source injection, PGV/PGA update, displacement integration,
+			// slice output, CUDA-aware MPI halo exchange) instead of letting
+			// it surface at the first launch of the coming RK stage, where it
+			// reads as a flux-kernel failure.  Launch errors in particular are
+			// not reported by cudaDeviceSynchronize(); they stay pending until
+			// somebody calls cudaGetLastError().
+			{
+				cudaError_t pending = cudaGetLastError();
+				if (cudaSuccess != pending)
+				{
+					fprintf(stderr, "rank %d: CUDA error %d (%s) latched before the RK stage "
+									"of it = %d, irk = %d.\n",
+							thisRank, (int)pending, cudaGetErrorString(pending), it, irk);
+					fflush(stderr);
+					MPI_Abort(MPI_COMM_WORLD, 10002);
+				}
+			}
 #endif
+			if (useWENO)
+			{
+				waveDeriv_alternative_flux_FD(grid, wave, CJM, Aux6, border, FB1, FB2, FB3, DT, thisMPICoord, params);
 #ifdef PML
-			pmlRk(grid, border, irk, Aux6);
+				if (params.nPML > 0)
+					wenoPmlDeriv(grid, wave, Aux6, pml_alpha, pml_beta, pml_d, border, DT);
+#endif
+			}
+			else
+			{
+#ifdef PML
+				waveDeriv(grid, wave, CJM, pml_beta, FB1, FB2, FB3, DT);
+				if (IsFreeSurface)
+					freeSurfaceDeriv(grid, wave, CJM, mat_rDZ, pml_beta, FB1, FB2, FB3, DT);
+				pmlDeriv(grid, wave, CJM, Aux6, pml_alpha, pml_beta, pml_d, border, FB1, FB2, FB3, DT);
+				if (IsFreeSurface)
+					pmlFreeSurfaceDeriv(grid, wave, CJM, Aux6, mat_rDZ, pml_d, border, FB1, FB2, DT);
+#else
+				waveDeriv(grid, wave, CJM, FB1, FB2, FB3, DT);
+				if (IsFreeSurface)
+					freeSurfaceDeriv(grid, wave, CJM, mat_rDZ, FB1, FB2, FB3, DT);
+#endif
+			}
+
+			if (useWENO)
+				waveRk_tvd(grid, irk, wave);
+			else
+				waveRk(grid, irk, wave);
+#ifdef PML
+			if (!useWENO)
+				pmlRk(grid, border, irk, Aux6);
+			else if (params.nPML > 0)
+				wenoPmlRk(grid, border, irk, Aux6);
 #endif
 			FB1 *= -1;
 			FB2 *= -1;
 			FB3 *= -1; // reverse
 		} // for loop of irk: Range Kutta Four Step
-#ifdef SCFDM
-// ! For alternative flux finite difference by Tianhong Xu
-#ifdef FREE_SURFACE
-		if (IsFreeSurface)
-			charfreeSurfaceDeriv(grid, wave, CJM, mat_rDZ, FB1, FB2, FB3, DT);
-#endif // FREE_SURFACE
-#endif // SCFDM
 
-#ifdef EXP_DECAY
-		expDecayLayers(grid, wave);
-#endif // EXP_DECAY
+#ifdef FREE_SURFACE
+		if (IsFreeSurface && useWENO)
+			charfreeSurfaceDeriv(grid, wave, CJM, FB1, FB2, FB3, DT);
+#endif
+
+		if (useWENO)
+		{
+#ifdef PML
+			// With an active C-PML the absorption is applied inside the RK
+			// loop; the exponential-decay layers remain as the fallback
+			// when nPML is set to 0 in params.json.
+			if (params.nPML <= 0)
+				expDecayLayers(grid, wave);
+#else
+			expDecayLayers(grid, wave);
+#endif
+		}
 
 #ifdef SOLVE_DISPLACEMENT
 		SolveDisplacement(grid, wave.W, Dis, CJM, DT);
 #endif // SOLVE_DISPLACEMENT
 
 		if (stationNum > 0)
-			storageStation(grid, NT, stationNum, station, wave.W, it
-#ifdef SCFDM
-						   ,
-						   CJM
-#endif
-			);
+			storageStation(grid, NT, stationNum, station, wave.W, it, CJM);
 		if (IsFreeSurface)
-			comparePGV(grid, thisMPICoord, wave.W, pgv, DT, it
-#ifdef SCFDM
-					   ,
-					   CJM
-#endif
-
+			comparePGV(grid, thisMPICoord, wave.W, pgv, DT, it, CJM
 #ifdef SOLVE_PGA
 					   ,
 					   wave.W_pre
-
 #endif
 			);
 
 		if (it % IT_SKIP == 0)
 		{
-			data2D_XYZ_out(thisMPICoord, params, grid, wave.W, slice, sliceData, sliceDataCpu, 'V', it
-#ifdef SCFDM
-						   ,
-						   CJM
-#endif
-			);
+			data2D_XYZ_out(thisMPICoord, params, grid, &wave, slice, sliceData, sliceDataCpu, 'V', it, CJM);
 			if (IsFreeSurface && sliceFreeSurf)
 			{
-				data2D_XYZ_out(thisMPICoord, params, grid, wave.W, freeSurfSlice, freeSurfData, freeSurfDataCpu, 'F', it
-#ifdef SCFDM
-							   ,
-							   CJM
-#endif
-				);
+				data2D_XYZ_out(thisMPICoord, params, grid, &wave, freeSurfSlice, freeSurfData, freeSurfDataCpu, 'F', it, CJM);
 #ifdef SOLVE_DISPLACEMENT
 				data2D_XYZ_out_Dis(thisMPICoord, params, grid, freeSurfSlice, freeSurfData, freeSurfDataCpu, it, Dis);
 #endif
 			}
 		}
-		/*
-		 */
 		MPI_Barrier(comm_cart);
 		if ((0 == thisRank) && (it % 10 == 0))
 		{
@@ -323,6 +349,8 @@ void propagate(
 		freeGaussFactor(gaussFactor);
 
 #ifdef PML
+	// Works for both layouts: CGFDM and WENO keep the allocation base
+	// pointer in h_Aux, and Free(NULL) is a no-op when nPML == 0.
 	freePML(border, Aux6);
 	freePMLParamter(pml_alpha, pml_beta, pml_d);
 #endif

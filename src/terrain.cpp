@@ -76,8 +76,6 @@ void outputLonLat(PARAMS params, MPI_COORD thisMPICoord, GRID grid, LONLAT LonLa
 	fwrite(&(lat), sizeof(float), 1, latFile);
 	END_LOOP2D()
 
-	// fwrite( LonLat.lon, sizeof( float ), num, lonFile );
-	// fwrite( LonLat.lat, sizeof( float ), num, latFile );
 
 	fclose(lonFile);
 	fclose(latFile);
@@ -112,7 +110,6 @@ void outputTerrain(PARAMS params, MPI_COORD thisMPICoord, GRID grid, float *terr
 	index = Index2D(i, j, _nx_, _ny_);
 	fwrite(terrain + index, sizeof(float), 1, terrainFile);
 	END_LOOP2D()
-	// fwrite( terrain, sizeof( float ), num, terrainFile );
 
 	fclose(terrainFile);
 }
@@ -152,8 +149,6 @@ void calculateCutLonLat(GRID grid, PJ *P, PJ_DIRECTION PD, PJ_COORD pj_LonLat[4]
 
 	proj_trans_array(P, PD, 4, pj_LonLat);
 
-	// for ( i = 0; i < 4; i ++ )
-	//	printf( "longitude: %lf, latitude: %lf\n", pj_LonLat[i].lp.lam * RADIAN2DEGREE, pj_LonLat[i].lp.phi * RADIAN2DEGREE );
 }
 
 void calculateCutLonLatLoc(GRID grid, PJ *P, PJ_DIRECTION PD, PJ_COORD pj_LonLat[4])
@@ -179,7 +174,6 @@ void calculateCutLonLatLoc(GRID grid, PJ *P, PJ_DIRECTION PD, PJ_COORD pj_LonLat
 	J = frontNY + _ny_;
 	double upDis = (J - HALO) * DH - originalY * DH;
 
-	// printf( "frontNX = %d, frontNY = %d\n", frontNX, frontNY  );
 
 	PJ_XY leftDownXY, leftUpXY, rightDown, rightUpXY;
 
@@ -226,7 +220,6 @@ void readSRTM90(PARAMS params, float *totalTerrain)
 
 	int i = 0, j = 0;
 
-	// #ifdef LON_FAST
 
 	for (lat = latStart; lat <= latEnd; lat += 5)
 	{
@@ -250,35 +243,14 @@ void readSRTM90(PARAMS params, float *totalTerrain)
 			int endY = (j + 1) * (pointsPerBlockY - 1) + 1;
 			int ii, jj;
 			long long pos, index;
-			// int pos = ( i + j * blockX ) * pointsPerBlockX * pointsPerBlockY;
-			// fread( &totalTerrain[pos], sizeof( float ), pointsPerBlockX * pointsPerBlockY,fp);
 			fread(oneBlockTerrain, sizeof(float), pointsPerBlockX * pointsPerBlockY, fp);
-			// for ( jj = 0; jj < ( pointsPerBlockY - 1 ); jj ++  )
-			//{
-			//	for ( ii = 0; ii < ( pointsPerBlockX - 1 ); ii ++ )
-			//	{
-			//		index = ii + jj * pointsPerBlockX;
-			//		pos = ( startI + ii ) + ( startJ + jj ) * totalPointX;
-			//		totalTerrain[pos] = oneBlockTerrain[index];
-			//	}
-			// }
 
 			FOR_LOOP2D(ii, jj, 0, pointsPerBlockX - 1, 0, pointsPerBlockY - 1)
 			index = Index2D(ii, jj, pointsPerBlockX, pointsPerBlockY);
-			// index = ii + jj * pointsPerBlockX;// Index2D( ii, jj, pointsPerBlockX, pointsPerBlockY );
-			// pos = ( startI + ii ) + ( startJ + jj ) * totalPointX;
 			pos = Index2D(startI + ii, startJ + jj, totalPointX, totalPointY);
 			totalTerrain[pos] = oneBlockTerrain[index];
 			END_LOOP2D()
 
-			// for ( int j = 0; j < pointsPerBlockY; j ++  )
-			//{
-			//	printf( "\n"  );
-			//	for ( int i = 0; i < pointsPerBlockX; i ++ )
-			//	{
-			//		printf( "%e ", totalTerrain[i + j * pointsPerBlockX]  );
-			//	}
-			// }
 			fclose(fp);
 			i++;
 		}
@@ -327,11 +299,9 @@ void callibrateTotalTerrain(PARAMS params, GRID grid, float *totalTerrain, float
 
 	C = proj_context_create();
 
-	char projStr[256]; //""
+	char projStr[256];
 	sprintf(projStr, "+proj=aeqd +lon_0=%lf +lat_0=%lf +x_0=0.0 +y_0=0.0 +ellps=WGS84", lon_0, lat_0);
 
-	// printf( projStr  );
-	// printf( "\n"  );
 	P = proj_create(C, projStr);
 	if (NULL == P)
 	{
@@ -360,27 +330,21 @@ void callibrateTotalTerrain(PARAMS params, GRID grid, float *totalTerrain, float
 			minLon = Lon[i];
 		if (minLat >= Lat[i])
 			minLat = Lat[i];
-		// printf( "longitude: %lf, latitude: %lf\n", Lon[i], Lat[i] );
 	}
 
 	double lonStart = params.lonStart;
 	double latStart = params.latStart;
-	// printf( "lonStart = %f, latStart = %f\n", lonStart, latStart );
 
 	double deltaLon = double(degreePerBlcokX * params.blockX) / double(totalPointX);
 	double deltaLat = double(degreePerBlcokY * params.blockY) / double(totalPointY);
-	// printf( "deltaLon = %f, deltaLat = %f\n", deltaLon, deltaLat );
 
 	int expandPoint = 10;
-	// printf( "maxLon = %f, minLon = %f\n", maxLon, minLon );
-	// printf( "maxLat = %f, minLat = %f\n", maxLat, minLat );
 	int ILonStart = int((minLon - lonStart) / deltaLon) - expandPoint;
 	int JLatStart = int((minLat - latStart) / deltaLat) - expandPoint;
 
 	int ILonEnd = int((maxLon - lonStart) / deltaLon) + expandPoint;
 	int JLatEnd = int((maxLat - latStart) / deltaLat) + expandPoint;
 
-	// printf( "ILonStart = %d, ILonEnd = %d, JLatStart = %d, JLatEnd = %d\n", ILonStart, ILonEnd, JLatStart, JLatEnd  );
 
 	FOR_LOOP2D(i, j, ILonStart, ILonEnd, JLatStart, JLatEnd)
 	index = Index2D(i, j, totalPointX, totalPointY);
@@ -404,7 +368,6 @@ void callibrateTotalTerrain(PARAMS params, GRID grid, float *totalTerrain, float
 		newTotalTerrain[index] = (a + b + c + d) * 0.25;
 	}
 
-	// newTotalTerrain[index] = 0.0;
 
 	END_LOOP2D()
 
@@ -431,14 +394,11 @@ void callibrateTotalTerrain(PARAMS params, GRID grid, float *totalTerrain, float
 	index = Index2D(i, j, totalPointX, totalPointY);
 	sum = 0.0;
 	FOR_LOOP2D(ii, jj, i - nGauss, i + nGauss + 1, j - nGauss, j + nGauss + 1)
-	// double amp = Dg[ii + nGauss-i] * Dg[jj + nGauss-j] / 0.998750;
 	double amp = Dg[ii + nGauss - i] * Dg[jj + nGauss - j] / 0.996768;
-	// printf( "D1 = %f, D2 = %f\n", Dg[ii + nGauss-i] * Dg[jj + nGauss-j]  );
 	pos = Index2D(ii, jj, totalPointX, totalPointY);
 	sum += amp * totalTerrain[pos];
 	END_LOOP2D()
-	// printf( "sum = %f\n", sum );
-	newTotalTerrain[index] = sum; // totalTerrain[pos];
+	newTotalTerrain[index] = sum;
 	END_LOOP2D()
 	memcpy(totalTerrain, newTotalTerrain, sizeof(float) * totalPointX * totalPointY);
 #endif
@@ -472,7 +432,6 @@ void cart2LonLat(GRID grid, PJ *P, PJ_DIRECTION PD, float *coord, LONLAT LonLat)
 	pj_coord[pos].xy.y = coord[index + 1];
 
 	END_LOOP2D()
-	// cout << "========================" << endl;
 
 	proj_trans_array(P, PD, num, pj_coord);
 
@@ -481,7 +440,6 @@ void cart2LonLat(GRID grid, PJ *P, PJ_DIRECTION PD, float *coord, LONLAT LonLat)
 	LonLat.lon[pos] = pj_coord[pos].lp.lam * RADIAN2DEGREE;
 	LonLat.lat[pos] = pj_coord[pos].lp.phi * RADIAN2DEGREE;
 
-	// cout << "Lon: " << LonLat.lon[pos] << "Lat:" << LonLat.lat[pos] << endl;
 	END_LOOP2D()
 
 	free(pj_coord);
@@ -490,17 +448,14 @@ void cart2LonLat(GRID grid, PJ *P, PJ_DIRECTION PD, float *coord, LONLAT LonLat)
 void projTrans(double lon_0, double lat_0, GRID grid, float *coord, LONLAT LonLat, float lonMin, float lonMax, float latMin, float latMax)
 {
 
-	// #include "/public/software/proj-8.1.0/include/proj.h"
 	PJ_CONTEXT *C;
 	PJ *P;
 
 	C = proj_context_create();
 
-	char projStr[256]; //""
+	char projStr[256];
 	sprintf(projStr, "+proj=aeqd +lon_0=%lf +lat_0=%lf +x_0=0.0 +y_0=0.0 +ellps=WGS84", lon_0, lat_0);
 
-	// printf( projStr  );
-	// printf( "\n"  );
 	P = proj_create(C, projStr);
 	if (NULL == P)
 	{
@@ -514,7 +469,6 @@ void projTrans(double lon_0, double lat_0, GRID grid, float *coord, LONLAT LonLa
 
 	calculateCutLonLat(grid, P, PJ_INV, pj_LonLat);
 
-	// printf( "LonStart = %f, LonEnd = %f, LatStart = %f, LatEnd = %f\n", lonMin, lonMax, latMin, latMax );
 
 	int i = 0;
 	for (i = 0; i < 4; i++)
@@ -522,7 +476,6 @@ void projTrans(double lon_0, double lat_0, GRID grid, float *coord, LONLAT LonLa
 		lon[i] = pj_LonLat[i].lp.lam * RADIAN2DEGREE;
 		lat[i] = pj_LonLat[i].lp.phi * RADIAN2DEGREE;
 
-		// printf( "Lon = %f, Lat = %f\n", lon[i], lat[i] );
 		if (lon[i] > lonMax || lon[i] < lonMin || lat[i] > latMax || lat[i] < latMin)
 		{
 			printf("The longitude or latitude range of calculation are extends the Terrain or Medium lon lat Range! Please, check the lon or lat of Terrain data and Medium data!\n");
@@ -534,30 +487,6 @@ void projTrans(double lon_0, double lat_0, GRID grid, float *coord, LONLAT LonLa
 
 	proj_destroy(P);
 	proj_context_destroy(C);
-}
-
-/*
- *	C----------D
- *	|		   |
- *	|		   |
- *	|		   |
- *	|		   |
- *	A----------B
- */
-
-double bilinear(double x, double y, double x1, double x2, double y1, double y2, double f11, double f12, double f21, double f22)
-{
-	// return ( f11 + f21 + f12 + f22 ) * 0.25;//(f11*(x2 - x)*(y2 - y) + f21*(x - x1)*(y2 - y) + f12*(x2 - x)*(y - y1) + f22*(x - x1)*(y - y1));///((x2 - x1)*(y2 - y1));
-	return ((f11 * (x2 - x) * (y2 - y) + f21 * (x - x1) * (y2 - y) + f12 * (x2 - x) * (y - y1) + f22 * (x - x1) * (y - y1)) / ((x2 - x1) * (y2 - y1)));
-}
-double bilinearInterp(double x, double y, double x1, double y1, double x2, double y2, double A, double B, double C, double D)
-{
-	double AB = (x2 - x) / (x2 - x1) * A + (x - x1) / (x2 - x1) * B;
-	double CD = (x2 - x) / (x2 - x1) * C + (x - x1) / (x2 - x1) * D;
-	double R = (y2 - y) / (y2 - y1) * AB + (y - y1) / (y2 - y1) * CD;
-	// R = ( A + B + C + D ) * 0.25;
-
-	return R;
 }
 
 double interp2d(double x[2], double y[2], double z[4], double x_, double y_)
@@ -652,11 +581,9 @@ void terrainInterp(PARAMS params, GRID grid, float *terrain, float *totalTerrain
 		printf("Failed to context C\n");
 	}
 
-	char projStr[256]; //""
+	char projStr[256];
 	sprintf(projStr, "+proj=aeqd +lon_0=%lf +lat_0=%lf +x_0=0.0 +y_0=0.0 +ellps=WGS84", lon_0, lat_0);
 
-	// printf( projStr  );
-	// printf( "\n"  );
 	P = proj_create(C, projStr);
 	if (NULL == P)
 	{
@@ -694,7 +621,6 @@ void terrainInterp(PARAMS params, GRID grid, float *terrain, float *totalTerrain
 	x1 = I * deltaLon + lonStart;
 	y1 = J * deltaLat + latStart;
 
-	// printf( "lon = %f, lat = %f\n", x_, y_ );
 
 	x2 = x1 + deltaLon;
 	y2 = y1 + deltaLat;
@@ -705,19 +631,15 @@ void terrainInterp(PARAMS params, GRID grid, float *terrain, float *totalTerrain
 	y[1] = y2;
 
 	pos = Index2D(I, J, totalPointX, totalPointY);
-	// f11 = totalTerrain[pos]; //A
 	z[0] = totalTerrain[pos]; // A
 
 	pos = Index2D(I + 1, J, totalPointX, totalPointY);
-	// f12 = totalTerrain[pos]; //B
 	z[2] = totalTerrain[pos]; // B
 
-	pos = Index2D(I + 1, J + 1, totalPointX, totalPointY);
-	// f21 = totalTerrain[pos]; //B
-	z[1] = totalTerrain[pos]; // B
+	pos = Index2D(I, J + 1, totalPointX, totalPointY);
+	z[1] = totalTerrain[pos]; // C
 
 	pos = Index2D(I + 1, J + 1, totalPointX, totalPointY);
-	// f22 = totalTerrain[pos]; //D
 	z[3] = totalTerrain[pos]; // D
 
 	exTerrain[index] = interp2d(x, y, z, x_, y_);
@@ -753,7 +675,6 @@ void terrainInterp(PARAMS params, GRID grid, float *terrain, float *totalTerrain
 	{
 		sum = 0;
 		FOR_LOOP2D(ii, jj, i - nGauss, i + nGauss + 1, j - nGauss, j + nGauss + 1)
-		//	double amp = Dg[ii + nGauss-i] * Dg[jj + nGauss-j] / 0.998750;
 		double amp = Dg[ii + nGauss - i] * Dg[jj + nGauss - j] / 0.996768;
 		pos = Index2D(ii, jj, e_nx, e_ny);
 		sum += amp * exTerrain[pos];
@@ -787,10 +708,8 @@ void preprocessTerrain(PARAMS params, MPI_Comm comm_cart, MPI_COORD thisMPICoord
 	int i = 0, j = 0, k = 0;
 	long long index = 0;
 
-	// if ( 1 == params.SRTM90 && thisMPICoord.Z == grid.PZ - 1 )
 	if (1 == params.SRTM90)
 	{
-		// printf( "======X = %d, Y = %d, Z = %d========\n", thisMPICoord.X, thisMPICoord.Y, thisMPICoord.Z  );
 		float *totalTerrain;
 		int totalPointX = (pointsPerBlockX - 1) * params.blockX + 1;
 		int totalPointY = (pointsPerBlockY - 1) * params.blockY + 1;
@@ -816,11 +735,9 @@ void preprocessTerrain(PARAMS params, MPI_Comm comm_cart, MPI_COORD thisMPICoord
 		int LonEnd = LonStart + params.blockX * degreePerBlcokX;
 		int LatEnd = LatStart + params.blockY * degreePerBlcokY;
 
-		// printf( "LonStart = %d, LonEnd = %d, LatStart = %d, LatEnd = %d\n", LonStart, LonEnd, LatStart, LatEnd );
 		projTrans(lon_0, lat_0, grid, coord, LonLat, (float)LonStart, (float)LonEnd, (float)LatStart, (float)LatEnd);
 
 		terrainInterp(params, grid, terrain, totalTerrain, LonLat, lon_0, lat_0);
-		//		terrainInterp( params, grid, terrain, totalTerrain, LonLat );
 		outputTotalTerrain(params, thisMPICoord, grid, totalTerrain, totalPointX, totalPointY);
 
 		free(totalTerrain);
@@ -855,6 +772,5 @@ void preprocessTerrain(PARAMS params, MPI_Comm comm_cart, MPI_COORD thisMPICoord
 	K = frontNZ + k - halo;
 	DZ = double(terrain[pos] + abs(Depth)) / double(NZ - 1);
 	coord[index + 2] = -abs(Depth) + DZ * K;
-	// printf( "coord = %f\n", coord[index+2]  );
 	END_LOOP3D()
 }

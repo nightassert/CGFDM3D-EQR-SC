@@ -25,7 +25,7 @@
 #include "header.h"
 
 __GLOBAL__
-void SolveDisplacementKernel(FLOAT *W, FLOAT *Dis, FLOAT *CJM, int _nx_, int _ny_, int _nz_, FLOAT dt)
+void SolveDisplacementKernel(FLOAT *W, FLOAT *Dis, FLOAT *CJM, int _nx_, int _ny_, int _nz_, FLOAT dt, int scheme)
 {
 #ifdef GPU_CUDA
     int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -43,17 +43,20 @@ void SolveDisplacementKernel(FLOAT *W, FLOAT *Dis, FLOAT *CJM, int _nx_, int _ny
     CALCULATE3D(i, j, k, 0, _nx_, 0, _ny_, 0, _nz_)
     index = INDEX(i, j, k);
 
-#ifdef SCFDM
-    float buoyancy = CJM[index * CJMSIZE + 12];
-    vx = W[index * WSIZE + 0] * buoyancy;
-    vy = W[index * WSIZE + 1] * buoyancy;
-    vz = W[index * WSIZE + 2] * buoyancy;
-
-#else
-    vx = W[index * WSIZE + 0];
-    vy = W[index * WSIZE + 1];
-    vz = W[index * WSIZE + 2];
-#endif
+    if (scheme == SCHEME_WENO)
+    {
+        // WENO stores momentum: recover velocity with buoyancy.
+        float buoyancy = CJM[index * CJMSIZE + 12] * Crho;
+        vx = W[index * WSIZE + 0] * buoyancy;
+        vy = W[index * WSIZE + 1] * buoyancy;
+        vz = W[index * WSIZE + 2] * buoyancy;
+    }
+    else
+    {
+        vx = W[index * WSIZE + 0];
+        vy = W[index * WSIZE + 1];
+        vz = W[index * WSIZE + 2];
+    }
 
     Dis[index * 3 + 0] += vx * dt;
     Dis[index * 3 + 1] += vy * dt;
@@ -64,12 +67,16 @@ void SolveDisplacementKernel(FLOAT *W, FLOAT *Dis, FLOAT *CJM, int _nx_, int _ny
 
 void SolveDisplacement(GRID grid, FLOAT *W, FLOAT *Dis, FLOAT *CJM, FLOAT dt)
 {
+#ifdef GPU_CUDA
     dim3 threads(32, 4, 4);
     dim3 blocks;
     blocks.x = (grid._nx_ + threads.x - 1) / threads.x;
     blocks.y = (grid._ny_ + threads.y - 1) / threads.y;
     blocks.z = (grid._nz_ + threads.z - 1) / threads.z;
 
-    SolveDisplacementKernel<<<blocks, threads>>>(W, Dis, CJM, grid._nx_, grid._ny_, grid._nz_, dt);
+    SolveDisplacementKernel<<<blocks, threads>>>(W, Dis, CJM, grid._nx_, grid._ny_, grid._nz_, dt, g_params.scheme);
+#else
+    SolveDisplacementKernel(W, Dis, CJM, grid._nx_, grid._ny_, grid._nz_, dt, g_params.scheme);
+#endif
 }
 #endif

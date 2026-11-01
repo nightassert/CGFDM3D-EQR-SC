@@ -1,6 +1,8 @@
 {
+	"scheme": "WENO-Z",
+	"wenoLocalAlpha": 1,
 	"TMAX": 60.005,
-	"DT": 1.30e-2,
+	"DT": 1.0e-2,
 	"DH": 200.0,
 	"NX": 801,
 	"NY": 601,
@@ -15,8 +17,8 @@
 	"sliceY": 300,
 	"sliceZ": 200,
 	"sliceFreeSurf": 1,
-	"PX": 2,
-	"PY": 2,
+	"PX": 1,
+	"PY": 4,
 	"PZ": 2,
 
 	"sourceX": 805,

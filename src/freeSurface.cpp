@@ -32,17 +32,12 @@
 #define times_pml_beta_z
 #endif
 
-#ifdef SCFDM
-// ! For alternative flux finite difference by Tianhong Xu
-// ! Charateristic free surface boundary condition
+// Characteristic free surface boundary condition (WENO scheme).
 #define extrap3(k1, k2, k3, k4) (4.0f * k1 - 6.0f * k2 + 4.0f * k3 - k4)
 
 __GLOBAL__
 void char_free_surface_deriv(
-	FLOAT *h_W, FLOAT *W, FLOAT *CJM, Mat_rDZ mat_rDZ,
-#ifdef PML
-	PML_BETA pml_beta,
-#endif
+	FLOAT *h_W, FLOAT *W, FLOAT *CJM,
 	int _nx_, int _ny_, int _nz_, float rDH, int FB1, int FB2, int FB3, float DT)
 {
 	int _nx = _nx_ - HALO;
@@ -50,13 +45,18 @@ void char_free_surface_deriv(
 	int _nz = _nz_ - HALO;
 
 #ifdef GPU_CUDA
-	int i = threadIdx.x + blockIdx.x * blockDim.x;
-	int j = threadIdx.y + blockIdx.y * blockDim.y;
+	// The launcher sizes the grid for the interior (_nx_ - 2*HALO cells), so
+	// the thread index has to be shifted by HALO.  Without the shift the
+	// bounds check below drops the last `blockDim`-dependent rows/columns of
+	// the plane: with PY = 4 the last two surface rows of every subdomain were
+	// never given the characteristic free-surface condition at all.
+	int i = threadIdx.x + blockIdx.x * blockDim.x + HALO;
+	int j = threadIdx.y + blockIdx.y * blockDim.y + HALO;
 	int k = 0;
 #else
-	// int i = HALO;
-	// int j = HALO;
-	// int k = _nz - HALO;
+	int i = 0;
+	int j = 0;
+	int k = 0;
 #endif
 
 	long long index;
@@ -68,11 +68,6 @@ void char_free_surface_deriv(
 	float vs = 0.0f;
 	float vp = 0.0f;
 	float tmp = 0.0f;
-
-#ifdef PML
-	float pml_beta_x = 0.0f;
-	float pml_beta_y = 0.0f;
-#endif
 
 	float nx;
 	float ny;
@@ -105,11 +100,6 @@ void char_free_surface_deriv(
 	tx = CJM[index * CJMSIZE + 16] / (sqrt(CJM[index * CJMSIZE + 16] * CJM[index * CJMSIZE + 16] + CJM[index * CJMSIZE + 17] * CJM[index * CJMSIZE + 17] + CJM[index * CJMSIZE + 18] * CJM[index * CJMSIZE + 18]));																																																		// tx;
 	ty = CJM[index * CJMSIZE + 17] / (sqrt(CJM[index * CJMSIZE + 16] * CJM[index * CJMSIZE + 16] + CJM[index * CJMSIZE + 17] * CJM[index * CJMSIZE + 17] + CJM[index * CJMSIZE + 18] * CJM[index * CJMSIZE + 18]));																																																		// ty;
 	tz = CJM[index * CJMSIZE + 18] / (sqrt(CJM[index * CJMSIZE + 16] * CJM[index * CJMSIZE + 16] + CJM[index * CJMSIZE + 17] * CJM[index * CJMSIZE + 17] + CJM[index * CJMSIZE + 18] * CJM[index * CJMSIZE + 18]));																																																		// tz;
-
-#ifdef PML
-	pml_beta_x = pml_beta.x[i];
-	pml_beta_y = pml_beta.y[j];
-#endif
 
 	// Store conservative variables
 	for (int n = 0; n < 9; n++)
@@ -194,10 +184,7 @@ void char_free_surface_deriv(
 }
 
 void charfreeSurfaceDeriv(
-	GRID grid, WAVE wave, FLOAT *CJM, Mat_rDZ mat_rDZ,
-#ifdef PML
-	PML_BETA pml_beta,
-#endif
+	GRID grid, WAVE wave, FLOAT *CJM,
 	int FB1, int FB2, int FB3, float DT)
 {
 	int _nx_ = grid._nx_;
@@ -212,32 +199,21 @@ void charfreeSurfaceDeriv(
 #ifdef GPU_CUDA
 	int nx = _nx_ - 2 * HALO;
 	int ny = _ny_ - 2 * HALO;
-	// int nz = _nz_ - 2 * HALO;
 
 	dim3 threads(32, 4, 1);
 	dim3 blocks;
 
-	blocks.x = (_nx_ + threads.x - 1) / threads.x;
-	blocks.y = (_ny_ + threads.y - 1) / threads.y;
+	blocks.x = (nx + threads.x - 1) / threads.x;
+	blocks.y = (ny + threads.y - 1) / threads.y;
 	blocks.z = 1;
 
-	char_free_surface_deriv<<<blocks, threads>>>(h_W, W, CJM, mat_rDZ,
-#ifdef PML
-												 pml_beta,
-#endif
+	char_free_surface_deriv<<<blocks, threads>>>(h_W, W, CJM,
 												 _nx_, _ny_, _nz_, rDH, FB1, FB2, FB3, DT);
-
 #else
-
-	char_free_surface_deriv(h_W, W, CJM, mat_rDZ,
-#ifdef PML
-							pml_beta,
-#endif
+	char_free_surface_deriv(h_W, W, CJM,
 							_nx_, _ny_, _nz_, rDH, FB1, FB2, FB3, DT);
-
 #endif // GPU_CUDA
 }
-#endif // SCFDM
 
 __GLOBAL__
 void free_surface_deriv(
@@ -512,7 +488,6 @@ void freeSurfaceDeriv(
 #ifdef GPU_CUDA
 	int nx = _nx_ - 2 * HALO;
 	int ny = _ny_ - 2 * HALO;
-	// int nz = _nz_ - 2 * HALO;
 
 	dim3 threads(32, 4, 1);
 	dim3 blocks;

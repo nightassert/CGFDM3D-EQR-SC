@@ -45,8 +45,6 @@
 
 #endif
 
-// #define Index2D( i, j, nx, ny ) ( ( i ) + ( j ) * ( nx ) )
-
 #ifdef ZFAST
 
 #define Index2D(i, j, nx, ny) ((j) + (i) * (ny))
@@ -89,13 +87,6 @@
 
 #endif
 
-/*
-#define L( W, FB, SUB ) (  FB * ( af_1 * W[INDEX_##SUB( i, j, k, - FB * 1 )] + 				\
-								   af0 * W[index] + 										\
-								   af1 * W[INDEX_##SUB( i, j, k, + FB * 1 )] + 				\
-								   af2 * W[INDEX_##SUB( i, j, k, + FB * 2 )] + 				\
-								   af3 * W[INDEX_##SUB( i, j, k, + FB * 3 )] ) * rDH )
-*/
 
 #define L_J_T(J_T, FB) (FB * (af_1 * J_T[3 - FB * 1] + af0 * J_T[3] + af1 * J_T[3 + FB * 1] + af2 * J_T[3 + FB * 2] + af3 * J_T[3 + FB * 3]) * rDH)
 
@@ -107,19 +98,6 @@
 
 #define LC(C, VAR, VARSIZE, FB, SUB) (FB * (af_1 * C[INDEX_##SUB(i, j, k, -FB * 1) * VARSIZE + VAR] + af0 * C[index * VARSIZE + VAR] + af1 * C[INDEX_##SUB(i, j, k, +FB * 1) * VARSIZE + VAR] + af2 * C[INDEX_##SUB(i, j, k, +FB * 2) * VARSIZE + VAR] + af3 * C[INDEX_##SUB(i, j, k, +FB * 3) * VARSIZE + VAR]) * rDH)
 
-/*
-#define L( W, VAR, VARSIZE, FB, SUB ) (  FB * ( af_1 * W[INDEX_##SUB( i, j, k, - FB * 1 ) * VARSIZE+VAR] + 		\
-												 af0 * W[index * VARSIZE+VAR] +									\
-												 af1 * W[INDEX_##SUB( i, j, k, + FB * 1 ) * VARSIZE+VAR] + 		\
-												 af2 * W[INDEX_##SUB( i, j, k, + FB * 2 ) * VARSIZE+VAR] + 		\
-												 af3 * W[INDEX_##SUB( i, j, k, + FB * 3 ) * VARSIZE+VAR] ) * rDH )
-
-#define L( W, VAR, VARSIZE, FB, SUB ) (  FB * ( af_1   + 		\
-												 af0   +		\
-												 af1   + 		\
-												 af2   + 		\
-												 af3   ) * rDH )
-*/
 #define L(W, VAR, VARSIZE, FB, SUB) (FB * (af_1 * W[INDEX_##SUB(i, j, k, -FB * 1) * VARSIZE + VAR] + af0 * W[index * VARSIZE + VAR] + af1 * W[INDEX_##SUB(i, j, k, +FB * 1) * VARSIZE + VAR] + af2 * W[INDEX_##SUB(i, j, k, +FB * 2) * VARSIZE + VAR] + af3 * W[INDEX_##SUB(i, j, k, +FB * 3) * VARSIZE + VAR]) * rDH)
 
 #define LW(W, VAR, FB) (FB * (af_1 * W[index_1 + VAR] + \

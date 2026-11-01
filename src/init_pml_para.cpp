@@ -117,7 +117,6 @@ int cpu_init_pml_parameter(GRID grid, MPI_BORDER border, PML_ALPHA pml_alpha, PM
 	float d0 = -(P_d + 1.0f) * Cp / (2.0f * L) * log(R);
 	float pml_alpha0 = PI * pml_fc;
 	float pml_beta0 = 3.0;
-	// printf("R = %f, d0 = %f\n", R, d0 );
 
 	float *Lx = (float *)malloc(sizeof(float) * _nx_);
 	float *Ly = (float *)malloc(sizeof(float) * _ny_);
@@ -254,18 +253,10 @@ void init_pml_parameter(PARAMS params, GRID grid, MPI_BORDER border, PML_ALPHA p
 
 	cpu_init_pml_parameter(grid, border, cpu_pml_alpha, cpu_pml_beta, cpu_pml_d);
 
-	// for ( int i = 0; i < 15; i ++ )
-	//	printf( "pml_alpha_x = %f\n", cpu_pml_alpha.x[i]  );
 	long long size = sizeof(float) * (_nx_ + _ny_ + _nz_) * 3;
 	cudaMemcpy(pml_alpha.x, cpu_pml_alpha.x, size, cudaMemcpyHostToDevice);
 	CHECK(cudaDeviceSynchronize());
 
-	// FILE * fp;
-	// fp = fopen( "./output2/pmlParams", "wb" );
-	//
-	// fwrite( cpu_pml_alpha.x, 4, ( _nx_ + _ny_ + _nz_ ) * 3, fp );
-
-	// fclose( fp );
 	cpu_free_pml_para_memory(cpu_pml_alpha);
 
 #else

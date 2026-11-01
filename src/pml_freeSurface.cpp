@@ -75,7 +75,6 @@ void pml_free_surface_x(
 	k = k0 + HALO;
 	index = INDEX(i, j, k);
 	indexOnSurf = Index2D(i, j, _nx_, _ny_);
-	// pos	= i0 + j0 * nPML + k0 * nPML * ny;
 	pos = Index3D(i0, j0, k0, nPML, ny, nz); // i0 + j0 * nPML + k0 * nPML * ny;
 
 	mu = CJM[index * CJMSIZE + 10];
@@ -189,7 +188,6 @@ void pml_free_surface_y(
 	k = k0 + HALO;
 	index = INDEX(i, j, k);
 	indexOnSurf = Index2D(i, j, _nx_, _ny_);
-	// pos	= i0 + j0 * nx + k0 * nx * nPML;
 	pos = Index3D(i0, j0, k0, nx, nPML, nz); // i0 + j0 * nx + k0 * nx * nPML;
 
 	mu = CJM[index * CJMSIZE + 10];

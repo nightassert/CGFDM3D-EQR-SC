@@ -75,8 +75,6 @@ void init_grid(PARAMS params, GRID *grid, MPI_COORD thisMPICoord)
 	}
 
 	MPI_Barrier(MPI_COMM_WORLD);
-	// cout << "X: " << thisMPICoord.X << ", Y: " << thisMPICoord.Y << ", Z: " << thisMPICoord.Z << " ====> frontNX = " << grid->frontNX << ", frontNY = " << grid->frontNY << ", frontNZ = " << grid->frontNZ << endl;
-	// cout << "X: " << thisMPICoord.X << ", Y: " << thisMPICoord.Y << ", Z: " << thisMPICoord.Z << " ====> nx = " << grid->nx << ", ny = " << grid->ny << ", nz = " << grid->nz << endl;
 
 	grid->_frontNX = grid->frontNX + HALO;
 	grid->_frontNY = grid->frontNY + HALO;
@@ -100,7 +98,6 @@ void init_grid(PARAMS params, GRID *grid, MPI_COORD thisMPICoord)
 
 	grid->DH = params.DH;
 	grid->rDH = 1.0 / grid->DH;
-	// printf( "dh = %e\n", grid->DH );
 
 	grid->nPML = params.nPML;
 }

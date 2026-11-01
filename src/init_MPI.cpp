@@ -13,8 +13,6 @@
 =================================================================*/
 #include "header.h"
 
-// #include "/public/software/mpich/include/mpi.h"
-
 void finalize_MPI(MPI_Comm *comm_cart)
 {
 	MPI_Comm_free(comm_cart);
@@ -37,7 +35,24 @@ void init_MPI(int *argc, char ***argv, PARAMS params, MPI_Comm *comm_cart,
 
 	MPI_Init(argc, argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &thisRank);
-	// MPI_Comm_size( MPI_COMM_WORLD, &nProcs );
+
+	// The Cartesian topology needs exactly PX * PY * PZ MPI ranks.  A common
+	// single- or dual-GPU mistake is to launch fewer ranks than params.json
+	// declares; fail with a clear message instead of an MPI error.
+	int worldSize = 0;
+	MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
+	if (PX * PY * PZ != worldSize)
+	{
+		if (0 == thisRank)
+			printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+				   "params.json declares PX * PY * PZ = %d * %d * %d = %d MPI ranks, but\n"
+				   "mpirun started %d.  Make PX, PY, PZ match the number of MPI ranks\n"
+				   "(e.g. PX = 1, PY = 1, PZ = 1 for one GPU).  The program will abort!\n"
+				   "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n",
+				   PX, PY, PZ, PX * PY * PZ, worldSize);
+		MPI_Barrier(MPI_COMM_WORLD);
+		MPI_Abort(MPI_COMM_WORLD, 110);
+	}
 
 	MPI_Cart_create(MPI_COMM_WORLD, nDim, mpiDims, periods, reorder, comm_cart);
 
@@ -45,12 +60,6 @@ void init_MPI(int *argc, char ***argv, PARAMS params, MPI_Comm *comm_cart,
 	MPI_Cart_shift(*comm_cart, 1, 1, &(mpiNeighbor->Y1), &(mpiNeighbor->Y2));
 	MPI_Cart_shift(*comm_cart, 2, 1, &(mpiNeighbor->Z1), &(mpiNeighbor->Z2));
 
-	// if ( mpiNeighbor->X1 < 0 ) mpiNeighbor->X1 = MPI_PROC_NULL;
-	// if ( mpiNeighbor->Y1 < 0 ) mpiNeighbor->Y1 = MPI_PROC_NULL;
-	// if ( mpiNeighbor->Z1 < 0 ) mpiNeighbor->Z1 = MPI_PROC_NULL;
-	// if ( mpiNeighbor->X2 < 0 ) mpiNeighbor->X1 = MPI_PROC_NULL;
-	// if ( mpiNeighbor->Y2 < 0 ) mpiNeighbor->Y1 = MPI_PROC_NULL;
-	// if ( mpiNeighbor->Z2 < 0 ) mpiNeighbor->Z1 = MPI_PROC_NULL;
 
 	MPI_Cart_coords(*comm_cart, thisRank, 3, thisMPICoordXYZ);
 

@@ -19,27 +19,52 @@
 #include "header.h"
 void printInfo(GRID grid, PARAMS params)
 {
-
 	float DT = params.DT;
 	int NT = params.TMAX / DT;
+
 	printf(
 		"=============================================\n"
 		"MPI:  PX = %5d, PY = %5d, PZ = %5d\n"
 		"GRID: NX = %5d, NY = %5d, NZ = %5d\n"
 		"NT: %5d\n"
-		"DH = %5.2e\n"
-#ifdef SCFDM
-		"You are using SCFDM by Tianhong Xu\n"
-#else
-		"You are using CGFDM by Wenqiang Wang\n"
-#endif
-
-#ifdef EXP_DECAY
-		"EXP_DECAY is defined\n"
-#endif
-		"=============================================\n",
+		"DH = %5.2e\n",
 		grid.PX, grid.PY, grid.PZ,
 		grid.NX, grid.NY, grid.NZ,
 		NT,
 		grid.DH);
+
+	if (params.scheme == SCHEME_WENO)
+	{
+		// scheme == SCHEME_WENO covers both reconstructions; the "scheme" key
+		// in params.json picks which one.
+		if (params.wenoReconstruction == WENO_RECONSTRUCTION_Z)
+			printf("Scheme: WENO-Z alternative-flux finite difference (Tianhong Xu)\n");
+		else
+			printf("Scheme: WENO-JS alternative-flux finite difference (Tianhong Xu)\n");
+		// wenoLocalAlpha selects the LF dissipation speed: 0 = one global
+		// Vp_max (historical), 1 = max(Vp) of the two cells at each interface.
+		if (params.wenoLocalAlpha)
+			printf("Riemann flux: local max(Vp) per interface (wenoLocalAlpha = 1)\n");
+		else
+			printf("Riemann flux: global Vp_max (wenoLocalAlpha = 0)\n");
+		// The WENO branch uses the C-PML in weno_pml.cpp whenever nPML > 0;
+		// the exponential-decay layers are only the fallback for nPML == 0.
+#ifdef PML
+		if (params.nPML > 0)
+			printf("Boundary: C-PML absorbing layers (nPML = %d)\n", params.nPML);
+		else
+			printf("Boundary: exponential-decay absorbing layers (nPML = 0)\n");
+#else
+		printf("Boundary: exponential-decay absorbing layers\n");
+#endif
+	}
+	else
+	{
+		printf("Scheme: CGFDM curvilinear-grid finite difference (Wenqiang Wang)\n");
+#ifdef PML
+		printf("Boundary: perfectly matched layer (PML)\n");
+#endif
+	}
+
+	printf("=============================================\n");
 }

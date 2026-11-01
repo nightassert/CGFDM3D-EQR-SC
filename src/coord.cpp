@@ -171,7 +171,6 @@ void construct_gauss_hill_surface(
 	height = h * exp(-0.5f * (x * x / (a * a) + y * y / (b * b)));
 	pos = Index2D(i, j, _nx_, _ny_);
 	terrain[pos] = height;
-	// DZ[index] = double( height + abs( cal_depth ) ) / double( NZ - 1 );
 
 	END_CALCULATE2D()
 }
@@ -232,29 +231,9 @@ void construct_terrain_coord(
 	height = terrain[pos];
 	DZ = double(height + abs(cal_depth)) / double(NZ - 1);
 	coord[index * CSIZE + 2] = -abs(cal_depth) + DZ * K;
-	// printf( "========================\n"  );
-	/*
-	if ( index == INDEX( _nx/2 - 10, _ny / 2 - 9, _nz - 1 ) )
-	{
-		printf( "coordZ = %3.10e\n", coord[index * CSIZE+2]  );
-		printf( "K = %d\n", K  );
-		printf( "height = %3.10e\n", height  );
-		printf( "DZ = %3.10e\n", DZ  );
-		printf( "z-1 = %3.10e\n", coord[INDEX_et( i, j, k, -1 )*CSIZE+2]  );
-		printf( "z+0 = %3.10e\n", coord[INDEX_et( i, j, k, +0 )*CSIZE+2]  );
-		printf( "z+1 = %3.10e\n", coord[INDEX_et( i, j, k, +1 )*CSIZE+2]  );
-		printf( "z+2 = %3.10e\n", coord[INDEX_et( i, j, k, +2 )*CSIZE+2]  );
-		printf( "z+3 = %3.10e\n", coord[INDEX_et( i, j, k, +3 )*CSIZE+2]  );
-
-		printf( "z-2 = %3.10e\n", coord[INDEX_et( i, j, k, -2 )*CSIZE+2]  );
-		printf( "z-3 = %3.10e\n", coord[INDEX_et( i, j, k, -3 )*CSIZE+2]  );
-
-	}
-	*/
 	END_CALCULATE3D()
 }
 
-// void calculate_range( float * data, float range[2], long long num );
 
 void constructCoord(MPI_Comm comm_cart, MPI_COORD thisMPICoord, GRID grid, PARAMS params, float *coord, float *cpu_coord, float *terrain, float *cpu_terrain)
 {
@@ -311,7 +290,6 @@ void constructCoord(MPI_Comm comm_cart, MPI_COORD thisMPICoord, GRID grid, PARAM
 		construct_gauss_hill_surface<<<blockXY, threadXY>>>(terrain, _nx_, _ny_, frontNX, frontNY, originalX, originalY, NZ, DH, cal_depth);
 
 		construct_terrain_coord<<<blocks, threads>>>(coord, terrain, _nx_, _ny_, _nz_, frontNZ, NZ, cal_depth);
-		// printf( "========================\n"  );
 		CHECK(cudaDeviceSynchronize());
 		CHECK(cudaMemcpy(cpu_coord, coord, size, cudaMemcpyDeviceToHost));
 		CHECK(cudaMemcpy(cpu_terrain, terrain, ter_size, cudaMemcpyDeviceToHost));

@@ -1,0 +1,1243 @@
+mkdir -p ./obj
+mkdir -p ./bin
+cc -c -O3 -std=c99 src/cjson.c -o obj/cjson.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/init_gpu.cpp -o obj/init_gpu.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/init_grid.cpp -o obj/init_grid.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/init_MPI.cpp -o obj/init_MPI.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/main.cpp -o obj/main.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/getParams.cpp -o obj/getParams.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/create_dir.cpp -o obj/create_dir.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/run.cpp -o obj/run.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/printInfo.cpp -o obj/printInfo.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/modelChecking.cpp -o obj/modelChecking.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/cpu_Malloc.cpp -o obj/cpu_Malloc.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/MPI_send_recv.cpp -o obj/MPI_send_recv.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/data_io.cpp -o obj/data_io.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/coord.cpp -o obj/coord.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/terrain.cpp -o obj/terrain.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/medium.cpp -o obj/medium.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/dealMedium.cpp -o obj/dealMedium.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/crustMedium.cpp -o obj/crustMedium.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/calc_CFL.cpp -o obj/calc_CFL.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/CJM.cpp -o obj/CJM.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/contravariant.cpp -o obj/contravariant.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/MPI_send_recv_FLOAT.cpp -o obj/MPI_send_recv_FLOAT.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/multiSource.cpp -o obj/multiSource.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/wave_deriv.cpp -o obj/wave_deriv.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/wave_rk.cpp -o obj/wave_rk.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/propagate.cpp -o obj/propagate.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/freeSurface.cpp -o obj/freeSurface.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/singleSource.cpp -o obj/singleSource.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/station.cpp -o obj/station.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/PGV.cpp -o obj/PGV.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/addMoment.cpp -o obj/addMoment.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/init_pml_para.cpp -o obj/init_pml_para.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/pml_deriv.cpp -o obj/pml_deriv.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/pml_rk.cpp -o obj/pml_rk.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/pml_freeSurface.cpp -o obj/pml_freeSurface.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/weno_pml.cpp -o obj/weno_pml.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/alternative_flux_FD.cpp -o obj/alternative_flux_FD.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/exp_decay_absorb.cpp -o obj/exp_decay_absorb.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/solve_displacement.cpp -o obj/solve_displacement.o
+/usr/local/cuda/bin/nvcc -c -O3 -std=c++17 -x cu -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -I/public/openmpi-5.0.10/include -I/sotfware/proj-8.1.0/include -I/usr/local/cuda/include -DGPU_CUDA -DXFAST  -DFREE_SURFACE -DPML  -DSOLVE_DISPLACEMENT -DTerrain_Smooth -DDealWithFirstLayer -DLayeredStructureTerrain -DStructureTerrain  src/wave_rk_tvd.cpp -o obj/wave_rk_tvd.o
+src/multiSource.cpp(37): warning #1650-D: result of call is not used
+   fread(&(nnnnnn), sizeof(int), 1, sourceFile);
+   ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/multiSource.cpp(42): warning #1650-D: result of call is not used
+   fread(&(src_in->nt), sizeof(int), 1, sourceFile);
+   ^
+
+src/multiSource.cpp(43): warning #1650-D: result of call is not used
+   fread(&(src_in->dt), sizeof(float), 1, sourceFile);
+   ^
+
+src/dealMedium.cpp(237): warning #1650-D: result of call is not used
+    fscanf(file, "%lf %lf %lf", &dep, &vs, &err);
+    ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/crustMedium.cpp(308): warning #1650-D: result of call is not used
+     fscanf(vsFile, "%f", &vs);
+     ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/crustMedium.cpp(309): warning #1650-D: result of call is not used
+     fscanf(vpFile, "%f", &vp);
+     ^
+
+src/crustMedium.cpp(310): warning #1650-D: result of call is not used
+     fscanf(rhoFile, "%f", &rho);
+     ^
+
+src/crustMedium.cpp(311): warning #1650-D: result of call is not used
+     fscanf(bndsFile, "%f", &bnds);
+     ^
+
+src/multiSource.cpp(81): warning #1650-D: result of call is not used
+    fread(&(src_in.lon[i]), 1, sizeof(float), sourceFile);
+    ^
+
+src/multiSource.cpp(82): warning #1650-D: result of call is not used
+    fread(&(src_in.lat[i]), 1, sizeof(float), sourceFile);
+    ^
+
+src/multiSource.cpp(83): warning #1650-D: result of call is not used
+    fread(&(src_in.coordZ[i]), 1, sizeof(float), sourceFile);
+    ^
+
+src/station.cpp(118): warning #1650-D: result of call is not used
+   fread(jsonStr, sizeof(char), len, fp);
+   ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/medium.cpp(106): warning #1650-D: result of call is not used
+   fread(&(layers), sizeof(int), 1, file);
+   ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/medium.cpp(115): warning #1650-D: result of call is not used
+    fread(heightData + F, sizeof(float), 1, file);
+    ^
+
+src/medium.cpp(116): warning #1650-D: result of call is not used
+    fread(VsData + F, sizeof(float), 1, file);
+    ^
+
+src/medium.cpp(117): warning #1650-D: result of call is not used
+    fread(VpData + F, sizeof(float), 1, file);
+    ^
+
+src/medium.cpp(118): warning #1650-D: result of call is not used
+    fread(RhoData + F, sizeof(float), 1, file);
+    ^
+
+src/station.cpp(212): warning #1650-D: result of call is not used
+   fread(jsonStr, sizeof(char), len, fp);
+   ^
+
+src/init_gpu.cpp(45): warning #1650-D: result of call is not used
+   fread(jsonStr, sizeof(char), len, fp);
+   ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/multiSource.cpp(360): warning #1650-D: result of call is not used
+    fread(src_in.area + i, sizeof(float), 1, sourceFile);
+    ^
+
+src/multiSource.cpp(361): warning #1650-D: result of call is not used
+    fread(src_in.strike + i, sizeof(float), 1, sourceFile);
+    ^
+
+src/multiSource.cpp(362): warning #1650-D: result of call is not used
+    fread(src_in.dip + i, sizeof(float), 1, sourceFile);
+    ^
+
+src/multiSource.cpp(364): warning #1650-D: result of call is not used
+    fread(src_in.rake + i * nt, sizeof(float), nt, sourceFile);
+    ^
+
+src/multiSource.cpp(365): warning #1650-D: result of call is not used
+    fread(src_in.rate + i * nt, sizeof(float), nt, sourceFile);
+    ^
+
+src/getParams.cpp(63): warning #1650-D: result of call is not used
+   fread(jsonStr, sizeof(char), len, fp);
+   ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/terrain.cpp(246): warning #1650-D: result of call is not used
+     fread(oneBlockTerrain, sizeof(float), 6000 * 6000, fp);
+     ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/crustMedium.cpp(48): warning #177-D: variable "_nx_" was declared but never referenced
+   int _nx_ = grid._nx_;
+       ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/crustMedium.cpp(49): warning #177-D: variable "_ny_" was declared but never referenced
+   int _ny_ = grid._ny_;
+       ^
+
+src/crustMedium.cpp(74): warning #177-D: variable "_nz_" was declared but never referenced
+   int _nz_ = grid._nz_;
+       ^
+
+src/crustMedium.cpp(94): warning #177-D: variable "z" was declared but never referenced
+   double z[4] = {0.0};
+          ^
+
+src/crustMedium.cpp(101): warning #177-D: variable "k" was declared but never referenced
+   int k = 0, K = 0;
+       ^
+
+src/crustMedium.cpp(103): warning #177-D: variable "IMax" was declared but never referenced
+   int IMax = 0, JMax = 0;
+       ^
+
+src/crustMedium.cpp(103): warning #177-D: variable "JMax" was declared but never referenced
+   int IMax = 0, JMax = 0;
+                 ^
+
+src/multiSource.cpp(37): warning #1650-D: result of call is not used
+   fread(&(nnnnnn), sizeof(int), 1, sourceFile);
+   ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/multiSource.cpp(42): warning #1650-D: result of call is not used
+   fread(&(src_in->nt), sizeof(int), 1, sourceFile);
+   ^
+
+src/multiSource.cpp(43): warning #1650-D: result of call is not used
+   fread(&(src_in->dt), sizeof(float), 1, sourceFile);
+   ^
+
+src/crustMedium.cpp(104): warning #177-D: variable "IMin" was declared but never referenced
+   int IMin = 0, JMin = 0;
+       ^
+
+src/crustMedium.cpp(104): warning #177-D: variable "JMin" was declared but never referenced
+   int IMin = 0, JMin = 0;
+                 ^
+
+src/multiSource.cpp(81): warning #1650-D: result of call is not used
+    fread(&(src_in.lon[i]), 1, sizeof(float), sourceFile);
+    ^
+
+src/multiSource.cpp(82): warning #1650-D: result of call is not used
+    fread(&(src_in.lat[i]), 1, sizeof(float), sourceFile);
+    ^
+
+src/multiSource.cpp(83): warning #1650-D: result of call is not used
+    fread(&(src_in.coordZ[i]), 1, sizeof(float), sourceFile);
+    ^
+
+src/crustMedium.cpp(180): warning #177-D: variable "bnds" was declared but never referenced
+   float vs, vp, rho, bnds, bnds1;
+                      ^
+
+src/crustMedium.cpp(180): warning #177-D: variable "bnds1" was declared but never referenced
+   float vs, vp, rho, bnds, bnds1;
+                            ^
+
+src/crustMedium.cpp(185): warning #177-D: variable "startLayer" was declared but never referenced
+   int startLayer = 0;
+       ^
+
+src/crustMedium.cpp(308): warning #1650-D: result of call is not used
+     fscanf(vsFile, "%f", &vs);
+     ^
+
+src/crustMedium.cpp(309): warning #1650-D: result of call is not used
+     fscanf(vpFile, "%f", &vp);
+     ^
+
+src/crustMedium.cpp(310): warning #1650-D: result of call is not used
+     fscanf(rhoFile, "%f", &rho);
+     ^
+
+src/crustMedium.cpp(311): warning #1650-D: result of call is not used
+     fscanf(bndsFile, "%f", &bnds);
+     ^
+
+src/calc_CFL.cpp(102): warning #177-D: variable "nx" was declared but never referenced
+   int nx = _nx - 3;
+       ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/calc_CFL.cpp(103): warning #177-D: variable "ny" was declared but never referenced
+   int ny = _ny - 3;
+       ^
+
+src/calc_CFL.cpp(104): warning #177-D: variable "nz" was declared but never referenced
+   int nz = _nz - 3;
+       ^
+
+src/weno_pml.cpp(80): warning #225-D: the format string ends before this argument
+    printf("The PML layer(nPML) just bigger than nx(%d)\n", nPML, nx);
+                                                                  ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/weno_pml.cpp(85): warning #225-D: the format string ends before this argument
+    printf("The PML layer(nPML) just bigger than ny(%d)\n", nPML, ny);
+                                                                  ^
+
+src/weno_pml.cpp(90): warning #225-D: the format string ends before this argument
+    printf("The PML layer(nPML) just bigger than nz(%d)\n", nPML, nz);
+                                                                  ^
+
+src/weno_pml.cpp(96): warning #225-D: the format string ends before this argument
+    printf("The PML layer(nPML) just bigger than nx(%d)\n", nPML, nx);
+                                                                  ^
+
+src/weno_pml.cpp(101): warning #225-D: the format string ends before this argument
+    printf("The PML layer(nPML) just bigger than ny(%d)\n", nPML, ny);
+                                                                  ^
+
+src/weno_pml.cpp(106): warning #225-D: the format string ends before this argument
+    printf("The PML layer(nPML) just bigger than nz(%d)\n", nPML, nz);
+                                                                  ^
+
+src/pml_rk.cpp(81): warning #177-D: variable "num" was declared but never referenced
+   long long num = 0;
+             ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/terrain.cpp(49): warning #177-D: variable "_nz_" was declared but never referenced
+   int _nz_ = grid._nz_;
+       ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/terrain.cpp(53): warning #177-D: variable "_nz" was declared but never referenced
+   int _nz = grid._nz;
+       ^
+
+src/terrain.cpp(55): warning #177-D: variable "num" was declared but never referenced
+   int num = _nx_ * _ny_;
+       ^
+
+src/data_io.cpp(100): warning #177-D: variable "_nz_" was declared but never referenced
+   int _nz_ = nz + 2 * 3;
+       ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/data_io.cpp(148): warning #177-D: variable "_nz_" was declared but never referenced
+   int _nz_ = nz + 2 * 3;
+       ^
+
+src/terrain.cpp(91): warning #177-D: variable "_nz_" was declared but never referenced
+   int _nz_ = grid._nz_;
+       ^
+
+src/pml_deriv.cpp(57): warning #225-D: the format string ends before this argument
+    printf("The PML layer(nPML) just bigger than nx(%d)\n", nPML, nx);
+                                                                  ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/pml_deriv.cpp(62): warning #225-D: the format string ends before this argument
+    printf("The PML layer(nPML) just bigger than ny(%d)\n", nPML, ny);
+                                                                  ^
+
+src/addMoment.cpp(263): warning #177-D: variable "_nx_" was declared but never referenced
+   int _nx_ = grid._nx_;
+       ^
+
+src/pml_deriv.cpp(67): warning #225-D: the format string ends before this argument
+    printf("The PML layer(nPML) just bigger than nz(%d)\n", nPML, nz);
+                                                                  ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/terrain.cpp(95): warning #177-D: variable "_nz" was declared but never referenced
+   int _nz = grid._nz;
+       ^
+
+src/data_io.cpp(196): warning #177-D: variable "_nz_" was declared but never referenced
+   int _nz_ = nz + 2 * 3;
+       ^
+
+src/pml_deriv.cpp(73): warning #225-D: the format string ends before this argument
+    printf("The PML layer(nPML) just bigger than nx(%d)\n", nPML, nx);
+                                                                  ^
+
+src/init_gpu.cpp(45): warning #1650-D: result of call is not used
+   fread(jsonStr, sizeof(char), len, fp);
+   ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/pml_deriv.cpp(78): warning #225-D: the format string ends before this argument
+    printf("The PML layer(nPML) just bigger than ny(%d)\n", nPML, ny);
+                                                                  ^
+
+src/pml_deriv.cpp(83): warning #225-D: the format string ends before this argument
+    printf("The PML layer(nPML) just bigger than nz(%d)\n", nPML, nz);
+                                                                  ^
+
+src/wave_rk.cpp(91): warning #177-D: variable "m_w" was declared but never referenced
+   float h_w, w, t_w, m_w;
+                      ^
+
+src/addMoment.cpp(264): warning #177-D: variable "_ny_" was declared but never referenced
+   int _ny_ = grid._ny_;
+       ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/terrain.cpp(97): warning #177-D: variable "num" was declared but never referenced
+   int num = _nx_ * _ny_;
+       ^
+
+src/addMoment.cpp(265): warning #177-D: variable "_nz_" was declared but never referenced
+   int _nz_ = grid._nz_;
+       ^
+
+src/addMoment.cpp(266): warning #177-D: variable "gaussI" was declared but never referenced
+   int gaussI, gaussJ, gaussK, gPos;
+       ^
+
+src/alternative_flux_FD.cpp(110): warning #550-D: variable "jac" was set but never used
+      float jac;
+            ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/getParams.cpp(63): warning #1650-D: result of call is not used
+   fread(jsonStr, sizeof(char), len, fp);
+   ^
+
+src/addMoment.cpp(266): warning #177-D: variable "gaussJ" was declared but never referenced
+   int gaussI, gaussJ, gaussK, gPos;
+               ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/alternative_flux_FD.cpp(112): warning #550-D: variable "idx_n3" was set but never used
+      long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
+                ^
+
+src/addMoment.cpp(266): warning #177-D: variable "gaussK" was declared but never referenced
+   int gaussI, gaussJ, gaussK, gPos;
+                       ^
+
+src/coord.cpp(62): warning #177-D: variable "_nz_" was declared but never referenced
+   int _nz_ = grid._nz_;
+       ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/addMoment.cpp(266): warning #177-D: variable "gPos" was declared but never referenced
+   int gaussI, gaussJ, gaussK, gPos;
+                               ^
+
+src/terrain.cpp(246): warning #1650-D: result of call is not used
+     fread(oneBlockTerrain, sizeof(float), 6000 * 6000, fp);
+     ^
+
+src/addMoment.cpp(267): warning #177-D: variable "lenGauss" was declared but never referenced
+   int lenGauss = nGauss * 2 + 1;
+       ^
+
+src/terrain.cpp(242): warning #177-D: variable "endX" was declared but never referenced
+     int endX = (i + 1) * (6000 - 1) + 1;
+         ^
+
+src/addMoment.cpp(268): warning #177-D: variable "factorGauss" was declared but never referenced
+   float factorGauss = 0.0f;
+         ^
+
+src/terrain.cpp(243): warning #177-D: variable "endY" was declared but never referenced
+     int endY = (j + 1) * (6000 - 1) + 1;
+         ^
+
+src/coord.cpp(162): warning #550-D: variable "index" was set but never used
+   long long index, pos;
+             ^
+
+src/terrain.cpp(216): warning #177-D: variable "totalPointY" was declared but never referenced
+   int totalPointY = (6000 - 1) * blockY + 1;
+       ^
+
+src/alternative_flux_FD.cpp(203): warning #550-D: variable "jac" was set but never used
+      float jac;
+            ^
+
+src/alternative_flux_FD.cpp(205): warning #550-D: variable "idx_n3" was set but never used
+      long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
+                ^
+
+src/multiSource.cpp(185): warning #177-D: variable "frontNZ" was declared but never referenced
+   int frontNZ = grid.frontNZ;
+       ^
+
+src/addMoment.cpp(354): warning #177-D: variable "gaussPoints" was declared but never referenced
+   int gaussPoints = lenGauss * lenGauss * lenGauss;
+       ^
+
+src/CJM.cpp(62): warning #177-D: variable "lambda" was declared but never referenced
+   float lambda;
+         ^
+
+src/coord.cpp(223): warning #177-D: variable "_nx" was declared but never referenced
+   int _nx = _nx_ - 3;
+       ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/multiSource.cpp(190): warning #177-D: variable "_nz_" was declared but never referenced
+   int _nz_ = grid._nz_;
+       ^
+
+src/addMoment.cpp(357): warning #177-D: variable "factorGauss" was declared but never referenced
+   float factorGauss = 0.0;
+         ^
+
+src/CJM.cpp(63): warning #177-D: variable "mu" was declared but never referenced
+   float mu;
+         ^
+
+src/coord.cpp(224): warning #177-D: variable "_ny" was declared but never referenced
+   int _ny = _ny_ - 3;
+       ^
+
+src/multiSource.cpp(216): warning #177-D: variable "extendNZ" was declared but never referenced
+   int extendNZ = 0;
+       ^
+
+src/CJM.cpp(64): warning #177-D: variable "buoyancy" was declared but never referenced
+   float buoyancy;
+         ^
+
+src/coord.cpp(225): warning #177-D: variable "_nz" was declared but never referenced
+   int _nz = _nz_ - 3;
+       ^
+
+src/multiSource.cpp(218): warning #177-D: variable "rank" was declared but never referenced
+   int rank;
+       ^
+
+src/terrain.cpp(290): warning #177-D: variable "cnt" was declared but never referenced
+   long long cnt = 0;
+             ^
+
+src/CJM.cpp(112): warning #177-D: variable "Vp" was declared but never referenced
+   float Vp, Vs, rho;
+         ^
+
+src/alternative_flux_FD.cpp(295): warning #550-D: variable "jac" was set but never used
+      float jac;
+            ^
+
+src/CJM.cpp(112): warning #177-D: variable "Vs" was declared but never referenced
+   float Vp, Vs, rho;
+             ^
+
+src/terrain.cpp(415): warning #177-D: variable "_nz_" was declared but never referenced
+   int _nz_ = grid._nz_;
+       ^
+
+src/alternative_flux_FD.cpp(297): warning #550-D: variable "idx_n3" was set but never used
+      long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
+                ^
+
+src/CJM.cpp(112): warning #177-D: variable "rho" was declared but never referenced
+   float Vp, Vs, rho;
+                 ^
+
+src/multiSource.cpp(360): warning #1650-D: result of call is not used
+    fread(src_in.area + i, sizeof(float), 1, sourceFile);
+    ^
+
+src/multiSource.cpp(361): warning #1650-D: result of call is not used
+    fread(src_in.strike + i, sizeof(float), 1, sourceFile);
+    ^
+
+src/multiSource.cpp(362): warning #1650-D: result of call is not used
+    fread(src_in.dip + i, sizeof(float), 1, sourceFile);
+    ^
+
+src/multiSource.cpp(364): warning #1650-D: result of call is not used
+    fread(src_in.rake + i * nt, sizeof(float), nt, sourceFile);
+    ^
+
+src/multiSource.cpp(365): warning #1650-D: result of call is not used
+    fread(src_in.rate + i * nt, sizeof(float), nt, sourceFile);
+    ^
+
+src/multiSource.cpp(347): warning #177-D: variable "npts" was declared but never referenced
+   int npts = src_in.npts;
+       ^
+
+src/terrain.cpp(703): warning #177-D: variable "_nx" was declared but never referenced
+   int _nx = grid._nx;
+       ^
+
+src/terrain.cpp(704): warning #177-D: variable "_ny" was declared but never referenced
+   int _ny = grid._ny;
+       ^
+
+src/terrain.cpp(705): warning #177-D: variable "_nz" was declared but never referenced
+   int _nz = grid._nz;
+       ^
+
+src/terrain.cpp(764): warning #177-D: variable "nx" was declared but never referenced
+   int nx = grid.nx;
+       ^
+
+src/terrain.cpp(765): warning #177-D: variable "ny" was declared but never referenced
+   int ny = grid.ny;
+       ^
+
+src/terrain.cpp(766): warning #177-D: variable "nz" was declared but never referenced
+   int nz = grid.nz;
+       ^
+
+src/alternative_flux_FD.cpp(400): warning #177-D: variable "nz" was declared but never referenced
+      int nz = _nz_ - 2 * 3;
+          ^
+
+src/alternative_flux_FD.cpp(379): warning #550-D: variable "idx_p3" was set but never used
+      long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
+                                                             ^
+
+src/multiSource.cpp(490): warning #177-D: variable "pnt" was declared but never referenced
+   long long pnt = 0, idx = 0;
+             ^
+
+src/multiSource.cpp(549): warning #177-D: variable "npts" was declared but never referenced
+   int npts = src_in.npts;
+       ^
+
+src/alternative_flux_FD.cpp(494): warning #177-D: variable "nz" was declared but never referenced
+      int nz = _nz_ - 2 * 3;
+          ^
+
+src/alternative_flux_FD.cpp(472): warning #550-D: variable "idx_p3" was set but never used
+      long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
+                                                             ^
+
+src/alternative_flux_FD.cpp(560): warning #550-D: variable "idx_p3" was set but never used
+      long long idx_n3, idx_n2, idx_n1, idx, idx_p1, idx_p2, idx_p3;
+                                                             ^
+
+src/station.cpp(118): warning #1650-D: result of call is not used
+   fread(jsonStr, sizeof(char), len, fp);
+   ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/medium.cpp(106): warning #1650-D: result of call is not used
+   fread(&(layers), sizeof(int), 1, file);
+   ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/medium.cpp(115): warning #1650-D: result of call is not used
+    fread(heightData + F, sizeof(float), 1, file);
+    ^
+
+src/medium.cpp(116): warning #1650-D: result of call is not used
+    fread(VsData + F, sizeof(float), 1, file);
+    ^
+
+src/medium.cpp(117): warning #1650-D: result of call is not used
+    fread(VpData + F, sizeof(float), 1, file);
+    ^
+
+src/medium.cpp(118): warning #1650-D: result of call is not used
+    fread(RhoData + F, sizeof(float), 1, file);
+    ^
+
+src/station.cpp(141): warning #177-D: variable "j" was declared but never referenced
+   int i, j, stationNum;
+          ^
+
+src/station.cpp(212): warning #1650-D: result of call is not used
+   fread(jsonStr, sizeof(char), len, fp);
+   ^
+
+src/medium.cpp(132): warning #550-D: variable "K" was set but never used
+   int K = 0;
+       ^
+
+src/medium.cpp(138): warning #177-D: variable "NZ" was declared but never referenced
+   int NZ = grid.NZ;
+       ^
+
+src/station.cpp(234): warning #177-D: variable "j" was declared but never referenced
+   int i, j;
+          ^
+
+src/medium.cpp(141): warning #177-D: variable "index1" was declared but never referenced
+   int index1 = 0, index2 = 0;
+       ^
+
+src/medium.cpp(141): warning #177-D: variable "index2" was declared but never referenced
+   int index1 = 0, index2 = 0;
+                   ^
+
+src/dealMedium.cpp(29): warning #177-D: variable "_nz_" was declared but never referenced
+   int _nz_ = grid._nz_;
+       ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/dealMedium.cpp(33): warning #177-D: variable "_nz" was declared but never referenced
+   int _nz = grid._nz;
+       ^
+
+src/pml_freeSurface.cpp(266): warning #177-D: variable "nz" was declared but never referenced
+   int nz = _nz_ - 2 * 3;
+       ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/dealMedium.cpp(57): warning #550-D: variable "indexC" was set but never used
+   long long index = 0, indexC = 0, indexT = 0;
+                        ^
+
+src/dealMedium.cpp(84): warning #177-D: variable "IMax" was declared but never referenced
+   int IMax = 0, JMax = 0;
+       ^
+
+src/dealMedium.cpp(84): warning #177-D: variable "JMax" was declared but never referenced
+   int IMax = 0, JMax = 0;
+                 ^
+
+src/dealMedium.cpp(85): warning #177-D: variable "IMin" was declared but never referenced
+   int IMin = 0, JMin = 0;
+       ^
+
+src/dealMedium.cpp(85): warning #177-D: variable "JMin" was declared but never referenced
+   int IMin = 0, JMin = 0;
+                 ^
+
+src/dealMedium.cpp(150): warning #177-D: variable "LAM" was declared but never referenced
+   float LAM = 0.0, MU = 0.0;
+         ^
+
+src/dealMedium.cpp(150): warning #177-D: variable "MU" was declared but never referenced
+   float LAM = 0.0, MU = 0.0;
+                    ^
+
+src/dealMedium.cpp(237): warning #1650-D: result of call is not used
+    fscanf(file, "%lf %lf %lf", &dep, &vs, &err);
+    ^
+
+src/dealMedium.cpp(277): warning #177-D: variable "halo" was declared but never referenced
+   int halo = grid.halo;
+       ^
+
+src/dealMedium.cpp(281): warning #177-D: variable "_nz_" was declared but never referenced
+   int _nz_ = grid._nz_;
+       ^
+
+src/dealMedium.cpp(283): warning #177-D: variable "_nx" was declared but never referenced
+   int _nx = grid._nx;
+       ^
+
+src/dealMedium.cpp(284): warning #177-D: variable "_ny" was declared but never referenced
+   int _ny = grid._ny;
+       ^
+
+src/dealMedium.cpp(285): warning #177-D: variable "_nz" was declared but never referenced
+   int _nz = grid._nz;
+       ^
+
+src/singleSource.cpp(366): warning #177-D: variable "originalX" was declared but never referenced
+   int originalX = grid.originalX;
+       ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/singleSource.cpp(367): warning #177-D: variable "originalY" was declared but never referenced
+   int originalY = grid.originalY;
+       ^
+
+src/pml_deriv.cpp: In function ‘void allocPML(GRID, AUX6SURF*, MPI_BORDER)’:
+src/pml_deriv.cpp:57:22: warning: too many arguments for format [-Wformat-extra-args]
+   57 |                 printf("The PML layer(nPML) just bigger than nx(%d)\n", nPML, nx);
+      |                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/pml_deriv.cpp:62:22: warning: too many arguments for format [-Wformat-extra-args]
+   62 |                 printf("The PML layer(nPML) just bigger than ny(%d)\n", nPML, ny);
+      |                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/pml_deriv.cpp:67:22: warning: too many arguments for format [-Wformat-extra-args]
+   67 |                 printf("The PML layer(nPML) just bigger than nz(%d)\n", nPML, nz);
+      |                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/pml_deriv.cpp:73:22: warning: too many arguments for format [-Wformat-extra-args]
+   73 |                 printf("The PML layer(nPML) just bigger than nx(%d)\n", nPML, nx);
+      |                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/pml_deriv.cpp:78:22: warning: too many arguments for format [-Wformat-extra-args]
+   78 |                 printf("The PML layer(nPML) just bigger than ny(%d)\n", nPML, ny);
+      |                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/pml_deriv.cpp:83:22: warning: too many arguments for format [-Wformat-extra-args]
+   83 |                 printf("The PML layer(nPML) just bigger than nz(%d)\n", nPML, nz);
+      |                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/weno_pml.cpp: In function ‘void allocWenoPML(GRID, AUX6SURF*, MPI_BORDER)’:
+src/weno_pml.cpp:80:22: warning: too many arguments for format [-Wformat-extra-args]
+   80 |                 printf("The PML layer(nPML) just bigger than nx(%d)\n", nPML, nx);
+      |                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/weno_pml.cpp:85:22: warning: too many arguments for format [-Wformat-extra-args]
+   85 |                 printf("The PML layer(nPML) just bigger than ny(%d)\n", nPML, ny);
+      |                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/weno_pml.cpp:90:22: warning: too many arguments for format [-Wformat-extra-args]
+   90 |                 printf("The PML layer(nPML) just bigger than nz(%d)\n", nPML, nz);
+      |                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/weno_pml.cpp:96:22: warning: too many arguments for format [-Wformat-extra-args]
+   96 |                 printf("The PML layer(nPML) just bigger than nx(%d)\n", nPML, nx);
+      |                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/weno_pml.cpp:101:22: warning: too many arguments for format [-Wformat-extra-args]
+  101 |                 printf("The PML layer(nPML) just bigger than ny(%d)\n", nPML, ny);
+      |                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/weno_pml.cpp:106:22: warning: too many arguments for format [-Wformat-extra-args]
+  106 |                 printf("The PML layer(nPML) just bigger than nz(%d)\n", nPML, nz);
+      |                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/dealMedium.cpp: In function ‘void readWeisenShenModel(PARAMS, GRID, MPI_COORD, float*, float*, float*)’:
+src/dealMedium.cpp:237:21: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  237 |                 fscanf(file, "%lf %lf %lf", &dep, &vs, &err);
+      |                 ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/terrain.cpp: In function ‘void readSRTM90(PARAMS, float*)’:
+src/terrain.cpp:246:27: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  246 |                         fread(oneBlockTerrain, sizeof(float), pointsPerBlockX * pointsPerBlockY, fp);
+      |                         ~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/medium.cpp: In function ‘void generate_1D_medium(PARAMS, GRID, float*, float*, float*)’:
+src/medium.cpp:106:13: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  106 |         fread(&(layers), sizeof(int), 1, file);
+      |         ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/getParams.cpp: In function ‘void getParams(PARAMS*)’:
+src/getParams.cpp:63:13: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+   63 |         fread(jsonStr, sizeof(char), len, fp);
+      |         ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/medium.cpp:115:20: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  115 |                 fread(heightData + F, sizeof(float), 1, file);
+      |                 ~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/medium.cpp:116:20: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  116 |                 fread(VsData + F, sizeof(float), 1, file);
+      |                 ~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/medium.cpp:117:20: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  117 |                 fread(VpData + F, sizeof(float), 1, file);
+      |                 ~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/medium.cpp:118:20: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  118 |                 fread(RhoData + F, sizeof(float), 1, file);
+      |                 ~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/station.cpp: In function ‘int readStationIndex(GRID)’:
+src/station.cpp:118:13: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  118 |         fread(jsonStr, sizeof(char), len, fp);
+      |         ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/crustMedium.cpp: In function ‘void readCrustal_1(PARAMS, GRID, MPI_COORD, float*, float*)’:
+src/crustMedium.cpp:308:28: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  308 |                         fscanf(vsFile, "%f", &vs);
+      |                         ~~~^~~~~~~~~~~~~~~~~~~
+src/crustMedium.cpp:309:28: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  309 |                         fscanf(vpFile, "%f", &vp);
+      |                         ~~~^~~~~~~~~~~~~~~~~~~
+src/crustMedium.cpp:310:28: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  310 |                         fscanf(rhoFile, "%f", &rho);
+      |                         ~~~^~~~~~~~~~~~~~~~~~~~~
+src/crustMedium.cpp:311:28: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  311 |                         fscanf(bndsFile, "%f", &bnds);
+      |                         ~~~^~~~~~~~~~~~~~~~~~~~~~~
+src/station.cpp: In function ‘void initStationIndex(GRID, STATION)’:
+src/station.cpp:212:13: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  212 |         fread(jsonStr, sizeof(char), len, fp);
+      |         ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/init_gpu.cpp: In function ‘void init_gpu(int, int, int)’:
+src/init_gpu.cpp:45:13: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+   45 |         fread(jsonStr, sizeof(char), len, fp);
+      |         ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/dealMedium.cpp: In function ‘void verifyInterpVs(PARAMS, GRID, MPI_COORD, float*, int)’:
+src/dealMedium.cpp:23:26: warning: ‘/InterpVs’ directive writing 9 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+   23 |         sprintf(fileName, "%s/InterpVs%d_mpi_%d_%d_%d.bin", params.OUT, k, thisMPICoord.X, thisMPICoord.Y, thisMPICoord.Z);
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void verifyInterpVs(PARAMS, GRID, MPI_COORD, float*, int)’ at src/dealMedium.cpp:23:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 25 and 320 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/multiSource.cpp: In function ‘void readSourceInfo(SOURCE_FILE_INPUT*, char*)’:
+src/multiSource.cpp:37:13: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+   37 |         fread(&(nnnnnn), sizeof(int), 1, sourceFile);
+      |         ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/multiSource.cpp:42:13: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+   42 |         fread(&(src_in->nt), sizeof(int), 1, sourceFile);
+      |         ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/multiSource.cpp:43:13: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+   43 |         fread(&(src_in->dt), sizeof(float), 1, sourceFile);
+      |         ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/multiSource.cpp: In function ‘void readSourceLocation(SOURCE_FILE_INPUT, char*)’:
+src/multiSource.cpp:81:20: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+   81 |                 fread(&(src_in.lon[i]), 1, sizeof(float), sourceFile);
+      |                 ~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/multiSource.cpp:82:20: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+   82 |                 fread(&(src_in.lat[i]), 1, sizeof(float), sourceFile);
+      |                 ~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/multiSource.cpp:83:20: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+   83 |                 fread(&(src_in.coordZ[i]), 1, sizeof(float), sourceFile);
+      |                 ~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/multiSource.cpp: In function ‘void readSourceParams(SOURCE_FILE_INPUT, char*, std::map<long long int, long long int>&)’:
+src/multiSource.cpp:360:20: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  360 |                 fread(src_in.area + i, sizeof(float), 1, sourceFile);
+      |                 ~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/multiSource.cpp:361:20: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  361 |                 fread(src_in.strike + i, sizeof(float), 1, sourceFile);
+      |                 ~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/multiSource.cpp:362:20: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  362 |                 fread(src_in.dip + i, sizeof(float), 1, sourceFile);
+      |                 ~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/multiSource.cpp:364:20: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  364 |                 fread(src_in.rake + i * nt, sizeof(float), nt, sourceFile);
+      |                 ~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+src/multiSource.cpp:365:20: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  365 |                 fread(src_in.rate + i * nt, sizeof(float), nt, sourceFile);
+      |                 ~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+src/terrain.cpp: In function ‘void outputTotalTerrain(PARAMS, MPI_COORD, GRID, float*, int, int)’:
+src/terrain.cpp:33:45: warning: ‘/totalTerrain.bin’ directive writing 17 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+   33 |                 sprintf(totalTerrainFileName, "%s/totalTerrain.bin", params.OUT);
+      |                                             ^~~~~~~~~~~~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void outputTotalTerrain(PARAMS, MPI_COORD, GRID, float*, int, int)’ at src/terrain.cpp:33:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 18 and 273 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/terrain.cpp: In function ‘void outputLonLat(PARAMS, MPI_COORD, GRID, LONLAT)’:
+src/terrain.cpp:59:29: warning: ‘/lon_mpi_’ directive writing 9 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+   59 |         sprintf(lonFileName, "%s/lon_mpi_%d_%d_%d.bin", params.OUT, thisMPICoord.X, thisMPICoord.Y, thisMPICoord.Z);
+      |                             ^~~~~~~~~~~~~~~~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void outputLonLat(PARAMS, MPI_COORD, GRID, LONLAT)’ at src/terrain.cpp:59:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 19 and 304 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/terrain.cpp: In function ‘void outputLonLat(PARAMS, MPI_COORD, GRID, LONLAT)’:
+src/terrain.cpp:60:29: warning: ‘/lat_mpi_’ directive writing 9 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+   60 |         sprintf(latFileName, "%s/lat_mpi_%d_%d_%d.bin", params.OUT, thisMPICoord.X, thisMPICoord.Y, thisMPICoord.Z);
+      |                             ^~~~~~~~~~~~~~~~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void outputLonLat(PARAMS, MPI_COORD, GRID, LONLAT)’ at src/terrain.cpp:60:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 19 and 304 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+In function ‘void verifyInterpVs(PARAMS, GRID, MPI_COORD, float*, int)’,
+    inlined from ‘void structureInterp(PARAMS, GRID, float*, int, int, int, float*, LONLAT, float*, float*, MPI_COORD)’ at src/dealMedium.cpp:127:15:
+src/dealMedium.cpp:23:26: warning: ‘/InterpVs’ directive writing 9 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+   23 |         sprintf(fileName, "%s/InterpVs%d_mpi_%d_%d_%d.bin", params.OUT, k, thisMPICoord.X, thisMPICoord.Y, thisMPICoord.Z);
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void verifyInterpVs(PARAMS, GRID, MPI_COORD, float*, int)’ at src/dealMedium.cpp:23:8,
+    inlined from ‘void structureInterp(PARAMS, GRID, float*, int, int, int, float*, LONLAT, float*, float*, MPI_COORD)’ at src/dealMedium.cpp:127:15:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 26 and 311 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/terrain.cpp: In function ‘void outputTerrain(PARAMS, MPI_COORD, GRID, float*)’:
+src/terrain.cpp:101:33: warning: ‘/terrain_mpi_’ directive writing 13 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+  101 |         sprintf(terrainFileName, "%s/terrain_mpi_%d_%d_%d.bin", params.OUT, thisMPICoord.X, thisMPICoord.Y, thisMPICoord.Z);
+      |                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void outputTerrain(PARAMS, MPI_COORD, GRID, float*)’ at src/terrain.cpp:101:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 23 and 308 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/station.cpp: In function ‘void stationWrite(PARAMS, GRID, MPI_COORD, STATION, int, int)’:
+src/station.cpp:399:26: warning: ‘/station_mpi_’ directive writing 13 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+  399 |         sprintf(fileName, "%s/station_mpi_%d_%d_%d.bin", params.OUT, thisMPICoord.X, thisMPICoord.Y, thisMPICoord.Z);
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void stationWrite(PARAMS, GRID, MPI_COORD, STATION, int, int)’ at src/station.cpp:399:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 23 and 308 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/dealMedium.cpp: In function ‘void readWeisenShenModel(PARAMS, GRID, MPI_COORD, float*, float*, float*)’:
+src/dealMedium.cpp:225:26: warning: ‘%s’ directive writing up to 63 bytes into a region of size between 0 and 255 [-Wformat-overflow=]
+  225 |         sprintf(fileName, "%s/%s_%s.mod", params.MediumDir, lonName, latName);
+      |                          ^~~~~~~~~~~~~~                    ~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void readWeisenShenModel(PARAMS, GRID, MPI_COORD, float*, float*, float*)’ at src/dealMedium.cpp:225:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 7 and 388 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/dealMedium.cpp: In function ‘void readWeisenShenModel(PARAMS, GRID, MPI_COORD, float*, float*, float*)’:
+src/dealMedium.cpp:252:39: warning: ‘/VModel.txt’ directive writing 11 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+  252 |                 sprintf(VModelFileName, "%s/VModel.txt", params.MediumDir);
+      |                                       ^~~~~~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void readWeisenShenModel(PARAMS, GRID, MPI_COORD, float*, float*, float*)’ at src/dealMedium.cpp:252:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 12 and 267 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/crustMedium.cpp:278:24: warning: ‘/crust1.vs’ directive writing 10 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+  278 |         sprintf(vsName, "%s/crust1.vs", params.crustDir);
+      |                        ^~~~~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void readCrustal_1(PARAMS, GRID, MPI_COORD, float*, float*)’ at src/crustMedium.cpp:278:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 11 and 266 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/crustMedium.cpp: In function ‘void readCrustal_1(PARAMS, GRID, MPI_COORD, float*, float*)’:
+src/crustMedium.cpp:279:24: warning: ‘/crust1.vp’ directive writing 10 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+  279 |         sprintf(vpName, "%s/crust1.vp", params.crustDir);
+      |                        ^~~~~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void readCrustal_1(PARAMS, GRID, MPI_COORD, float*, float*)’ at src/crustMedium.cpp:279:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 11 and 266 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/crustMedium.cpp: In function ‘void readCrustal_1(PARAMS, GRID, MPI_COORD, float*, float*)’:
+src/crustMedium.cpp:280:25: warning: ‘/crust1.rho’ directive writing 11 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+  280 |         sprintf(rhoName, "%s/crust1.rho", params.crustDir);
+      |                         ^~~~~~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void readCrustal_1(PARAMS, GRID, MPI_COORD, float*, float*)’ at src/crustMedium.cpp:280:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 12 and 267 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/crustMedium.cpp: In function ‘void readCrustal_1(PARAMS, GRID, MPI_COORD, float*, float*)’:
+src/crustMedium.cpp:281:26: warning: ‘/crust1.bnds’ directive writing 12 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+  281 |         sprintf(bndsName, "%s/crust1.bnds", params.crustDir);
+      |                          ^~~~~~~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void readCrustal_1(PARAMS, GRID, MPI_COORD, float*, float*)’ at src/crustMedium.cpp:281:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 13 and 268 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/crustMedium.cpp: In function ‘void readCrustal_1(PARAMS, GRID, MPI_COORD, float*, float*)’:
+src/crustMedium.cpp:300:26: warning: ‘%s’ directive writing up to 255 bytes into a region of size 246 [-Wformat-overflow=]
+  300 |         sprintf(crustTxt, "%s/crustTxt.txt", params.crustDir);
+      |                          ^~~~~~~~~~~~~~~~~  ~~~~~~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void readCrustal_1(PARAMS, GRID, MPI_COORD, float*, float*)’ at src/crustMedium.cpp:300:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 14 and 269 bytes into a destination of size 246
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_Model_out(MPI_COORD, PARAMS, GRID, float*, float*, SLICE, SLICE_DATA, SLICE_DATA)’:
+src/data_io.cpp:583:30: warning: ‘/coordX’ directive writing 7 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+  583 |                 sprintf(XName, "%s/coordX", params.OUT);
+      |                              ^~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_Model_out(MPI_COORD, PARAMS, GRID, float*, float*, SLICE, SLICE_DATA, SLICE_DATA)’ at src/data_io.cpp:583:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 8 and 263 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_Model_out(MPI_COORD, PARAMS, GRID, float*, float*, SLICE, SLICE_DATA, SLICE_DATA)’:
+src/data_io.cpp:584:30: warning: ‘/coordY’ directive writing 7 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+  584 |                 sprintf(YName, "%s/coordY", params.OUT);
+      |                              ^~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_Model_out(MPI_COORD, PARAMS, GRID, float*, float*, SLICE, SLICE_DATA, SLICE_DATA)’ at src/data_io.cpp:584:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 8 and 263 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_Model_out(MPI_COORD, PARAMS, GRID, float*, float*, SLICE, SLICE_DATA, SLICE_DATA)’:
+src/data_io.cpp:585:30: warning: ‘/coordZ’ directive writing 7 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+  585 |                 sprintf(ZName, "%s/coordZ", params.OUT);
+      |                              ^~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_Model_out(MPI_COORD, PARAMS, GRID, float*, float*, SLICE, SLICE_DATA, SLICE_DATA)’ at src/data_io.cpp:585:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 8 and 263 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_Model_out(MPI_COORD, PARAMS, GRID, float*, float*, SLICE, SLICE_DATA, SLICE_DATA)’:
+src/data_io.cpp:596:30: warning: ‘/Vs’ directive writing 3 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+  596 |                 sprintf(XName, "%s/Vs", params.OUT);
+      |                              ^~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_Model_out(MPI_COORD, PARAMS, GRID, float*, float*, SLICE, SLICE_DATA, SLICE_DATA)’ at src/data_io.cpp:596:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 4 and 259 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_Model_out(MPI_COORD, PARAMS, GRID, float*, float*, SLICE, SLICE_DATA, SLICE_DATA)’:
+src/data_io.cpp:597:30: warning: ‘/Vp’ directive writing 3 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+  597 |                 sprintf(YName, "%s/Vp", params.OUT);
+      |                              ^~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_Model_out(MPI_COORD, PARAMS, GRID, float*, float*, SLICE, SLICE_DATA, SLICE_DATA)’ at src/data_io.cpp:597:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 4 and 259 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_Model_out(MPI_COORD, PARAMS, GRID, float*, float*, SLICE, SLICE_DATA, SLICE_DATA)’:
+src/data_io.cpp:598:30: warning: ‘/rho’ directive writing 4 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+  598 |                 sprintf(ZName, "%s/rho", params.OUT);
+      |                              ^~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_Model_out(MPI_COORD, PARAMS, GRID, float*, float*, SLICE, SLICE_DATA, SLICE_DATA)’ at src/data_io.cpp:598:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 5 and 260 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_XYZ_out_Dis(MPI_COORD, PARAMS, GRID, SLICE, SLICE_DATA, SLICE_DATA, int, float*)’:
+src/data_io.cpp:613:28: warning: ‘%s’ directive writing up to 255 bytes into a region of size 128 [-Wformat-overflow=]
+  613 |         sprintf(UxFileName, "%s/FreeSurfUx_%d", params.OUT, it);
+      |                            ^~~~~~~~~~~~~~~~~~  ~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_XYZ_out_Dis(MPI_COORD, PARAMS, GRID, SLICE, SLICE_DATA, SLICE_DATA, int, float*)’ at src/data_io.cpp:613:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 14 and 279 bytes into a destination of size 128
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_XYZ_out_Dis(MPI_COORD, PARAMS, GRID, SLICE, SLICE_DATA, SLICE_DATA, int, float*)’:
+src/data_io.cpp:614:28: warning: ‘%s’ directive writing up to 255 bytes into a region of size 128 [-Wformat-overflow=]
+  614 |         sprintf(UyFileName, "%s/FreeSurfUy_%d", params.OUT, it);
+      |                            ^~~~~~~~~~~~~~~~~~  ~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_XYZ_out_Dis(MPI_COORD, PARAMS, GRID, SLICE, SLICE_DATA, SLICE_DATA, int, float*)’ at src/data_io.cpp:614:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 14 and 279 bytes into a destination of size 128
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_XYZ_out_Dis(MPI_COORD, PARAMS, GRID, SLICE, SLICE_DATA, SLICE_DATA, int, float*)’:
+src/data_io.cpp:615:28: warning: ‘%s’ directive writing up to 255 bytes into a region of size 128 [-Wformat-overflow=]
+  615 |         sprintf(UzFileName, "%s/FreeSurfUz_%d", params.OUT, it);
+      |                            ^~~~~~~~~~~~~~~~~~  ~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_XYZ_out_Dis(MPI_COORD, PARAMS, GRID, SLICE, SLICE_DATA, SLICE_DATA, int, float*)’ at src/data_io.cpp:615:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 14 and 279 bytes into a destination of size 128
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’:
+src/data_io.cpp:544:36: warning: ‘%s’ directive writing up to 255 bytes into a region of size 128 [-Wformat-overflow=]
+  544 |                 sprintf(TxxFileName, "%s/Txx_%d", params.OUT, it);
+      |                                    ^~~~~~~~~~~  ~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’ at src/data_io.cpp:544:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 7 and 272 bytes into a destination of size 128
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’:
+src/data_io.cpp:545:36: warning: ‘%s’ directive writing up to 255 bytes into a region of size 128 [-Wformat-overflow=]
+  545 |                 sprintf(TyyFileName, "%s/Tyy_%d", params.OUT, it);
+      |                                    ^~~~~~~~~~~  ~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’ at src/data_io.cpp:545:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 7 and 272 bytes into a destination of size 128
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’:
+src/data_io.cpp:546:36: warning: ‘%s’ directive writing up to 255 bytes into a region of size 128 [-Wformat-overflow=]
+  546 |                 sprintf(TzzFileName, "%s/Tzz_%d", params.OUT, it);
+      |                                    ^~~~~~~~~~~  ~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’ at src/data_io.cpp:546:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 7 and 272 bytes into a destination of size 128
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’:
+src/data_io.cpp:548:36: warning: ‘%s’ directive writing up to 255 bytes into a region of size 128 [-Wformat-overflow=]
+  548 |                 sprintf(TxyFileName, "%s/Txy_%d", params.OUT, it);
+      |                                    ^~~~~~~~~~~  ~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’ at src/data_io.cpp:548:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 7 and 272 bytes into a destination of size 128
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’:
+src/data_io.cpp:549:36: warning: ‘%s’ directive writing up to 255 bytes into a region of size 128 [-Wformat-overflow=]
+  549 |                 sprintf(TxzFileName, "%s/Txz_%d", params.OUT, it);
+      |                                    ^~~~~~~~~~~  ~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’ at src/data_io.cpp:549:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 7 and 272 bytes into a destination of size 128
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’:
+src/data_io.cpp:550:36: warning: ‘%s’ directive writing up to 255 bytes into a region of size 128 [-Wformat-overflow=]
+  550 |                 sprintf(TyzFileName, "%s/Tyz_%d", params.OUT, it);
+      |                                    ^~~~~~~~~~~  ~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’ at src/data_io.cpp:550:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 7 and 272 bytes into a destination of size 128
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’:
+src/data_io.cpp:530:35: warning: ‘%s’ directive writing up to 255 bytes into a region of size 128 [-Wformat-overflow=]
+  530 |                 sprintf(VxFileName, "%s/Vx_%d", params.OUT, it);
+      |                                   ^~~~~~~~~~  ~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’ at src/data_io.cpp:530:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 6 and 271 bytes into a destination of size 128
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’:
+src/data_io.cpp:531:35: warning: ‘%s’ directive writing up to 255 bytes into a region of size 128 [-Wformat-overflow=]
+  531 |                 sprintf(VyFileName, "%s/Vy_%d", params.OUT, it);
+      |                                   ^~~~~~~~~~  ~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’ at src/data_io.cpp:531:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 6 and 271 bytes into a destination of size 128
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’:
+src/data_io.cpp:532:35: warning: ‘%s’ directive writing up to 255 bytes into a region of size 128 [-Wformat-overflow=]
+  532 |                 sprintf(VzFileName, "%s/Vz_%d", params.OUT, it);
+      |                                   ^~~~~~~~~~  ~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’ at src/data_io.cpp:532:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 6 and 271 bytes into a destination of size 128
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’:
+src/data_io.cpp:565:35: warning: ‘%s’ directive writing up to 255 bytes into a region of size 128 [-Wformat-overflow=]
+  565 |                 sprintf(VxFileName, "%s/FreeSurfVx_%d", params.OUT, it);
+      |                                   ^~~~~~~~~~~~~~~~~~  ~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’ at src/data_io.cpp:565:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 14 and 279 bytes into a destination of size 128
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’:
+src/data_io.cpp:566:35: warning: ‘%s’ directive writing up to 255 bytes into a region of size 128 [-Wformat-overflow=]
+  566 |                 sprintf(VyFileName, "%s/FreeSurfVy_%d", params.OUT, it);
+      |                                   ^~~~~~~~~~~~~~~~~~  ~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’ at src/data_io.cpp:566:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 14 and 279 bytes into a destination of size 128
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/data_io.cpp: In function ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’:
+src/data_io.cpp:567:35: warning: ‘%s’ directive writing up to 255 bytes into a region of size 128 [-Wformat-overflow=]
+  567 |                 sprintf(VzFileName, "%s/FreeSurfVz_%d", params.OUT, it);
+      |                                   ^~~~~~~~~~~~~~~~~~  ~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void data2D_XYZ_out(MPI_COORD, PARAMS, GRID, WAVE*, SLICE, SLICE_DATA, SLICE_DATA, char, int, float*)’ at src/data_io.cpp:567:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 14 and 279 bytes into a destination of size 128
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/multiSource.cpp: In function ‘void outputSourceData(PARAMS, SOURCE_FILE_INPUT, std::map<long long int, long long int>&, float*, MPI_COORD)’:
+src/multiSource.cpp:542:26: warning: ‘/source_mpi_’ directive writing 12 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+  542 |         sprintf(fileName, "%s/source_mpi_%d_%d_%d.bin", params.OUT, thisMPICoord.X, thisMPICoord.Y, thisMPICoord.Z);
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void outputSourceData(PARAMS, SOURCE_FILE_INPUT, std::map<long long int, long long int>&, float*, MPI_COORD)’ at src/multiSource.cpp:542:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 22 and 307 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/multiSource.cpp: In function ‘void verifyLocation(PARAMS, SOURCE_FILE_INPUT)’:
+src/multiSource.cpp:584:27: warning: ‘/source_coord_X.bin’ directive writing 19 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+  584 |         sprintf(fileNameX, "%s/source_coord_X.bin", params.OUT);
+      |                           ^~~~~~~~~~~~~~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void verifyLocation(PARAMS, SOURCE_FILE_INPUT)’ at src/multiSource.cpp:584:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 20 and 275 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/multiSource.cpp: In function ‘void verifyLocation(PARAMS, SOURCE_FILE_INPUT)’:
+src/multiSource.cpp:585:27: warning: ‘/source_coord_Y.bin’ directive writing 19 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+  585 |         sprintf(fileNameY, "%s/source_coord_Y.bin", params.OUT);
+      |                           ^~~~~~~~~~~~~~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void verifyLocation(PARAMS, SOURCE_FILE_INPUT)’ at src/multiSource.cpp:585:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 20 and 275 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/multiSource.cpp: In function ‘void verifyLocation(PARAMS, SOURCE_FILE_INPUT)’:
+src/multiSource.cpp:586:27: warning: ‘/source_coord_Z.bin’ directive writing 19 bytes into a region of size between 1 and 256 [-Wformat-overflow=]
+  586 |         sprintf(fileNameZ, "%s/source_coord_Z.bin", params.OUT);
+      |                           ^~~~~~~~~~~~~~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void verifyLocation(PARAMS, SOURCE_FILE_INPUT)’ at src/multiSource.cpp:586:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 20 and 275 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+src/multiSource.cpp: In function ‘void init_MultiSource(PARAMS, GRID, MPI_COORD, float*, float*, long long int**, float**, float**, SOURCE_FILE_INPUT*)’:
+src/multiSource.cpp:717:32: warning: ‘%s’ directive writing up to 255 bytes into a region of size between 0 and 255 [-Wformat-overflow=]
+  717 |         sprintf(sourceFileName, "%s/%s", params.sourceDir, params.sourceFile);
+      |                                ^~~~~~~                    ~~~~~~~~~~~~~~~~~
+In function ‘int sprintf(char*, const char*, ...)’,
+    inlined from ‘void init_MultiSource(PARAMS, GRID, MPI_COORD, float*, float*, long long int**, float**, float**, SOURCE_FILE_INPUT*)’ at src/multiSource.cpp:717:8:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:31: note: ‘__builtin___sprintf_chk’ output between 2 and 512 bytes into a destination of size 256
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                              
+/usr/local/cuda/bin/nvcc -O3 -rdc=true -gencode arch=compute_80,code=[sm_80,compute_80] -L/usr/local/cuda/lib64 -lcudart -L/public/openmpi-5.0.10/lib -lmpi -L/sotfware/proj-8.1.0/lib -lproj -lm obj/cjson.o obj/init_gpu.o obj/init_grid.o obj/init_MPI.o obj/main.o obj/getParams.o obj/create_dir.o obj/run.o obj/printInfo.o obj/modelChecking.o obj/cpu_Malloc.o obj/MPI_send_recv.o obj/data_io.o obj/coord.o obj/terrain.o obj/medium.o obj/dealMedium.o obj/crustMedium.o obj/calc_CFL.o obj/CJM.o obj/contravariant.o obj/MPI_send_recv_FLOAT.o obj/multiSource.o obj/wave_deriv.o obj/wave_rk.o obj/propagate.o obj/freeSurface.o obj/singleSource.o obj/station.o obj/PGV.o obj/addMoment.o obj/init_pml_para.o obj/pml_deriv.o obj/pml_rk.o obj/pml_freeSurface.o obj/weno_pml.o obj/alternative_flux_FD.o obj/exp_decay_absorb.o obj/solve_displacement.o obj/wave_rk_tvd.o -o bin/main

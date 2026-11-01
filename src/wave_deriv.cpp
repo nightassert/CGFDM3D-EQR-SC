@@ -55,16 +55,19 @@ void allocWave(GRID grid, WAVE *wave)
 
 	wave->h_W = pWave + 0 * WSIZE * num;
 	wave->W = pWave + 1 * WSIZE * num;
+	// Scratch buffer: RK accumulator for CGFDM, Riemann flux for WENO.
+	// It must not be reused as output scratch in the WENO path: the face
+	// rows at both ends of each direction are never recomputed by the flux
+	// kernels and are read by cal_du_x/y/z, so anything written here between
+	// RK stages is re-injected into the solution.
+	wave->t_W = pWave + 2 * WSIZE * num;
+	// RK stage snapshot (m = W at the start of the step), dead after the RK
+	// loop; the WENO output path reuses it as its physical-field buffer.
 	wave->m_W = pWave + 3 * WSIZE * num;
 #ifdef SOLVE_PGA
 	wave->W_pre = pWave + 4 * WSIZE * num;
-#endif
-
-#ifdef SCFDM
-	// ! For alternative flux finite difference by Tianhong Xu
-	wave->Riemann_flux = pWave + 2 * WSIZE * num;
 #else
-	wave->t_W = pWave + 2 * WSIZE * num;
+	wave->W_pre = NULL;
 #endif
 }
 
@@ -171,19 +174,6 @@ void wave_deriv(FLOAT *h_W, FLOAT *W, FLOAT *CJM,
 	float Tyz2;
 	float Tyz3;
 
-	/*
-	float h_WVx ;
-	float h_WVy ;
-	float h_WVz ;
-	float h_WTxx;
-	float h_WTyy;
-	float h_WTzz;
-	float h_WTxy;
-	float h_WTxz;
-	float h_WTyz;
-	*/
-
-	// printf( "wave_deriv\n"  );
 	CALCULATE3D(i, j, k, HALO, _nx, HALO, _ny, HALO, _nz)
 	index = INDEX(i, j, k);
 #ifdef PML
@@ -205,11 +195,6 @@ void wave_deriv(FLOAT *h_W, FLOAT *W, FLOAT *CJM,
 	lambda = CJM[index * CJMSIZE + 11];
 	buoyancy = CJM[index * CJMSIZE + 12];
 	buoyancy *= Crho;
-
-	// printf( "xi_x = %f, xi_y = %f, xi_z = %f\n", xi_x, xi_y, xi_z );
-	// printf( "et_x = %f, et_y = %f, et_z = %f\n", et_x, et_y, et_z );
-	// printf( "zt_x = %f, zt_y = %f, zt_z = %f\n", zt_x, zt_y, zt_z );
-	// printf( "mu = %f, lambda = %f, bouyancy = %f\n", mu, lambda, buoyancy );
 
 	Vx_xi = L((float)W, 0, WSIZE, FB1, xi) TIMES_PML_BETA_X;
 	Vy_xi = L((float)W, 1, WSIZE, FB1, xi) TIMES_PML_BETA_X;
@@ -311,8 +296,6 @@ void waveDeriv(GRID grid, WAVE wave, FLOAT *CJM,
 	blocks.y = (ny + threads.y - 1) / threads.y;
 	blocks.z = (nz + threads.z - 1) / threads.z;
 
-	// cout << "X = " << blocks.x << "Y = " << blocks.y << "Z = " << blocks.z << endl;
-
 	wave_deriv<<<blocks, threads>>>(wave.h_W, wave.W, CJM,
 #ifdef PML
 									pml_beta,
@@ -331,56 +314,3 @@ void waveDeriv(GRID grid, WAVE wave, FLOAT *CJM,
 
 #endif // GPU_CUDA
 }
-
-/*
-//index = INDEX( i, j, k );
-long long index_1, index0, index1, index2, index3;
-index_1 = INDEX( i - FB1 * 1, j, k ) * WSIZE;
-index0  = INDEX( i + FB1 * 0, j, k ) * WSIZE;
-index1  = INDEX( i + FB1 * 1, j, k ) * WSIZE;
-index2  = INDEX( i + FB1 * 2, j, k ) * WSIZE;
-index3  = INDEX( i + FB1 * 3, j, k ) * WSIZE;
-
- Vx_xi = LW( (float)W, 0, FB1 ) * rDH     TIMES_PML_BETA_X;
- Vy_xi = LW( (float)W, 1, FB1 ) * rDH     TIMES_PML_BETA_X;
- Vz_xi = LW( (float)W, 2, FB1 ) * rDH     TIMES_PML_BETA_X;
-Txx_xi = LW( (float)W, 3, FB1 ) * rDH     TIMES_PML_BETA_X;
-Tyy_xi = LW( (float)W, 4, FB1 ) * rDH     TIMES_PML_BETA_X;
-Tzz_xi = LW( (float)W, 5, FB1 ) * rDH     TIMES_PML_BETA_X;
-Txy_xi = LW( (float)W, 6, FB1 ) * rDH     TIMES_PML_BETA_X;
-Txz_xi = LW( (float)W, 7, FB1 ) * rDH     TIMES_PML_BETA_X;
-Tyz_xi = LW( (float)W, 8, FB1 ) * rDH     TIMES_PML_BETA_X;
-
-
-index_1 = INDEX( i, j - FB2 * 1, k ) * WSIZE;
-index0  = INDEX( i, j + FB2 * 0, k ) * WSIZE;
-index1  = INDEX( i, j + FB2 * 1, k ) * WSIZE;
-index2  = INDEX( i, j + FB2 * 2, k ) * WSIZE;
-index3  = INDEX( i, j + FB2 * 3, k ) * WSIZE;
-
- Vx_et = LW( (float)W, 0, FB2 ) * rDH     TIMES_PML_BETA_Y;
- Vy_et = LW( (float)W, 1, FB2 ) * rDH     TIMES_PML_BETA_Y;
- Vz_et = LW( (float)W, 2, FB2 ) * rDH     TIMES_PML_BETA_Y;
-Txx_et = LW( (float)W, 3, FB2 ) * rDH     TIMES_PML_BETA_Y;
-Tyy_et = LW( (float)W, 4, FB2 ) * rDH     TIMES_PML_BETA_Y;
-Tzz_et = LW( (float)W, 5, FB2 ) * rDH     TIMES_PML_BETA_Y;
-Txy_et = LW( (float)W, 6, FB2 ) * rDH     TIMES_PML_BETA_Y;
-Txz_et = LW( (float)W, 7, FB2 ) * rDH     TIMES_PML_BETA_Y;
-Tyz_et = LW( (float)W, 8, FB2 ) * rDH     TIMES_PML_BETA_Y;
-
-index_1 = INDEX( i, j, k - FB3 * 1 ) * WSIZE;
-index0  = INDEX( i, j, k + FB3 * 0 ) * WSIZE;
-index1  = INDEX( i, j, k + FB3 * 1 ) * WSIZE;
-index2  = INDEX( i, j, k + FB3 * 2 ) * WSIZE;
-index3  = INDEX( i, j, k + FB3 * 3 ) * WSIZE;
-
- Vx_zt = LW( (float)W, 0, FB3 ) * rDH     TIMES_PML_BETA_Z;
- Vy_zt = LW( (float)W, 1, FB3 ) * rDH     TIMES_PML_BETA_Z;
- Vz_zt = LW( (float)W, 2, FB3 ) * rDH     TIMES_PML_BETA_Z;
-Txx_zt = LW( (float)W, 3, FB3 ) * rDH     TIMES_PML_BETA_Z;
-Tyy_zt = LW( (float)W, 4, FB3 ) * rDH     TIMES_PML_BETA_Z;
-Tzz_zt = LW( (float)W, 5, FB3 ) * rDH     TIMES_PML_BETA_Z;
-Txy_zt = LW( (float)W, 6, FB3 ) * rDH     TIMES_PML_BETA_Z;
-Txz_zt = LW( (float)W, 7, FB3 ) * rDH     TIMES_PML_BETA_Z;
-Tyz_zt = LW( (float)W, 8, FB3 ) * rDH     TIMES_PML_BETA_Z;
-*/

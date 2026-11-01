@@ -59,16 +59,11 @@ void freePGV(float *pgv, float *cpu_pgv)
 }
 
 __GLOBAL__
-void compare_pgv(float *pgv, FLOAT *W, int nx, int ny, int nz, float DT, int it
-#ifdef SCFDM
-				 ,
-				 FLOAT *CJM
-#endif
-
+void compare_pgv(float *pgv, FLOAT *W, int nx, int ny, int nz, float DT, int it,
+				 FLOAT *CJM, int scheme
 #ifdef SOLVE_PGA
 				 ,
 				 FLOAT *W_pre
-
 #endif
 )
 {
@@ -84,7 +79,6 @@ void compare_pgv(float *pgv, FLOAT *W, int nx, int ny, int nz, float DT, int it
 	int j0 = 0;
 #endif
 
-	// printf( "==========compare pgv===============\n"  );
 
 	int i = i0 + HALO;
 	int j = j0 + HALO;
@@ -92,9 +86,7 @@ void compare_pgv(float *pgv, FLOAT *W, int nx, int ny, int nz, float DT, int it
 
 	long long index, pos;
 
-#ifdef SCFDM
-	float buoyancy;
-#endif
+	float buoyancy = 1.0f;
 
 	float Vx = 0.0f, Vy = 0.0f, Vz = 0.0f, Vh = 0.0f, V = 0.0f;
 #ifdef SOLVE_PGA
@@ -102,28 +94,26 @@ void compare_pgv(float *pgv, FLOAT *W, int nx, int ny, int nz, float DT, int it
 	float Vx_pre = 0.0f, Vy_pre = 0.0f, Vz_pre = 0.0f;
 #endif
 
-	double c = 1.0 / Cv;
+	const float c = 1.0f / (float)Cv;
 	CALCULATE2D(i0, j0, 0, nx, 0, ny)
 	i = i0 + HALO;
 	j = j0 + HALO;
 	index = INDEX(i, j, k);
 	pos = Index2D(i0, j0, nx, ny);
 
-	// if ( i0 == nx - 1 && j0 == ny - 1 )
-	//	printf( "nx = %d, ny = %d, pos = %d, pgvh = %p, pgv = %p\n", nx, ny, pos, pgv.pgvh, pgv.pgv );
-
-#ifdef SCFDM
-	buoyancy = CJM[index * CJMSIZE + 12];
-	buoyancy *= Crho;
-
-	Vx = (float)W[index * WSIZE + 0] * c * buoyancy;
-	Vy = (float)W[index * WSIZE + 1] * c * buoyancy;
-	Vz = (float)W[index * WSIZE + 2] * c * buoyancy;
-#else
-	Vx = (float)W[index * WSIZE + 0] * c;
-	Vy = (float)W[index * WSIZE + 1] * c;
-	Vz = (float)W[index * WSIZE + 2] * c;
-#endif
+	if (scheme == SCHEME_WENO)
+	{
+		buoyancy = CJM[index * CJMSIZE + 12] * Crho;
+		Vx = (float)W[index * WSIZE + 0] * c * buoyancy;
+		Vy = (float)W[index * WSIZE + 1] * c * buoyancy;
+		Vz = (float)W[index * WSIZE + 2] * c * buoyancy;
+	}
+	else
+	{
+		Vx = (float)W[index * WSIZE + 0] * c;
+		Vy = (float)W[index * WSIZE + 1] * c;
+		Vz = (float)W[index * WSIZE + 2] * c;
+	}
 
 	Vh = sqrtf(Vx * Vx + Vy * Vy);
 	V = sqrtf(Vx * Vx + Vy * Vy + Vz * Vz);
@@ -141,18 +131,18 @@ void compare_pgv(float *pgv, FLOAT *W, int nx, int ny, int nz, float DT, int it
 
 	if (it % 10 == 0)
 	{
-#ifdef SCFDM
-		buoyancy = CJM[index * CJMSIZE + 12];
-		buoyancy *= Crho;
-
-		Vx_pre = (float)W_pre[index * WSIZE + 0] * c * buoyancy;
-		Vy_pre = (float)W_pre[index * WSIZE + 1] * c * buoyancy;
-		Vz_pre = (float)W_pre[index * WSIZE + 2] * c * buoyancy;
-#else
-		Vx_pre = (float)W_pre[index * WSIZE + 0] * c;
-		Vy_pre = (float)W_pre[index * WSIZE + 1] * c;
-		Vz_pre = (float)W_pre[index * WSIZE + 2] * c;
-#endif
+		if (scheme == SCHEME_WENO)
+		{
+			Vx_pre = (float)W_pre[index * WSIZE + 0] * c * buoyancy;
+			Vy_pre = (float)W_pre[index * WSIZE + 1] * c * buoyancy;
+			Vz_pre = (float)W_pre[index * WSIZE + 2] * c * buoyancy;
+		}
+		else
+		{
+			Vx_pre = (float)W_pre[index * WSIZE + 0] * c;
+			Vy_pre = (float)W_pre[index * WSIZE + 1] * c;
+			Vz_pre = (float)W_pre[index * WSIZE + 2] * c;
+		}
 
 		Ax = (Vx - Vx_pre) / (10 * DT);
 		Ay = (Vy - Vy_pre) / (10 * DT);
@@ -184,16 +174,11 @@ void outputPgvData(PARAMS params, MPI_COORD thisMPICoord, float *cpuPgv, int nx,
 	fclose(filePgv);
 }
 
-void comparePGV(GRID grid, MPI_COORDINATE thisMPICoord, FLOAT *W, float *pgv, float DT, int it
-#ifdef SCFDM
-				,
+void comparePGV(GRID grid, MPI_COORDINATE thisMPICoord, FLOAT *W, float *pgv, float DT, int it,
 				FLOAT *CJM
-#endif
-
 #ifdef SOLVE_PGA
 				,
 				FLOAT *W_pre
-
 #endif
 )
 {
@@ -207,21 +192,20 @@ void comparePGV(GRID grid, MPI_COORDINATE thisMPICoord, FLOAT *W, float *pgv, fl
 	blocks.y = (ny + threads.y - 1) / threads.y;
 	blocks.z = 1;
 
-	compare_pgv<<<blocks, threads>>>(pgv, W, nx, ny, nz, DT, it
-#ifdef SCFDM
-									 ,
-									 CJM
-#endif
-
+	compare_pgv<<<blocks, threads>>>(pgv, W, nx, ny, nz, DT, it, CJM, g_params.scheme
 #ifdef SOLVE_PGA
 									 ,
 									 W_pre
-
 #endif
 	);
 	CHECK(cudaDeviceSynchronize());
 #else
-	compare_pgv(pgv, W, nx, ny, nz);
+	compare_pgv(pgv, W, nx, ny, nz, DT, it, CJM, g_params.scheme
+#ifdef SOLVE_PGA
+				,
+				W_pre
+#endif
+	);
 #endif
 }
 

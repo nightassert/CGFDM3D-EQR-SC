@@ -11,10 +11,7 @@
 *      2. Xu, T., & Zhang, Z. (2024). Numerical simulation of 3D seismic wave based on alternative flux finite-difference WENO scheme. Geophysical Journal International, 238(1), 496-512. https://doi.org/https://doi.org/10.1093/gji/ggae167
 *
 =================================================================*/
-#ifdef SCFDM
 #include "header.h"
-
-#ifdef EXP_DECAY
 
 __GLOBAL__
 void exp_decay_layers(FLOAT *W, int _nx_, int _ny_, int _nz_, int _NX_, int _NY_, int _NZ_, int frontNX, int frontNY, int frontNZ, int n_exp_decay_layers, FLOAT exp_decay_alpha)
@@ -24,9 +21,9 @@ void exp_decay_layers(FLOAT *W, int _nx_, int _ny_, int _nz_, int _NX_, int _NY_
     int j = threadIdx.y + blockIdx.y * blockDim.y;
     int k = threadIdx.z + blockIdx.z * blockDim.z;
 #else
-    // int i = HALO;
-    // int j = HALO;
-    // int k = _nz - HALO;
+    int i = 0;
+    int j = 0;
+    int k = 0;
 #endif
 
     long long index;
@@ -142,5 +139,3 @@ void expDecayLayers(
 
 #endif // GPU_CUDA
 }
-#endif // EXP_DECAY
-#endif

@@ -36,9 +36,7 @@ void verifyInterpVs(PARAMS params, GRID grid, MPI_COORD thisMPICoord, float *Vs,
 
 	int i, j, index = 0;
 
-	// cout << "k = " << k << endl;
 	FOR_LOOP2D(i, j, halo, _nx, halo, _ny)
-	// index = i + j * _nx_ + k * _nx_ * _ny_;
 	index = k * _nx_ * _ny_ + Index2D(i, j, _nx_, _ny_);
 	fwrite(Vs + index, sizeof(float), 1, file);
 	END_LOOP2D()
@@ -89,7 +87,6 @@ void structureInterp(PARAMS params, GRID grid,
 	for (K = 0; K < NLayer; K++)
 	{
 		FOR_LOOP2D(i, j, 0, _nx_, 0, _ny_)
-		// index = i + j * _nx_;
 		index = Index2D(i, j, _nx_, _ny_);
 
 		x_ = LonLat.lon[index];
@@ -109,36 +106,27 @@ void structureInterp(PARAMS params, GRID grid,
 		y[0] = y1;
 		y[1] = y2;
 
-		// pos = K + I * NLayer + J * NLayer * nLon;
 		pos = K + Index2D(I, J, nLon, nLat) * NLayer;
 		z[0] = VModel[pos]; // A
 
-		// pos = K + ( I + 1 ) * NLayer + J * NLayer * nLon;
 		pos = K + Index2D(I + 1, J, nLon, nLat) * NLayer;
 		z[2] = VModel[pos]; // B
 
-		// pos = K + I * NLayer + ( J + 1 ) * NLayer * nLon;
 		pos = K + Index2D(I, J + 1, nLon, nLat) * NLayer;
 		z[1] = VModel[pos]; // C
 
-		// pos = K + ( I + 1 ) * NLayer + ( J + 1 ) * NLayer * nLon;
 		pos = K + Index2D(I + 1, J + 1, nLon, nLat) * NLayer;
 		z[3] = VModel[pos]; // D
 
-		// pos = i + j * _nx_ + K * _nx_ * _ny_;
 		pos = K * _nx_ * _ny_ + Index2D(i, j, _nx_, _ny_);
 		Vs[pos] = interp2d(x, y, z, x_, y_);
 		END_LOOP2D()
 	}
 
-	// cout << "IMax = " << IMax << ", JMax = " << JMax;
-	// cout << ", IMin = " << IMin << ", JMin = " << JMin << endl;
 	if (grid.PZ - 1 == thisMPICoord.Z)
 		verifyInterpVs(params, grid, thisMPICoord, Vs, 40);
 
-		// printf( "5: structure = %p\n", structure );
 
-// #define DealWithFirstLayer
 #ifdef DealWithFirstLayer
 	int pos0 = 0;
 	int pos1 = 0;
@@ -184,16 +172,12 @@ void structureInterp(PARAMS params, GRID grid,
 
 	VS = Vs[pos] * 1e-3;
 	VP = (0.9409 + 2.0947 * VS - 0.8206 * (pow(VS, 2)) + 0.2683 * (pow(VS, 3)) - 0.0251 * (pow(VS, 4)));
-	// VP = Vs[pos] * 1e-3;
-	// VS = (0.7858 - 1.2344 * VP + 0.7949 * pow(VP, 2) - 0.1238 * pow(VP, 3) + 0.0064 * pow(VP, 4));
 	RHO = (1.6612 * VP - 0.4721 * (pow(VP, 2)) + 0.0671 * (pow(VP, 3)) - 0.0043 * (pow(VP, 4)) + 0.000106 * (pow(VP, 5)));
 
 	structure[index + 0] = VS * 1e3;
 	structure[index + 1] = VP * 1e3;
 	structure[index + 2] = RHO * 1e3;
 
-	// if ( structure[index+0] < 1000.0 )
-	//	printf( "%f\n", structure[index+0] );
 
 	END_LOOP3D()
 
@@ -213,9 +197,6 @@ void readWeisenShenModel(PARAMS params, GRID grid, MPI_COORD thisMPICoord, float
 	float LonStep = params.MLonStep;
 	float LatStep = params.MLatStep;
 
-	// cout << "LonStart = " << LonStart << ", LatStart = " << LatStart << endl;
-	// cout << "LonEnd = " << LonEnd << ", LatEnd = " << LatEnd << endl;
-	// cout << "LonStep = " << LonStep << ", LatStep = " << LatStep << endl;
 
 	char fileName[256];
 
@@ -224,57 +205,25 @@ void readWeisenShenModel(PARAMS params, GRID grid, MPI_COORD thisMPICoord, float
 	nLon = int((LonEnd - LonStart) / LonStep + 0.5 + 1);
 	nLat = int((LatEnd - LatStart) / LatStep + 0.5 + 1);
 
-	// cout << "========================" << endl;
 	char lonName[64];
 	char latName[64];
 
-	// float * MLon = ( float * )malloc( nLat );
-	// float * VModel = ( float * )malloc( sizeof( float ) * nLat * nLon );
 
 	float Depth = params.Depth * 1e3 + Deeper;
 	int NLayer = int(Depth / params.MVeticalStep);
 
-	// vector< list<float> >  VModel( nLon * nLat );
 	float *VModel = (float *)malloc(nLon * nLat * NLayer * sizeof(float));
 	int pos = 0;
 	double dep, vs, err;
 
 	FOR_LOOP2D(i, j, 0, nLon, 0, nLat)
-	// cout << params.StructureDir << endl;
 
 	sprintf(lonName, "%.1f", LonStart + i * LonStep);
 	sprintf(latName, "%.1f", LatStart + j * LatStep);
 
-	// if (lonName[strlen(lonName) - 1] == '0')
-	// {
-	// 	lonName[strlen(lonName) - 1] = 0;
-	// 	lonName[strlen(lonName) - 1] = 0;
-	// }
-	// if (latName[strlen(latName) - 1] == '0')
-	// {
-	// 	latName[strlen(latName) - 1] = 0;
-	// 	latName[strlen(latName) - 1] = 0;
-	// }
-
-	// !
-	// sprintf(lonName, "%.3f", LonStart + i * LonStep);
-	// sprintf(latName, "%.3f", LatStart + j * LatStep);
-
-	// if (lonName[strlen(lonName) - 1] == '0')
-	// {
-	// 	lonName[strlen(lonName) - 1] = 0;
-	// 	lonName[strlen(lonName) - 1] = 0;
-	// }
-	// if (latName[strlen(latName) - 1] == '0')
-	// {
-	// 	latName[strlen(latName) - 1] = 0;
-	// 	latName[strlen(latName) - 1] = 0;
-	// }
 
 	sprintf(fileName, "%s/%s_%s.mod", params.MediumDir, lonName, latName);
 
-	// if ( thisMPICoord.X == 0 && thisMPICoord.Y == 0 && thisMPICoord.Z == 0 )
-	//	cout << fileName << endl;
 
 	FILE *file = fopen(fileName, "r");
 
@@ -310,7 +259,6 @@ void readWeisenShenModel(PARAMS params, GRID grid, MPI_COORD thisMPICoord, float
 				for (int i = 0; i < nLon; i++)
 				{
 
-					// pos = k + i * NLayer + j * NLayer * nLon;
 					pos = K + Index2D(i, j, nLon, nLat) * NLayer;
 					fprintf(fileTxt, "%.0f ", VModel[pos]);
 				}

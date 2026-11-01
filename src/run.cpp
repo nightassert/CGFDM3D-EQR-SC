@@ -19,11 +19,7 @@
 #include "header.h"
 PARAMS g_params;
 MPI_COORD g_thisMPICoord;
-#ifdef SCFDM
-#ifdef LF
-float vp_max_for_SCFDM = 0.0;
-#endif
-#endif
+float g_vp_max = 0.0f;
 
 void run(MPI_Comm comm_cart, MPI_COORD thisMPICoord, MPI_NEIGHBOR mpiNeighbor, GRID grid, PARAMS params)
 {
@@ -69,38 +65,34 @@ void run(MPI_Comm comm_cart, MPI_COORD thisMPICoord, MPI_NEIGHBOR mpiNeighbor, G
 	MPI_Barrier(MPI_COMM_WORLD);
 	data2D_Model_out(thisMPICoord, params, grid, coord, medium, slice, sliceData, sliceDataCpu);
 
-	// printf( "coord = %p, cpu_coord = %p\n", coord, cpu_coord );
-	// printf( "medium = %p, cpu_medium = %p\n", medium, cpu_medium );
 	// calculate CFL condition
 	calc_CFL(grid, cpu_coord, cpu_medium, params);
 
 	FLOAT *CJM; // Contravariant Jacbian Medium
 	allocCJM(grid, &CJM);
 
-	Mat_rDZ mat_rDZ;
-#ifndef SCFDM
+	Mat_rDZ mat_rDZ = {0};
 #ifdef FREE_SURFACE
-	allocMat_rDZ(grid, &mat_rDZ);
-#endif
+	// Mat_rDZ is only used by the CGFDM free-surface derivative.
+	if (params.scheme == SCHEME_CGFDM)
+		allocMat_rDZ(grid, &mat_rDZ);
 #endif
 
 	if (thisRank == 0)
 		printf("Geometrical Information Calculating: Contravariant and Jacobian...\n");
 	MPI_Barrier(MPI_COMM_WORLD);
 	constructCJM(comm_cart, mpiNeighbor, grid, CJM, coord, medium, mat_rDZ);
-	// data2D_Model_out( thisMPICoord, params, grid, coord, medium, slice, sliceData, sliceDataCpu );
 	freeMedium(medium, cpu_medium);
 	MPI_Barrier(MPI_COMM_WORLD);
 
 	// multi source
-	long long *srcIndex;
-	float *momentRate, *momentRateSlice;
-	SOURCE_FILE_INPUT src_in;
+	long long *srcIndex = NULL;
+	float *momentRate = NULL, *momentRateSlice = NULL;
+	SOURCE_FILE_INPUT src_in = {0};
 
 	if (params.useMultiSource)
 	{
 		init_MultiSource(params, grid, thisMPICoord, cpu_coord, cpu_terrain, &srcIndex, &momentRate, &momentRateSlice, &src_in);
-		// cout << "==================================" << endl;
 	}
 	freeCoord(coord, cpu_coord);
 	freeTerrain(terrain, cpu_terrain);
@@ -120,18 +112,12 @@ void run(MPI_Comm comm_cart, MPI_COORD thisMPICoord, MPI_NEIGHBOR mpiNeighbor, G
 			  src_in, srcIndex, momentRate, momentRateSlice,
 			  slice, sliceData, sliceDataCpu);
 
-	// if ( params.useMultiSource )
-	//{
-	//	finish_MultiSource( srcIndex, momentRate, momentRateSlice, src_in.npts );
-	// }
-
 	MPI_Barrier(MPI_COMM_WORLD);
 
 	freeWave(wave);
-#ifndef SCFDM
 #ifdef FREE_SURFACE
-	freeMat_rDZ(mat_rDZ);
-#endif
+	if (params.scheme == SCHEME_CGFDM)
+		freeMat_rDZ(mat_rDZ);
 #endif
 	freeCJM(CJM);
 	freeSliceData(grid, slice, sliceData, sliceDataCpu);

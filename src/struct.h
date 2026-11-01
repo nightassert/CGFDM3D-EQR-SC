@@ -18,8 +18,27 @@
 
 #ifndef __STRUCT__
 #define __STRUCT__
+
+// Numerical scheme selected at run time from params.json.
+typedef enum SCHEME
+{
+	SCHEME_CGFDM = 0, // curvilinear-grid finite difference
+	SCHEME_WENO = 1	  // alternative-flux finite difference WENO5
+} SCHEME;
+
+// WENO reconstruction selected by the "scheme" key ("WENO-JS" or "WENO-Z").
+// Both options use the same alternative-flux WENO branch, so PARAMS.scheme
+// stays SCHEME_WENO for either one; only the interface reconstruction differs.
+typedef enum WENO_RECONSTRUCTION
+{
+	WENO_RECONSTRUCTION_JS = 0, // Jiang & Shu (1996) nonlinear weights
+	WENO_RECONSTRUCTION_Z = 1	// Borges et al. (2008) Z weights
+} WENO_RECONSTRUCTION;
+
 typedef struct PARAMS
 {
+
+	SCHEME scheme;
 
 	double TMAX;
 
@@ -52,6 +71,14 @@ typedef struct PARAMS
 	int sliceFreeSurf;
 
 	int nPML;
+
+	// WENO Riemann flux: 0 = global Vp_max (historical), 1 = max(Vp) of the
+	// two cells sharing each interface.  Ignored by the CGFDM branch.
+	int wenoLocalAlpha;
+
+	// WENO only: JS (historical) or Z (Borges et al. 2008).  Chosen through
+	// the "scheme" key; ignored by the CGFDM branch.
+	WENO_RECONSTRUCTION wenoReconstruction;
 
 	int gauss_hill;
 	int useTerrain;
@@ -173,7 +200,6 @@ typedef struct GRID
 
 	int _originalX;
 	int _originalY;
-	// int originalZ;
 
 	int halo;
 
@@ -255,8 +281,6 @@ typedef struct WAVE
 	FLOAT *m_W;
 	// ! For SOLVE_PGA
 	FLOAT *W_pre;
-	// ! For alternative flux finite difference by Tianhong Xu
-	FLOAT *Riemann_flux;
 } WAVE;
 
 typedef struct STATION
@@ -283,21 +307,6 @@ typedef struct AUX6SURF
 	AUX Aux2y;
 	AUX Aux2z;
 } AUX6SURF, AUX6;
-
-/*
-typedef struct AUXILIARY
-{
-	float * Vx;
-	float * Vy;
-	float * Vz;
-	float * Txx;
-	float * Tyy;
-	float * Tzz;
-	float * Txy;
-	float * Txz;
-	float * Tyz;
-}AUXILIARY, AUX;
-*/
 
 typedef struct PML_ALPHA
 {

@@ -14,112 +14,102 @@
 
 #include "header.h"
 
+// Select the CUDA device for this MPI rank.  The optional "gpu_nodes"
+// block in params.json maps MPI ranks to devices by host name; when it is
+// absent (a workstation with one GPU, for example) the rank simply picks
+// devices round-robin.
 void init_gpu(int PX, int PY, int PZ)
 {
 	char jsonFile[1024] = {0};
 	strcpy(jsonFile, "params.json");
-	FILE *fp;
-	fp = fopen(jsonFile, "r");
+	FILE *fp = fopen(jsonFile, "r");
 
 	if (NULL == fp)
 	{
 		printf("There is not %s file!\n", jsonFile);
-		MPI_Abort(MPI_COMM_WORLD, 100); // exit( 1 );
-										// exit( 1 );
+		MPI_Abort(MPI_COMM_WORLD, 100);
 	}
 
 	fseek(fp, 0, SEEK_END);
 	int len = ftell(fp);
-
 	fseek(fp, 0, SEEK_SET);
 
-	char *jsonStr = (char *)malloc(len * sizeof(char));
-
+	char *jsonStr = (char *)malloc(len + 1);
 	if (NULL == jsonStr)
 	{
 		printf("Can't allocate json string memory\n");
+		fclose(fp);
+		MPI_Abort(MPI_COMM_WORLD, 1001);
 	}
 
 	fread(jsonStr, sizeof(char), len, fp);
+	jsonStr[len] = '\0';
+	fclose(fp);
 
-	// printf( "%s\n", jsonStr );
-	cJSON *object;
-	cJSON *objArray;
-
-	object = cJSON_Parse(jsonStr);
+	cJSON *object = cJSON_Parse(jsonStr);
 	if (NULL == object)
 	{
 		printf("Can't parse json file!\n");
-		// exit( 1 );
-		MPI_Abort(MPI_COMM_WORLD, 1001); // exit( 1 );
-		return;
+		free(jsonStr);
+		MPI_Abort(MPI_COMM_WORLD, 1001);
 	}
 
-	fclose(fp);
+	cJSON *objArray = cJSON_GetObjectItem(object, "gpu_nodes");
+	int nodeCnt = objArray ? cJSON_GetArraySize(objArray) : 0;
 
-	int nodeCnt = 0;
-
-	if (objArray = cJSON_GetObjectItem(object, "gpu_nodes"))
-	{
-		nodeCnt = cJSON_GetArraySize(objArray);
-		//	printf( "nodeCnt = %d\n", nodeCnt );
-	}
-
-	int i, j;
-	cJSON *nodeObj, *nodeItem;
-
-	int nameLens;
-	char thisMPINodeName[256];
-
-	MPI_Get_processor_name(thisMPINodeName, &nameLens);
-
-	// printf( "this mpi node name is %s\n", thisMPINodeName  );
-
-	//	printf( "node: %s\n", thisMPINodeName );
-
-	int nodeGPUCnt = 0;
-
-	int frontGPNCnt = 0;
 	int thisRank;
-	int thisNodeRankID;
 	MPI_Comm_rank(MPI_COMM_WORLD, &thisRank);
 
-	// printf( "==================================" );
-	for (i = 0; i < nodeCnt; i++)
-	{
-		nodeObj = cJSON_GetArrayItem(objArray, i);
+	char thisMPINodeName[256] = {0};
+	int nameLens = 0;
+	MPI_Get_processor_name(thisMPINodeName, &nameLens);
 
-		nodeGPUCnt = cJSON_GetArraySize(nodeObj);
+	int deviceSet = 0;
+	int frontGPNCnt = 0;
+
+	for (int i = 0; i < nodeCnt; i++)
+	{
+		cJSON *nodeObj = cJSON_GetArrayItem(objArray, i);
+		int nodeGPUCnt = cJSON_GetArraySize(nodeObj);
+
 		if (0 == strcmp(nodeObj->string, thisMPINodeName))
 		{
-
-			thisNodeRankID = thisRank - frontGPNCnt;
-
-			for (j = 0; j < nodeGPUCnt; j++)
+			int thisNodeRankID = thisRank - frontGPNCnt;
+			for (int j = 0; j < nodeGPUCnt; j++)
 			{
-				nodeItem = cJSON_GetArrayItem(nodeObj, j);
+				cJSON *nodeItem = cJSON_GetArrayItem(nodeObj, j);
 				if (thisNodeRankID == j)
 				{
-					// printf( "%s[%d] is available!\n", nodeObj->string, nodeItem->valueint );
 #ifdef GPU_CUDA
 					CHECK(cudaSetDevice(nodeItem->valueint));
 #endif
+					deviceSet = 1;
 				}
 			}
-
-			// break;
 		}
 
 		frontGPNCnt += nodeGPUCnt;
 	}
 
-	MPI_Barrier(MPI_COMM_WORLD);
-
-	if (frontGPNCnt != PX * PY * PZ)
+#ifdef GPU_CUDA
+	if (!deviceSet)
 	{
-		printf("The GPU numbers can't match the MPI numbers\n");
-		MPI_Abort(MPI_COMM_WORLD, 1002); // exit( 1 );
-										 // exit( 1  );
-										 // MPI_Finalize( );
+		int deviceCount = 0;
+		CHECK(cudaGetDeviceCount(&deviceCount));
+		int device = (deviceCount > 0) ? (thisRank % deviceCount) : 0;
+		CHECK(cudaSetDevice(device));
 	}
+#endif
+
+	if (nodeCnt > 0 && frontGPNCnt != PX * PY * PZ && 0 == thisRank)
+	{
+		printf("Warning: gpu_nodes lists %d GPUs but the run uses %d MPI ranks. "
+			   "Falling back to round-robin device selection where needed.\n",
+			   frontGPNCnt, PX * PY * PZ);
+	}
+
+	cJSON_Delete(object);
+	free(jsonStr);
+
+	MPI_Barrier(MPI_COMM_WORLD);
 }

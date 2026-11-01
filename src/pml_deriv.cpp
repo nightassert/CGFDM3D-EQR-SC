@@ -50,7 +50,7 @@ void allocPML(GRID grid, AUX6SURF *Aux6, MPI_BORDER border)
 
 	int nPML = grid.nPML;
 
-	memset((void *)Aux6, 0, sizeof(AUX));
+	memset((void *)Aux6, 0, sizeof(AUX6SURF));
 
 	if (border.isx1 && nPML >= nx)
 	{
