@@ -24,6 +24,7 @@ GPU build:
 - CUDA Toolkit 13.x, driver 580 or newer
 - An MPI implementation built with CUDA support (CUDA-aware MPI)
 - PROJ 8 or newer
+- NetCDF (optional, only for the 3D velocity volume output)
 - A GPU with compute capability 7.5 or newer
   (A100 = sm_80, RTX 3060 = sm_86, RTX 40-series = sm_89, H100 = sm_90)
 
@@ -64,6 +65,17 @@ make CUDA_ARCH=sm_86 \
 
 The executable is written to `bin/main`; object files go to `obj/`.
 Run `make clean` before switching between the GPU and the CPU build.
+
+The optional 3D velocity volume output uses NetCDF. The default build links
+`-lnetcdf` (`NETCDF=ON`); set `NETCDF_HOME` when NetCDF is not installed in
+`/usr`, or disable the feature explicitly:
+
+```bash
+make CUDA_ARCH=sm_86 NETCDF_HOME=/opt/netcdf
+make CUDA_ARCH=sm_86 NETCDF=OFF
+```
+
+With `NETCDF=OFF` the run is unchanged and `volume.json` is ignored.
 
 ## Run
 
@@ -109,6 +121,52 @@ host names and MPI ranks to devices as before.
 (e.g. `"PX": 1, "PY": 1, "PZ": 1` for one GPU, `"PX": 2, "PY": 1, "PZ": 1`
 for two). The program checks this at startup and prints a clear error
 instead of failing inside MPI when the numbers do not match.
+
+## 3D velocity volume output
+
+An arbitrary subvolume of the velocity field can be written during a run. It is
+disabled by default: create `volume.json` in the run directory to enable it.
+Example:
+
+```json
+{
+    "enabled": 1,
+    "it_skip": 20,
+    "xStart": 250,
+    "xEnd": 550,
+    "yStart": 180,
+    "yEnd": 420,
+    "zStart": 340,
+    "zEnd": 400
+}
+```
+
+The block is given in global grid indices, inclusive, with the same convention
+as `station.json` (`K = NZ-1` is the free surface). Missing range keys default
+to the whole grid, `it_skip` defaults to 1 and `enabled` defaults to 1. At
+startup the program prints the block size, the number of output frames and the
+total data volume, so the block or `it_skip` can be adjusted before a long run.
+
+Every rank writes its local part of the block to
+`output/volume_mpi_X_Y_Z.nc` (NetCDF-4). Each file has the dimensions
+`(time, z, y, x)`, the float32 variables `vx`, `vy`, `vz` in m/s, the integer
+grid indices `I`, `J`, `K` and the `time` axis. The CGFDM path stores velocity
+directly; the WENO path stores conservative momentum and is converted with
+`v = W * buoyancy`, the same conversion used by the station and slice output.
+
+The per-rank files can be merged into a single file with
+`examples/Example_finite_fault/mergeVolumeNC.py` (requires `numpy` and
+`netCDF4`):
+
+```bash
+python3 mergeVolumeNC.py output -o volume.nc
+python3 mergeVolumeNC.py output -o volume.nc --deflate 1
+```
+
+The script verifies that the sub-blocks tile the requested block without gaps
+or overlaps, then writes the full `(time, z, y, x)` volume together with the
+`I`, `J`, `K` coordinates and the original global attributes. Remove stale
+`output/volume_mpi_*.nc` files from earlier runs before merging.
 
 ## Notes on memory
 

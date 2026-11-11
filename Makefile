@@ -41,6 +41,11 @@ LayeredStructureTerrain := ON
 StructureTerrain := ON
 SET_BASIN :=
 
+# Optional 3D volume output to NetCDF-4.  Set NETCDF=OFF for environments
+# without the NetCDF C library; the rest of the program is unaffected.
+NETCDF ?= ON
+NETCDF_HOME ?= /usr
+
 #----------------------------------------------------------------
 # Toolchain locations
 #----------------------------------------------------------------
@@ -72,12 +77,22 @@ BINDIR := ./bin
 
 DFLAGS_LIST := GPU_CUDA XFAST ZFAST FREE_SURFACE PML SOLVE_PGA \
                SOLVE_DISPLACEMENT Terrain_Smooth DealWithFirstLayer \
-               LayeredStructureTerrain StructureTerrain SET_BASIN
+               LayeredStructureTerrain StructureTerrain SET_BASIN USE_NETCDF
+
+ifeq ($(NETCDF),ON)
+USE_NETCDF := ON
+endif
 
 DFLAGS := $(foreach flag,$(DFLAGS_LIST),$(if $($(flag)),-D$(flag)))
 
 INCS := -I$(MPI_HOME)/include \
         -I$(PROJ_HOME)/include
+
+NETCDF_LIB :=
+ifeq ($(NETCDF),ON)
+INCS += -I$(NETCDF_HOME)/include
+NETCDF_LIB := -L$(NETCDF_HOME)/lib -lnetcdf
+endif
 
 # GPU mode: compile and link with nvcc (relocatable device code).
 # CPU mode: plain C++ compiler, no CUDA headers or libraries.
@@ -104,7 +119,8 @@ OBJS := cjson.o init_gpu.o init_grid.o init_MPI.o main.o getParams.o create_dir.
         contravariant.o MPI_send_recv_FLOAT.o multiSource.o wave_deriv.o wave_rk.o \
         propagate.o freeSurface.o singleSource.o station.o PGV.o addMoment.o \
         init_pml_para.o pml_deriv.o pml_rk.o pml_freeSurface.o \
-        weno_pml.o alternative_flux_FD.o exp_decay_absorb.o solve_displacement.o wave_rk_tvd.o
+        weno_pml.o alternative_flux_FD.o exp_decay_absorb.o solve_displacement.o wave_rk_tvd.o \
+        volume_io.o
 
 OBJS := $(addprefix $(OBJDIR)/,$(OBJS))
 
@@ -116,7 +132,7 @@ OBJS := $(addprefix $(OBJDIR)/,$(OBJS))
 all: $(BINDIR)/main
 
 $(BINDIR)/main: $(OBJS) | $(BINDIR)
-	$(CXX) $(CXX_LINK) $(LIBS) $^ -o $@
+	$(CXX) $(CXX_LINK) $(LIBS) $^ $(NETCDF_LIB) -o $@
 
 # Headers are not tracked individually; make every object depend on all of
 # them so a change to struct.h (e.g. a new PARAMS field) cannot leave stale

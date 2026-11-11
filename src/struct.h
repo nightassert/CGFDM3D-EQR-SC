@@ -289,6 +289,30 @@ typedef struct STATION
 	float *wave;
 } STATION;
 
+// Optional 3D volume output, configured by volume.json in the run directory.
+// The block is given in global grid indices (inclusive) and split over MPI
+// ranks by intersection; every rank writes its own NetCDF file.
+typedef struct VOLUME_OUT
+{
+	int enabled; // volume.json found and this rank owns part of the block
+	int itSkip;	 // write every itSkip time steps
+
+	int xStart, xEnd;
+	int yStart, yEnd;
+	int zStart, zEnd;
+
+	int iLo, jLo, kLo; // first global index owned by this rank
+	int nx, ny, nz;	   // size of the local intersection
+
+	int ncid;
+	int timeDimID, zDimID, yDimID, xDimID;
+	int timeVarID, iVarID, jVarID, kVarID;
+	int vxVarID, vyVarID, vzVarID;
+
+	float *hData; // 3 * nx * ny * nz host buffer, [vx][z][y][x]
+	float *dData; // same layout on the device (GPU build only)
+} VOLUME_OUT;
+
 typedef struct AUXILIARY
 {
 	float *h_Aux;

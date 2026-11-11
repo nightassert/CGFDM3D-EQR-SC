@@ -169,6 +169,11 @@ void propagate(
 		stationCPU2GPU(station, cpu_station, stationNum);
 	}
 
+	// Optional 3D volume output (volume.json).  Disabled when the file is
+	// absent, so this does not change the default behaviour.
+	VOLUME_OUT volumeOutput;
+	initVolumeOutput(params, grid, thisMPICoord, &volumeOutput);
+
 	SOURCE S = {0}; //{ _nx_ / 2, _ny_ / 2, _nz_ / 2 };
 	locateSource(params, grid, &S);
 
@@ -316,6 +321,10 @@ void propagate(
 
 		if (stationNum > 0)
 			storageStation(grid, NT, stationNum, station, wave.W, it, CJM);
+
+		if (volumeOutput.enabled && (it % volumeOutput.itSkip == 0))
+			volumeWrite(grid, params, wave.W, CJM, &volumeOutput, it);
+
 		if (IsFreeSurface)
 			comparePGV(grid, thisMPICoord, wave.W, pgv, DT, it, CJM
 #ifdef SOLVE_PGA
@@ -345,6 +354,8 @@ void propagate(
 		}
 
 	} // for loop of it: The time iterator of NT steps
+	freeVolumeOutput(&volumeOutput);
+
 	if (useMultiSource)
 		freeGaussFactor(gaussFactor);
 

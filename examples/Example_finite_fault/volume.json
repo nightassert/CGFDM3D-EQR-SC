@@ -1,0 +1,10 @@
+{
+    "enabled": 1,
+    "it_skip": 5,
+    "xStart": 250,
+    "xEnd": 550,
+    "yStart": 180,
+    "yEnd": 420,
+    "zStart": 340,
+    "zEnd": 400
+}
